@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Award, DollarSign, Instagram, Users, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Award, DollarSign, Instagram, Users, Activity, Lightbulb, Target, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -159,6 +159,36 @@ export default function MentoradoCard({ nome, data, rank }: MentoradoCardProps) 
                       </span>
                     </div>
                   </div>
+
+                  {data.feedback && (
+                    <div className="space-y-3 mt-4 bg-neon-purple/5 p-4 rounded-xl border border-neon-purple/10">
+                      <div className="flex items-center gap-2 text-neon-purple font-bold text-sm">
+                        <Target className="w-4 h-4" /> Plano de Ação Janeiro
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Análise Dezembro</p>
+                          <p className="text-sm text-slate-700 leading-relaxed">{data.feedback.analise_dezembro}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Foco Principal</p>
+                          <div className="flex items-start gap-2">
+                            <ArrowRight className="w-4 h-4 text-neon-purple mt-0.5 flex-shrink-0" />
+                            <p className="text-sm font-medium text-slate-900">{data.feedback.foco_janeiro}</p>
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                          <div className="flex items-center gap-2 text-neon-green-dark font-bold text-xs mb-2">
+                            <Lightbulb className="w-3 h-3" /> Sugestão do Mentor
+                          </div>
+                          <p className="text-sm text-slate-600 italic leading-relaxed">"{data.feedback.sugestao}"</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

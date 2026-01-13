@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import MyDashboard from "./pages/MyDashboard";
+import Admin from "./pages/Admin";
 import SubmitMetrics from "./pages/SubmitMetrics";
 import Estrutura from "./pages/Estrutura";
 import Escala from "./pages/Escala";
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/meu-dashboard"} component={MyDashboard} />
       <Route path={"/enviar-metricas"} component={SubmitMetrics} />
+      <Route path={"/admin"} component={Admin} />
       <Route path={"/estrutura"} component={Estrutura} />
       <Route path={"/escala"} component={Escala} />
       <Route path={"/404"} component={NotFound} />

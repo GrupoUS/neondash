@@ -7,9 +7,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Users, TrendingUp, DollarSign, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/_core/hooks/useAuth";
+import MonthYearFilter from "@/components/MonthYearFilter";
+import { useState } from "react";
 
 export default function Home() {
   // Admin dashboard - no auth check needed for now
+  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedMonth, setSelectedMonth] = useState(12);
 
   const topPerformers = [
     ...analiseData.neon_estrutura.ranking.map(([nome, score]) => ({ nome, score, grupo: "Estrutura" })),
@@ -46,9 +50,17 @@ export default function Home() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Visão Geral de Performance</h1>
-          <p className="text-slate-500 mt-2">Análise consolidada de Dezembro 2025 - Turmas Neon</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Visão Geral de Performance</h1>
+            <p className="text-slate-500 mt-2">Análise consolidada de Dezembro 2025 - Turmas Neon</p>
+          </div>
+          <MonthYearFilter
+            selectedYear={selectedYear}
+            selectedMonth={selectedMonth}
+            onYearChange={setSelectedYear}
+            onMonthChange={setSelectedMonth}
+          />
         </div>
 
         {/* KPI Cards */}

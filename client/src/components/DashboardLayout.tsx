@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, TrendingUp, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, TrendingUp, Menu, X, Shield } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 
@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/", label: "Visão Geral", icon: LayoutDashboard },
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: Users },
     { href: "/enviar-metricas", label: "Enviar Métricas", icon: TrendingUp },
+    { href: "/admin", label: "Administração", icon: Shield },
     { href: "/estrutura", label: "Neon Estrutura", icon: Users },
     { href: "/escala", label: "Neon Escala", icon: TrendingUp },
   ];

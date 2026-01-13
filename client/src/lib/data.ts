@@ -162,45 +162,9 @@ export const analiseData: AnaliseCompleta = {
         },
         "classificacao": "Excelente"
       },
-      "Jéssica Sales": {
-        "dados": { "faturamento": 22554.0, "lucro": 0, "posts_feed": 7, "stories": 93, "leads": 43, "procedimentos": 10 },
-        "score": 83.6,
-        "detalhes": {
-          "faturamento": { "realizado": 22554.0, "meta": 30000, "percentual": 75.2, "score": 30.1 },
-          "posts_feed": { "realizado": 7, "esperado": 12, "percentual": 58.3, "score": 8.8 },
-          "stories": { "realizado": 93, "esperado": 28, "percentual": 332.1, "score": 15 },
-          "procedimentos": { "realizado": 10, "esperado": 15, "percentual": 66.7, "score": 13.3 },
-          "leads": { "realizado": 43, "esperado": 20, "percentual": 215.0, "score": 10 }
-        },
-        "classificacao": "Excelente"
-      },
-      "Élica": {
-        "dados": { "faturamento": 20110.6, "lucro": 10159.48, "posts_feed": 3, "stories": 196, "leads": 12, "procedimentos": 5 },
-        "score": 63.2,
-        "detalhes": {
-          "faturamento": { "realizado": 20110.6, "meta": 30000, "percentual": 67.0, "score": 26.8 },
-          "posts_feed": { "realizado": 3, "esperado": 12, "percentual": 25.0, "score": 3.8 },
-          "stories": { "realizado": 196, "esperado": 28, "percentual": 700.0, "score": 15 },
-          "procedimentos": { "realizado": 5, "esperado": 15, "percentual": 33.3, "score": 6.7 },
-          "leads": { "realizado": 12, "esperado": 20, "percentual": 60.0, "score": 6.0 }
-        },
-        "classificacao": "Bom"
-      },
-      "Iza Pionório": {
-        "dados": { "faturamento": 11425.48, "lucro": 0, "posts_feed": 23, "stories": 137, "leads": 47, "procedimentos": 12 },
-        "score": 84.0,
-        "detalhes": {
-          "faturamento": { "realizado": 11425.48, "meta": 30000, "percentual": 38.1, "score": 15.2 },
-          "posts_feed": { "realizado": 23, "esperado": 12, "percentual": 191.7, "score": 15 },
-          "stories": { "realizado": 137, "esperado": 28, "percentual": 489.3, "score": 15 },
-          "procedimentos": { "realizado": 12, "esperado": 15, "percentual": 80.0, "score": 16.0 },
-          "leads": { "realizado": 47, "esperado": 20, "percentual": 235.0, "score": 10 }
-        },
-        "classificacao": "Excelente"
-      },
       "Carmen": {
         "dados": { "faturamento": 65274.0, "lucro": 0, "posts_feed": 10, "stories": 131, "leads": 27, "procedimentos": 0 },
-        "score": 76.0,
+        "score": 77.5,
         "detalhes": {
           "faturamento": { "realizado": 65274.0, "meta": 30000, "percentual": 217.6, "score": 40 },
           "posts_feed": { "realizado": 10, "esperado": 12, "percentual": 83.3, "score": 12.5 },
@@ -210,9 +174,45 @@ export const analiseData: AnaliseCompleta = {
         },
         "classificacao": "Bom"
       },
+      "Jéssica Sales": {
+        "dados": { "faturamento": 22554.0, "lucro": 0, "posts_feed": 7, "stories": 93, "leads": 43, "procedimentos": 10 },
+        "score": 77.2,
+        "detalhes": {
+          "faturamento": { "realizado": 22554.0, "meta": 30000, "percentual": 75.2, "score": 30.1 },
+          "posts_feed": { "realizado": 7, "esperado": 12, "percentual": 58.3, "score": 8.8 },
+          "stories": { "realizado": 93, "esperado": 28, "percentual": 332.1, "score": 15 },
+          "procedimentos": { "realizado": 10, "esperado": 15, "percentual": 66.7, "score": 13.3 },
+          "leads": { "realizado": 43, "esperado": 20, "percentual": 215.0, "score": 10 }
+        },
+        "classificacao": "Bom"
+      },
+      "Iza Pionório": {
+        "dados": { "faturamento": 11425.48, "lucro": 0, "posts_feed": 23, "stories": 137, "leads": 47, "procedimentos": 12 },
+        "score": 71.2,
+        "detalhes": {
+          "faturamento": { "realizado": 11425.48, "meta": 30000, "percentual": 38.1, "score": 15.2 },
+          "posts_feed": { "realizado": 23, "esperado": 12, "percentual": 191.7, "score": 15 },
+          "stories": { "realizado": 137, "esperado": 28, "percentual": 489.3, "score": 15 },
+          "procedimentos": { "realizado": 12, "esperado": 15, "percentual": 80.0, "score": 16.0 },
+          "leads": { "realizado": 47, "esperado": 20, "percentual": 235.0, "score": 10 }
+        },
+        "classificacao": "Bom"
+      },
+      "Élica": {
+        "dados": { "faturamento": 20110.6, "lucro": 10159.48, "posts_feed": 3, "stories": 196, "leads": 12, "procedimentos": 5 },
+        "score": 58.2,
+        "detalhes": {
+          "faturamento": { "realizado": 20110.6, "meta": 30000, "percentual": 67.0, "score": 26.8 },
+          "posts_feed": { "realizado": 3, "esperado": 12, "percentual": 25.0, "score": 3.8 },
+          "stories": { "realizado": 196, "esperado": 28, "percentual": 700.0, "score": 15 },
+          "procedimentos": { "realizado": 5, "esperado": 15, "percentual": 33.3, "score": 6.7 },
+          "leads": { "realizado": 12, "esperado": 20, "percentual": 60.0, "score": 6.0 }
+        },
+        "classificacao": "Regular"
+      },
       "Jayne": {
         "dados": { "faturamento": 4900.0, "lucro": 0, "posts_feed": 30, "stories": 57, "leads": 52, "procedimentos": 4 },
-        "score": 62.9,
+        "score": 51.9,
         "detalhes": {
           "faturamento": { "realizado": 4900.0, "meta": 30000, "percentual": 16.3, "score": 6.5 },
           "posts_feed": { "realizado": 30, "esperado": 12, "percentual": 250.0, "score": 15 },
@@ -220,7 +220,7 @@ export const analiseData: AnaliseCompleta = {
           "procedimentos": { "realizado": 4, "esperado": 15, "percentual": 26.7, "score": 5.3 },
           "leads": { "realizado": 52, "esperado": 20, "percentual": 260.0, "score": 10 }
         },
-        "classificacao": "Bom"
+        "classificacao": "Regular"
       },
       "Tamara Dilma": {
         "dados": { "faturamento": 18278.0, "lucro": 3989.0, "posts_feed": 23, "stories": 0, "leads": 0, "procedimentos": 7 },
@@ -239,11 +239,11 @@ export const analiseData: AnaliseCompleta = {
       ["Thais Olimpia", 96.0],
       ["Lana Máximo", 87.8],
       ["Kleber Oliveira", 87.5],
-      ["Iza Pionório", 84.0],
-      ["Jéssica Sales", 83.6],
-      ["Carmen", 76.0],
-      ["Élica", 63.2],
-      ["Jayne", 62.9],
+      ["Carmen", 77.5],
+      ["Jéssica Sales", 77.2],
+      ["Iza Pionório", 71.2],
+      ["Élica", 58.2],
+      ["Jayne", 51.9],
       ["Tamara Dilma", 48.7]
     ],
     "benchmarks": {

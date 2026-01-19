@@ -46,13 +46,13 @@
 
 ### Notificações
 - [x] Sistema de notificações por email (implementado ao vincular perfil)
-- [ ] Lembretes automáticos para envio de métricas
-- [ ] Alertas de metas não atingidas
+- [x] Lembretes automáticos para envio de métricas
+- [x] Alertas de metas não atingidas
 
 ### Gamificação
-- [ ] Sistema de badges e conquistas
-- [ ] Ranking mensal com recompensas
-- [ ] Metas progressivas
+- [x] Sistema de badges e conquistas (14 badges em 5 categorias)
+- [x] Ranking mensal com recompensas (pódio + lista completa)
+- [x] Metas progressivas (aumento automático de 10% ao atingir meta)
 
 ### Relatórios
 - [ ] Exportação de relatórios em PDF

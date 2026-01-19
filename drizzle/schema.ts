@@ -87,3 +87,90 @@ export const feedbacks = mysqlTable("feedbacks", {
 
 export type Feedback = typeof feedbacks.$inferSelect;
 export type InsertFeedback = typeof feedbacks.$inferInsert;
+
+/**
+ * Badges table - defines available badges/achievements
+ */
+export const badges = mysqlTable("badges", {
+  id: int("id").autoincrement().primaryKey(),
+  codigo: varchar("codigo", { length: 50 }).notNull().unique(),
+  nome: varchar("nome", { length: 100 }).notNull(),
+  descricao: text("descricao").notNull(),
+  icone: varchar("icone", { length: 50 }).notNull(), // Lucide icon name
+  cor: varchar("cor", { length: 20 }).notNull().default("gold"), // gold, silver, bronze, purple, blue
+  categoria: mysqlEnum("categoria", ["faturamento", "conteudo", "operacional", "consistencia", "especial"]).notNull(),
+  criterio: text("criterio").notNull(), // JSON with criteria for earning
+  pontos: int("pontos").notNull().default(10),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Badge = typeof badges.$inferSelect;
+export type InsertBadge = typeof badges.$inferInsert;
+
+/**
+ * Mentorado badges - tracks which badges each mentorado has earned
+ */
+export const mentoradoBadges = mysqlTable("mentorado_badges", {
+  id: int("id").autoincrement().primaryKey(),
+  mentoradoId: int("mentoradoId").notNull().references(() => mentorados.id, { onDelete: "cascade" }),
+  badgeId: int("badgeId").notNull().references(() => badges.id, { onDelete: "cascade" }),
+  conquistadoEm: timestamp("conquistadoEm").defaultNow().notNull(),
+  ano: int("ano").notNull(),
+  mes: int("mes").notNull(),
+});
+
+export type MentoradoBadge = typeof mentoradoBadges.$inferSelect;
+export type InsertMentoradoBadge = typeof mentoradoBadges.$inferInsert;
+
+/**
+ * Ranking history - stores monthly rankings
+ */
+export const rankingMensal = mysqlTable("ranking_mensal", {
+  id: int("id").autoincrement().primaryKey(),
+  mentoradoId: int("mentoradoId").notNull().references(() => mentorados.id, { onDelete: "cascade" }),
+  ano: int("ano").notNull(),
+  mes: int("mes").notNull(),
+  turma: mysqlEnum("turma", ["neon_estrutura", "neon_escala"]).notNull(),
+  posicao: int("posicao").notNull(),
+  pontuacaoTotal: int("pontuacaoTotal").notNull().default(0),
+  pontosBonus: int("pontosBonus").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RankingMensal = typeof rankingMensal.$inferSelect;
+export type InsertRankingMensal = typeof rankingMensal.$inferInsert;
+
+/**
+ * Metas progressivas - tracks progressive goals that increase over time
+ */
+export const metasProgressivas = mysqlTable("metas_progressivas", {
+  id: int("id").autoincrement().primaryKey(),
+  mentoradoId: int("mentoradoId").notNull().references(() => mentorados.id, { onDelete: "cascade" }),
+  tipo: mysqlEnum("tipo", ["faturamento", "leads", "procedimentos", "posts", "stories"]).notNull(),
+  metaAtual: int("metaAtual").notNull(),
+  metaInicial: int("metaInicial").notNull(),
+  incremento: int("incremento").notNull().default(10), // Percentage increase per achievement
+  vezesAtingida: int("vezesAtingida").notNull().default(0),
+  ultimaAtualizacao: timestamp("ultimaAtualizacao").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MetaProgressiva = typeof metasProgressivas.$inferSelect;
+export type InsertMetaProgressiva = typeof metasProgressivas.$inferInsert;
+
+/**
+ * Notificações/Lembretes - stores scheduled notifications
+ */
+export const notificacoes = mysqlTable("notificacoes", {
+  id: int("id").autoincrement().primaryKey(),
+  mentoradoId: int("mentoradoId").notNull().references(() => mentorados.id, { onDelete: "cascade" }),
+  tipo: mysqlEnum("tipo", ["lembrete_metricas", "alerta_meta", "conquista", "ranking"]).notNull(),
+  titulo: varchar("titulo", { length: 200 }).notNull(),
+  mensagem: text("mensagem").notNull(),
+  lida: mysqlEnum("lida", ["sim", "nao"]).default("nao").notNull(),
+  enviadaPorEmail: mysqlEnum("enviadaPorEmail", ["sim", "nao"]).default("nao").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notificacao = typeof notificacoes.$inferSelect;
+export type InsertNotificacao = typeof notificacoes.$inferInsert;

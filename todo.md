@@ -107,3 +107,10 @@
 - [x] Verificar botão de logout na sidebar (confirmado presente)
 - [x] Configurar redirecionamento após login para /dashboard
 - [ ] Criar checkpoint final
+
+
+### Nova Solicitação - Corrigir Redirecionamento Após Login
+- [x] Verificar se o OAuth callback está redirecionando corretamente para /dashboard
+- [x] Garantir que usuários autenticados sejam redirecionados do / para /dashboard
+- [x] Testar fluxo completo: Landing Page → Login → Dashboard
+- [x] Criar checkpoint após validação

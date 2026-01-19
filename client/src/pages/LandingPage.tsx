@@ -13,7 +13,7 @@ export default function LandingPage() {
       {/* Header */}
       <header className="w-full py-6 px-8 flex justify-between items-center z-10">
         <div className="flex items-center gap-3">
-            <img src="/brand/neon-symbol.svg" alt="Neon" className="w-8 h-8" />
+            <img src="/brand/neon-symbol-official.png" alt="Neon" className="w-8 h-8 object-contain" />
             <div>
               <span className="font-bold text-xl tracking-tight text-neon-blue-dark block">NEON</span>
               <span className="text-[8px] text-neon-blue-medium uppercase tracking-[0.2em] font-mono font-medium">Mentoria Black</span>

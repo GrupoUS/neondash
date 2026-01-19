@@ -97,3 +97,13 @@
 - [x] Validar paleta de cores (#112031, #20445B, #AC9469, #D2D0C7)
 - [x] Validar logo e branding em todas as páginas
 - [ ] Criar checkpoint final
+
+
+### Nova Solicitação - Atualizar Símbolo N Oficial
+- [x] Copiar arquivo símbolo-07.png para o projeto
+- [x] Atualizar DashboardLayout para usar símbolo oficial
+- [x] Atualizar LandingPage para usar símbolo oficial
+- [x] Atualizar favicon com novo símbolo
+- [x] Verificar botão de logout na sidebar (confirmado presente)
+- [x] Configurar redirecionamento após login para /dashboard
+- [ ] Criar checkpoint final

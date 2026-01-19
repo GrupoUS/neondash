@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-sidebar/80 backdrop-blur-md border-b border-sidebar-border sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <img src="/brand/neon-symbol.svg" alt="Neon" className="w-8 h-8" />
+          <img src="/brand/neon-symbol-official.png" alt="Neon" className="w-8 h-8 object-contain" />
           <span className="font-bold text-xl text-primary tracking-tight font-sans">NEON</span>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-primary hover:text-neon-gold transition-colors">
@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}>
         <div className="p-8 hidden md:block">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/brand/neon-symbol.svg" alt="Neon" className="w-10 h-10" />
+            <img src="/brand/neon-symbol-official.png" alt="Neon" className="w-10 h-10 object-contain" />
             <div>
               <h1 className="text-2xl font-bold text-primary tracking-tighter font-sans">NEON</h1>
               <p className="text-[10px] text-neon-blue-medium uppercase tracking-[0.2em] font-mono font-medium">Mentoria Black</p>

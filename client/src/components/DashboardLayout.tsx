@@ -3,11 +3,13 @@ import { cn } from "@/lib/utils";
 import { LayoutDashboard, Users, TrendingUp, Menu, X, Shield } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { SignedIn, UserButton } from "@clerk/clerk-react";
+import { SignedIn, UserButton, useClerk } from "@clerk/clerk-react";
+import { LogOut, Settings } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { signOut, openUserProfile } = useClerk();
 
   const navItems = [
     { href: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
@@ -65,6 +67,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
+
+        <div className="px-6 py-2 space-y-1">
+             <Button
+                variant="ghost"
+                className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 h-10 px-4"
+                onClick={() => openUserProfile()}
+             >
+                <Settings className="mr-3 h-4 w-4" />
+                Configurar Perfil
+             </Button>
+             <Button
+                variant="ghost"
+                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 h-10 px-4"
+                onClick={() => signOut()}
+             >
+                <LogOut className="mr-3 h-4 w-4" />
+                Sair
+             </Button>
+        </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-8">
           <div className="bg-gradient-to-br from-sidebar-accent/50 to-white/50 backdrop-blur-sm rounded-lg p-5 border border-sidebar-border">

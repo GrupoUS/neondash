@@ -83,7 +83,7 @@ export async function upsertMetricaMensal(data: InsertMetricaMensal) {
 
 export async function getFeedback(mentoradoId: number, ano: number, mes: number) {
   const db = await getDb();
-  if (!db) return undefined;
+  if (!db) return null;
   
   const result = await db
     .select()
@@ -97,7 +97,7 @@ export async function getFeedback(mentoradoId: number, ano: number, mes: number)
     )
     .limit(1);
   
-  return result.length > 0 ? result[0] : undefined;
+  return result.length > 0 ? result[0] : null;
 }
 
 export async function upsertFeedback(data: InsertFeedback) {

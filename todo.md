@@ -159,3 +159,12 @@
 - [x] Corrigir redirecionamento após login para dashboard correto
 - [x] Testar fluxo completo de autenticação
 - [x] Criar checkpoint após validação
+
+
+### Nova Solicitação - Correção de Bugs Críticos
+- [x] Corrigir logout incompleto (não volta para landing page)
+- [x] Corrigir query feedback retornando undefined
+- [x] Corrigir erro de âncoras aninhadas no DashboardLayout
+- [x] Verificar redirecionamento após login para dashboard
+- [x] Testar fluxo completo: login → dashboard → logout → landing page
+- [x] Criar checkpoint após validação

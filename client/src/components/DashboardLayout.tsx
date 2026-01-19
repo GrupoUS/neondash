@@ -71,16 +71,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const Icon = item.icon;
             const isActive = location === item.href;
             return (
-              <Link key={item.href} href={item.href}>
-                <a className={cn(
+              <Link 
+                key={item.href} 
+                href={item.href}
+                className={cn(
                   "group flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 border border-transparent",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-primary border-sidebar-border shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50 hover:border-sidebar-border/50 hover:pl-5"
-                )} onClick={() => setIsMobileMenuOpen(false)}>
-                  <Icon className={cn("h-4 w-4 transition-colors duration-300", isActive ? "text-neon-gold" : "text-muted-foreground group-hover:text-neon-gold")} />
-                  {item.label}
-                </a>
+                )}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Icon className={cn("h-4 w-4 transition-colors duration-300", isActive ? "text-neon-gold" : "text-muted-foreground group-hover:text-neon-gold")} />
+                {item.label}
               </Link>
             );
           })}

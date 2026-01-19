@@ -168,3 +168,11 @@
 - [x] Verificar redirecionamento após login para dashboard
 - [x] Testar fluxo completo: login → dashboard → logout → landing page
 - [x] Criar checkpoint após validação
+
+
+### Nova Solicitação - Corrigir Loop de Login
+- [x] Investigar por que o cookie de sessão não está sendo persistido após OAuth callback
+- [x] Verificar configuração de cookies (domain, path, sameSite, secure)
+- [x] Corrigir persistência do cookie para evitar loop de login (removido domínio do cookie)
+- [x] Testar fluxo completo: landing page → login → dashboard
+- [x] Criar checkpoint após validação

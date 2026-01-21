@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, TrendingUp, Menu, X, Shield, Link2, UserCog, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, TrendingUp, Menu, X, Shield, Link2, UserCog, BarChart3, Trophy, Medal, Bell } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { LogOut, Settings } from "lucide-react";
@@ -25,6 +25,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: Users },
     { href: "/comparativo", label: "Comparativo", icon: BarChart3 },
+    { href: "/conquistas", label: "Conquistas", icon: Trophy },
+    { href: "/ranking", label: "Ranking", icon: Medal },
+    { href: "/notificacoes", label: "Notificações", icon: Bell },
     { href: "/enviar-metricas", label: "Enviar Métricas", icon: TrendingUp },
     { href: "/admin", label: "Administração", icon: Shield, adminOnly: true },
     { href: "/admin/vincular", label: "Vincular Emails", icon: Link2, adminOnly: true },

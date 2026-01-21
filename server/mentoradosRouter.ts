@@ -445,3 +445,6 @@ export const mentoradosRouter = router({
       return { success: true, emailSent: true };
     }),
 });
+
+// Import gamification functions at the top of the file is not possible here,
+// so we'll create a separate router for gamification

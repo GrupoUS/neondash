@@ -1,25 +1,42 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 
 export default function LandingPage() {
   const { isAuthenticated, loading, user } = useAuth();
   const [, setLocation] = useLocation();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   
-  // Check if user is a mentorado
+  // Check if user is a mentorado - only if authenticated
   const { data: mentorado, isLoading: loadingMentorado } = trpc.mentorados.me.useQuery(
     undefined,
-    { enabled: isAuthenticated }
+    { 
+      enabled: isAuthenticated && hasCheckedAuth,
+      retry: false,
+    }
   );
+
+  // Wait for initial auth check to complete before deciding to redirect
+  useEffect(() => {
+    if (!loading) {
+      // Small delay to ensure cookie state is settled after page load
+      const timer = setTimeout(() => {
+        setHasCheckedAuth(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   // Redirect authenticated users to appropriate dashboard
   useEffect(() => {
-    if (loading || loadingMentorado) return;
+    if (!hasCheckedAuth) return;
+    if (loading) return;
     if (!isAuthenticated) return;
+    if (loadingMentorado) return;
     
     if (mentorado) {
       // User is a mentorado, go to personal dashboard
@@ -31,16 +48,33 @@ export default function LandingPage() {
       // User has no profile, go to first access page
       setLocation("/primeiro-acesso");
     }
-  }, [isAuthenticated, loading, loadingMentorado, mentorado, user, setLocation]);
+  }, [hasCheckedAuth, isAuthenticated, loading, loadingMentorado, mentorado, user, setLocation]);
 
-  // Show nothing while checking auth or redirecting
-  if (loading || (isAuthenticated && loadingMentorado)) {
-    return null;
+  // Show loading while checking auth
+  if (loading || !hasCheckedAuth) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      </div>
+    );
   }
   
-  // If authenticated, we're redirecting
+  // Show loading while checking mentorado status for authenticated users
+  if (isAuthenticated && loadingMentorado) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Redirecionando...</div>
+      </div>
+    );
+  }
+  
+  // If authenticated, we're about to redirect
   if (isAuthenticated) {
-    return null;
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Redirecionando...</div>
+      </div>
+    );
   }
 
   return (

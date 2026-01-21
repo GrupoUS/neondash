@@ -15,6 +15,9 @@ import VincularEmails from "./pages/VincularEmails";
 import PrimeiroAcesso from "./pages/PrimeiroAcesso";
 import GestaoMentorados from "./pages/GestaoMentorados";
 import DashboardComparativo from "./pages/DashboardComparativo";
+import Conquistas from "./pages/Conquistas";
+import RankingMensal from "./pages/RankingMensal";
+import Notificacoes from "./pages/Notificacoes";
 
 function Router() {
   return (
@@ -30,6 +33,9 @@ function Router() {
       <Route path="/admin/vincular" component={VincularEmails} />
       <Route path="/admin/mentorados" component={GestaoMentorados} />
       <Route path="/comparativo" component={DashboardComparativo} />
+      <Route path="/conquistas" component={Conquistas} />
+      <Route path="/ranking" component={RankingMensal} />
+      <Route path="/notificacoes" component={Notificacoes} />
       <Route path="/estrutura" component={Estrutura} />
       <Route path="/escala" component={Escala} />
       <Route path="/primeiro-acesso" component={PrimeiroAcesso} />

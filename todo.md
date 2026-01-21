@@ -46,13 +46,13 @@
 
 ### Notificações
 - [x] Sistema de notificações por email (implementado ao vincular perfil)
-- [ ] Lembretes automáticos para envio de métricas
-- [ ] Alertas de metas não atingidas
+- [x] Lembretes automáticos para envio de métricas
+- [x] Alertas de metas não atingidas
 
 ### Gamificação
-- [ ] Sistema de badges e conquistas
-- [ ] Ranking mensal com recompensas
-- [ ] Metas progressivas
+- [x] Sistema de badges e conquistas (14 badges em 5 categorias)
+- [x] Ranking mensal com recompensas (pódio + lista completa)
+- [x] Metas progressivas (aumento automático de 10% ao atingir meta)
 
 ### Relatórios
 - [ ] Exportação de relatórios em PDF
@@ -175,4 +175,12 @@
 - [x] Verificar configuração de cookies (domain, path, sameSite, secure)
 - [x] Corrigir persistência do cookie para evitar loop de login (removido domínio do cookie)
 - [x] Testar fluxo completo: landing page → login → dashboard
+- [x] Criar checkpoint após validação
+
+
+### Nova Solicitação - Corrigir Logout e Redirecionamento
+- [x] Corrigir logout para garantir que o cookie seja limpo antes do redirecionamento
+- [x] Garantir que o redirecionamento para landing page funcione após logout
+- [x] Adicionar delay na LandingPage para evitar redirecionamento prematuro
+- [x] Testar fluxo completo: dashboard → logout → landing page → login → dashboard
 - [x] Criar checkpoint após validação

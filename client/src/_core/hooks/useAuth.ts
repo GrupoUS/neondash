@@ -20,34 +20,42 @@ export function useAuth(options?: UseAuthOptions) {
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
+      // Clear the cached user data
       utils.auth.me.setData(undefined, null);
+      // Clear localStorage
+      localStorage.removeItem("manus-runtime-user-info");
+      // Force redirect to landing page
+      window.location.href = "/";
+    },
+    onError: (error) => {
+      // Even on error, try to redirect to landing page
+      console.error("[Auth] Logout error:", error);
+      localStorage.removeItem("manus-runtime-user-info");
+      window.location.href = "/";
     },
   });
 
   const logout = useCallback(async () => {
     try {
+      // Call the logout mutation - redirect will happen in onSuccess/onError
       await logoutMutation.mutateAsync();
     } catch (error: unknown) {
+      // If mutation throws, still try to redirect
       if (
         error instanceof TRPCClientError &&
         error.data?.code === "UNAUTHORIZED"
       ) {
-        // Already logged out, redirect anyway
-        if (typeof window !== "undefined") {
-          window.location.href = "/";
-        }
+        // Already logged out
+        localStorage.removeItem("manus-runtime-user-info");
+        window.location.href = "/";
         return;
       }
-      throw error;
-    } finally {
-      utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
-      // Redirect to landing page after logout
-      if (typeof window !== "undefined") {
-        window.location.href = "/";
-      }
+      // For other errors, still redirect
+      console.error("[Auth] Logout failed:", error);
+      localStorage.removeItem("manus-runtime-user-info");
+      window.location.href = "/";
     }
-  }, [logoutMutation, utils]);
+  }, [logoutMutation]);
 
   const state = useMemo(() => {
     localStorage.setItem(

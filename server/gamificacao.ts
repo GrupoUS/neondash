@@ -439,14 +439,12 @@ export async function calculateMonthlyRanking(ano: number, mes: number) {
               )
             );
           if (existing.length === 0) {
-            await db
-              .insert(mentoradoBadges)
-              .values({
-                mentoradoId: r.mentoradoId,
-                badgeId: topBadge.id,
-                ano,
-                mes,
-              });
+            await db.insert(mentoradoBadges).values({
+              mentoradoId: r.mentoradoId,
+              badgeId: topBadge.id,
+              ano,
+              mes,
+            });
           }
         }
       }
@@ -468,14 +466,12 @@ export async function calculateMonthlyRanking(ano: number, mes: number) {
               )
             );
           if (existing.length === 0) {
-            await db
-              .insert(mentoradoBadges)
-              .values({
-                mentoradoId: r.mentoradoId,
-                badgeId: champBadge.id,
-                ano,
-                mes,
-              });
+            await db.insert(mentoradoBadges).values({
+              mentoradoId: r.mentoradoId,
+              badgeId: champBadge.id,
+              ano,
+              mes,
+            });
           }
         }
       }

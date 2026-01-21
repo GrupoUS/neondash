@@ -1,8 +1,8 @@
 ---
-description: Create project plan using project-planner agent. No code writing - only plan file generation.
+description: Create project plan using master-planner skill. No code writing - only plan file generation.
 ---
 
-# /plan - Project Planning Mode
+# /plan - Master Planning Command
 
 $ARGUMENTS
 
@@ -10,48 +10,73 @@ $ARGUMENTS
 
 ## 🔴 CRITICAL RULES
 
-1. **NO CODE WRITING** - This command creates plan file only
-2. **Use project-planner agent** - NOT Claude Code's native Plan subagent
-3. **Socratic Gate** - Ask clarifying questions before planning
-4. **Dynamic Naming** - Plan file named based on task
+1. **ACTIVATE SKILL**: Read and follow `.agent/skills/planning/SKILL.md` (master-planner)
+2. **NO CODE WRITING** - This command creates plan file only
+3. **R.P.I.V WORKFLOW** - Research → Plan → (skip Implement) → Validate
+4. **SOCRATIC GATE** - Ask clarifying questions before planning if unclear
+5. **DYNAMIC NAMING** - Plan file named based on task
+
+---
+
+## Skill to Activate
+
+**MANDATORY**: Before proceeding, read `.agent/skills/planning/SKILL.md` and follow its instructions.
 
 ---
 
 ## Task
 
-Use the `project-planner` agent with this context:
+Execute the master-planner skill with this context:
 
-```
+```yaml
 CONTEXT:
-- User Request: $ARGUMENTS
-- Mode: PLANNING ONLY (no code)
-- Output: docs/PLAN-{task-slug}.md (dynamic naming)
-- Use the Rule `plan.md`
+  user_request: $ARGUMENTS
+  mode: CONSERVATIVE (plan only, no code)
+  output_location: docs/PLAN-{task-slug}.md
 
-NAMING RULES:
-1. Extract 2-3 key words from request
-2. Lowercase, hyphen-separated
-3. Max 30 characters
-4. Example: "e-commerce cart" → PLAN-ecommerce-cart.md
+WORKFLOW:
+  1. RESEARCH:
+     - Context7: official docs for relevant technologies
+     - Tavily: best practices, security, edge cases
+     - Codebase: existing patterns, conventions
 
-RULES:
-1. Follow project-planner.md Phase -1 (Context Check)
-2. Follow project-planner.md Phase 0 (Socratic Gate)
-3. Create PLAN-{slug}.md with task breakdown
-4. DO NOT write any code files
-5. REPORT the exact file name created
+  2. PLAN:
+     - Create Findings Table
+     - List Knowledge Gaps
+     - List Assumptions to Validate
+     - Decompose into Atomic Tasks (AT-XXX)
+     - Define validation commands + rollback steps
+
+  3. OUTPUT:
+     - Create docs/PLAN-{slug}.md using skill template
+     - Include all research artifacts
+     - Mark parallel-safe tasks
+
+NAMING_RULES:
+  - Extract 2-3 key words from request
+  - Lowercase, hyphen-separated
+  - Max 30 characters
+  - Example: "e-commerce cart" → PLAN-ecommerce-cart.md
+
+CONSTRAINTS:
+  - DO NOT write any code files
+  - DO NOT skip research phase
+  - DO NOT guess file paths or APIs
+  - REPORT the exact file name created
 ```
 
 ---
 
 ## Expected Output
 
-| Deliverable            | Location                   |
-| ---------------------- | -------------------------- |
-| Project Plan           | `docs/PLAN-{task-slug}.md` |
-| Task Breakdown         | Inside plan file           |
-| Agent Assignments      | Inside plan file           |
-| Verification Checklist | Phase X in plan file       |
+| Deliverable      | Location                   |
+| ---------------- | -------------------------- |
+| Research Digest  | Inside plan file           |
+| Findings Table   | Inside plan file           |
+| Knowledge Gaps   | Inside plan file           |
+| Atomic Tasks     | Inside plan file           |
+| Validation Gates | Inside plan file           |
+| Project Plan     | `docs/PLAN-{task-slug}.md` |
 
 ---
 
@@ -60,11 +85,11 @@ RULES:
 Tell user:
 
 ```
-[OK] Plan created: docs/PLAN-{slug}.md
+✅ Plan created: docs/PLAN-{slug}.md
 
 Next steps:
 - Review the plan
-- Run `/create` to start implementation
+- Run `/implement` to start implementation
 - Or modify plan manually
 ```
 
@@ -88,4 +113,5 @@ Next steps:
 /plan e-commerce site with cart
 /plan mobile app for fitness tracking
 /plan SaaS dashboard with analytics
+/plan add SSO with Okta
 ```

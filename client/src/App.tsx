@@ -1,23 +1,37 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-import MyDashboard from "./pages/MyDashboard";
-import Admin from "./pages/Admin";
-import SubmitMetrics from "./pages/SubmitMetrics";
+
+// Eagerly loaded (landing + lightweight pages)
+import LandingPage from "./pages/LandingPage";
 import Estrutura from "./pages/Estrutura";
 import Escala from "./pages/Escala";
-import LandingPage from "./pages/LandingPage";
-import VincularEmails from "./pages/VincularEmails";
 import PrimeiroAcesso from "./pages/PrimeiroAcesso";
-import GestaoMentorados from "./pages/GestaoMentorados";
-import DashboardComparativo from "./pages/DashboardComparativo";
-import Conquistas from "./pages/Conquistas";
-import RankingMensal from "./pages/RankingMensal";
-import Notificacoes from "./pages/Notificacoes";
+
+// Lazy loaded (heavy pages with charts/complex UI)
+const Home = lazy(() => import("./pages/Home"));
+const MyDashboard = lazy(() => import("./pages/MyDashboard"));
+const Admin = lazy(() => import("./pages/Admin"));
+const SubmitMetrics = lazy(() => import("./pages/SubmitMetrics"));
+const VincularEmails = lazy(() => import("./pages/VincularEmails"));
+const GestaoMentorados = lazy(() => import("./pages/GestaoMentorados"));
+const DashboardComparativo = lazy(() => import("./pages/DashboardComparativo"));
+const Conquistas = lazy(() => import("./pages/Conquistas"));
+const RankingMensal = lazy(() => import("./pages/RankingMensal"));
+const Notificacoes = lazy(() => import("./pages/Notificacoes"));
+
+// Loading fallback for lazy components
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
+  );
+}
 
 function Router() {
   return (
@@ -70,7 +84,9 @@ function App() {
               <UserButton />
             </SignedIn>
           </header>
-          <Router />
+          <Suspense fallback={<PageLoader />}>
+            <Router />
+          </Suspense>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, mock, beforeEach } from "bun:test";
 
 // Mock the database module
-vi.mock("./db", () => ({
-  getDb: vi.fn(),
+mock.module("./db", () => ({
+  getDb: mock(() => null),
 }));
 
 describe("Mentorados Router", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Clear mocks if needed in the future
   });
 
   describe("CRUD Operations", () => {
@@ -30,7 +30,9 @@ describe("Mentorados Router", () => {
 
     it("should have comparativeStats procedure defined", async () => {
       const { mentoradosRouter } = await import("./mentoradosRouter");
-      expect(mentoradosRouter._def.procedures).toHaveProperty("comparativeStats");
+      expect(mentoradosRouter._def.procedures).toHaveProperty(
+        "comparativeStats"
+      );
     });
 
     it("should have linkEmail procedure defined", async () => {

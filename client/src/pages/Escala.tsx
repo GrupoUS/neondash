@@ -6,17 +6,23 @@ import { Target, CheckCircle, AlertCircle, TrendingUp } from "lucide-react";
 
 export default function Escala() {
   const benchmarks = analiseData.neon_escala.benchmarks;
-  const totalFaturamento = Object.values(analiseData.neon_escala.analise)
-    .reduce((acc, curr) => acc + curr.dados.faturamento, 0);
-  
-  const mediaFaturamento = totalFaturamento / Object.keys(analiseData.neon_escala.analise).length;
+  const totalFaturamento = Object.values(
+    analiseData.neon_escala.analise
+  ).reduce((acc, curr) => acc + curr.dados.faturamento, 0);
+
+  const mediaFaturamento =
+    totalFaturamento / Object.keys(analiseData.neon_escala.analise).length;
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Neon Escala</h1>
-          <p className="text-slate-500 mt-2">Análise detalhada da turma de escala</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Neon Escala
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Análise detalhada da turma de escala
+          </p>
         </div>
 
         {/* Benchmarks Section */}
@@ -29,7 +35,10 @@ export default function Escala() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(benchmarks.meta_faturamento)}
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(benchmarks.meta_faturamento)}
               </div>
               <p className="text-xs text-slate-500 mt-1">Por mentorado / mês</p>
             </CardContent>
@@ -43,10 +52,17 @@ export default function Escala() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mediaFaturamento)}
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(mediaFaturamento)}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {((mediaFaturamento / benchmarks.meta_faturamento) * 100).toFixed(1)}% da meta
+                {(
+                  (mediaFaturamento / benchmarks.meta_faturamento) *
+                  100
+                ).toFixed(1)}
+                % da meta
               </p>
             </CardContent>
           </Card>
@@ -78,14 +94,16 @@ export default function Escala() {
 
         {/* Mentorados Grid */}
         <div>
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Ranking de Performance</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-6">
+            Ranking de Performance
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {analiseData.neon_escala.ranking.map(([nome, score], index) => (
-              <MentoradoCard 
-                key={nome} 
-                nome={nome} 
-                data={analiseData.neon_escala.analise[nome]} 
-                rank={index + 1} 
+              <MentoradoCard
+                key={nome}
+                nome={nome}
+                data={analiseData.neon_escala.analise[nome]}
+                rank={index + 1}
               />
             ))}
           </div>

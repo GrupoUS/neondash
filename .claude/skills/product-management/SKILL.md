@@ -2,6 +2,7 @@
 name: product-management
 description: Assist with core product management activities including writing PRDs, analyzing features, synthesizing user research, planning roadmaps, and communicating product decisions. Use when you need help with PM documentation, analysis, or planning workflows that integrate with your codebase.
 ---
+
 # Skill: Product management AI
 
 ## Purpose
@@ -46,6 +47,7 @@ Unlike point-solution PM tools:
 ## Conventions and best practices
 
 ### PRD structure
+
 A good PRD should include:
 
 1. **Problem statement**: What user pain point or business need are we addressing?
@@ -59,6 +61,7 @@ A good PRD should include:
 9. **Open questions**: What still needs to be decided or researched.
 
 ### Feature prioritization
+
 Use structured frameworks to evaluate features:
 
 - **RICE**: Reach × Impact × Confidence / Effort
@@ -67,6 +70,7 @@ Use structured frameworks to evaluate features:
 - **Kano Model**: Categorize features into basic, performance, and delighters
 
 ### User research synthesis
+
 When synthesizing research:
 
 1. **Identify patterns**: What themes emerge across participants?
@@ -76,6 +80,7 @@ When synthesizing research:
 5. **Connect to metrics**: How do qualitative findings explain quantitative data?
 
 ### Roadmap planning
+
 Effective roadmaps should:
 
 - **Theme-based**: Group work into strategic themes, not just feature lists.
@@ -110,6 +115,7 @@ Depending on the task, generate:
 ## Implementation checklist
 
 ### Writing a PRD
+
 - [ ] Understand the problem space and strategic context
 - [ ] Review related code, APIs, and technical constraints
 - [ ] Interview key stakeholders (engineering, design, business)
@@ -124,6 +130,7 @@ Depending on the task, generate:
 - [ ] Review with stakeholders and iterate
 
 ### Analyzing a feature request
+
 - [ ] Clarify the user problem or business need
 - [ ] Identify target users and use cases
 - [ ] Estimate impact (users affected, business value)
@@ -135,6 +142,7 @@ Depending on the task, generate:
 - [ ] Make recommendation with clear reasoning
 
 ### Synthesizing user research
+
 - [ ] Review all research materials (transcripts, notes, data)
 - [ ] Identify key themes and patterns
 - [ ] Extract representative quotes
@@ -145,6 +153,7 @@ Depending on the task, generate:
 - [ ] Prioritize recommendations by impact
 
 ### Planning a roadmap
+
 - [ ] Review strategic goals and OKRs
 - [ ] Collect input from stakeholders
 - [ ] Assess current state and technical debt
@@ -160,19 +169,23 @@ Depending on the task, generate:
 
 ### Example 1: Writing a PRD for a new feature
 
-```markdown
+````markdown
 # PRD: Advanced Search Functionality
 
 ## Problem Statement
+
 Users frequently report difficulty finding specific items in our catalog when they have multiple criteria (price range, location, category, features). Our current search only supports simple text queries, leading to:
+
 - High bounce rates on search results pages (65% bounce rate vs 32% site average)
 - Increased support tickets asking for search help (150/month)
 - Lost conversion opportunities (estimated $500K annual revenue impact)
 
 ## Goals and Success Metrics
+
 **Primary Goal**: Enable users to find relevant items quickly using multiple filters.
 
 **Success Metrics**:
+
 - Reduce search result page bounce rate from 65% to <40%
 - Increase search-to-purchase conversion rate by 25%
 - Reduce search-related support tickets by 50%
@@ -181,6 +194,7 @@ Users frequently report difficulty finding specific items in our catalog when th
 ## User Stories
 
 ### Must Have
+
 1. As a buyer, I want to filter by price range so I can find items within my budget
 2. As a buyer, I want to filter by location so I can find items near me
 3. As a buyer, I want to filter by category so I can narrow down item types
@@ -188,11 +202,13 @@ Users frequently report difficulty finding specific items in our catalog when th
 5. As a buyer, I want to see filter counts so I know how many items match before applying
 
 ### Should Have
+
 6. As a buyer, I want to save my filter preferences so I don't have to reapply them
 7. As a buyer, I want to see suggested filters based on my search query
 8. As a buyer, I want to sort filtered results by relevance, price, or date
 
 ### Nice to Have
+
 9. As a buyer, I want to create saved searches that notify me of new matches
 10. As a buyer, I want to share a filtered search URL with others
 
@@ -201,12 +217,14 @@ Users frequently report difficulty finding specific items in our catalog when th
 ### Functional Requirements
 
 **Filter Types** (Priority: Must Have)
+
 - Price range filter: min/max inputs + common presets ($0-50, $50-100, etc.)
 - Location filter: radius selector + zip code input
 - Category filter: hierarchical category tree with multi-select
 - Custom attribute filters: based on item type (size, color, condition, etc.)
 
 **Filter Behavior** (Priority: Must Have)
+
 - Filters apply instantly (no "Apply" button) or with <500ms latency
 - URL updates to reflect active filters (shareable links)
 - Clear all filters button visible when any filter is active
@@ -214,6 +232,7 @@ Users frequently report difficulty finding specific items in our catalog when th
 - Mobile-friendly filter UI (drawer or modal on mobile)
 
 **Search Integration** (Priority: Must Have)
+
 - Filters work alongside text search query
 - Filter facet counts update based on text query
 - Auto-suggest filters based on search terms (e.g., "red" → suggest color filter)
@@ -221,17 +240,20 @@ Users frequently report difficulty finding specific items in our catalog when th
 ### Non-Functional Requirements
 
 **Performance** (Priority: Must Have)
+
 - Initial page load <2s at p95
 - Filter application response <500ms at p95
 - Support 10,000+ concurrent users without degradation
 - Efficient indexing for 1M+ items
 
 **Scalability** (Priority: Should Have)
+
 - Filter definitions configurable without code changes
 - Support for 50+ filter types
 - Easily add new filter types for new categories
 
 **Accessibility** (Priority: Must Have)
+
 - Keyboard navigation for all filters
 - Screen reader support with proper ARIA labels
 - High contrast mode support
@@ -240,17 +262,20 @@ Users frequently report difficulty finding specific items in our catalog when th
 ## Technical Considerations
 
 ### Architecture
+
 - **Search Backend**: Extend existing Elasticsearch cluster with filter aggregations
 - **API Changes**: New `/search` endpoint query params for filters; return filter facets in response
 - **Frontend**: React components with URL state management (React Router)
 - **Caching**: Cache filter definitions and facet counts (Redis, 5-minute TTL)
 
 ### Dependencies
+
 - Elasticsearch 8.x upgrade (currently on 7.x) to support efficient aggregations
 - Update item schema to include filter-specific fields
 - Backend API versioning to support gradual rollout
 
 ### Data Model
+
 ```typescript
 interface SearchFilters {
   price?: { min: number; max: number };
@@ -269,28 +294,33 @@ interface SearchResponse {
   total: number;
 }
 ```
+````
 
 ### Technical Risks
+
 1. **Elasticsearch performance**: Complex aggregations may impact search latency
-   - *Mitigation*: Load test with production data; add caching; consider pre-aggregation
+   - _Mitigation_: Load test with production data; add caching; consider pre-aggregation
 2. **Index size growth**: More fields = larger indices and slower indexing
-   - *Mitigation*: Monitor index size; potentially separate indices for different item types
+   - _Mitigation_: Monitor index size; potentially separate indices for different item types
 3. **Schema evolution**: Adding new filters requires index updates
-   - *Mitigation*: Design flexible schema; plan for gradual rollout
+   - _Mitigation_: Design flexible schema; plan for gradual rollout
 
 ## Design and UX Notes
 
 ### Desktop Layout
+
 - Filters in left sidebar (persistent, not collapsible)
 - Main results area with sort controls at top
 - Filter chips above results showing active filters
 
 ### Mobile Layout
+
 - "Filters" button in header opens bottom sheet
 - Show active filter count badge on button
 - Apply button in bottom sheet (don't auto-apply on mobile to reduce requests)
 
 ### Filter UI Patterns
+
 - Price: Dual slider + text inputs
 - Location: Autocomplete location search + radius selector
 - Category: Expandable tree with checkboxes
@@ -298,36 +328,41 @@ interface SearchResponse {
 
 ## Risks and Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Performance degradation with complex filters | Medium | High | Load testing; caching; gradual rollout with feature flag |
-| Low filter adoption by users | Medium | High | User testing; prominent UI; tutorial on first visit |
-| Elasticsearch upgrade issues | Low | High | Test in staging; plan rollback; off-peak deployment |
-| Filter options become overwhelming | Medium | Medium | User research to prioritize filters; consider "More filters" progressive disclosure |
+| Risk                                         | Likelihood | Impact | Mitigation                                                                          |
+| -------------------------------------------- | ---------- | ------ | ----------------------------------------------------------------------------------- |
+| Performance degradation with complex filters | Medium     | High   | Load testing; caching; gradual rollout with feature flag                            |
+| Low filter adoption by users                 | Medium     | High   | User testing; prominent UI; tutorial on first visit                                 |
+| Elasticsearch upgrade issues                 | Low        | High   | Test in staging; plan rollback; off-peak deployment                                 |
+| Filter options become overwhelming           | Medium     | Medium | User research to prioritize filters; consider "More filters" progressive disclosure |
 
 ## Launch Plan
 
 ### Phase 1: MVP (Week 1-2)
+
 - Price, location, and category filters only
 - Desktop web only
 - 5% rollout to test performance
 
 ### Phase 2: Expansion (Week 3-4)
+
 - Add custom attribute filters
 - Mobile responsive design
 - Expand to 25% of users
 
 ### Phase 3: Full Launch (Week 5-6)
+
 - Saved search preferences (logged-in users)
 - 100% rollout
 - Monitor metrics and iterate
 
 ### Feature Flags
+
 - `advanced_search_enabled`: Master flag for entire feature
 - `advanced_search_filters`: Individual filter types can be enabled/disabled
 - `advanced_search_saved_prefs`: Saved preferences feature
 
 ### Monitoring
+
 - Dashboards tracking success metrics (bounce rate, conversion, engagement)
 - Error rates and latency for search API
 - Filter usage analytics (which filters used most, combinations)
@@ -349,9 +384,11 @@ interface SearchResponse {
 - **Approvals Needed**: VP Product, VP Engineering
 
 ---
-*Last Updated*: 2025-11-19
-*Status*: Draft → Review → Approved → In Progress
-```
+
+_Last Updated_: 2025-11-19
+_Status_: Draft → Review → Approved → In Progress
+
+````
 
 ### Example 2: Feature request analysis
 
@@ -480,49 +517,60 @@ For comparison:
 *Analysis by*: Jane Doe (PM)
 *Reviewed by*: Design, Engineering, Data
 *Date*: 2025-11-19
-```
+````
 
 ## Common PM artifacts
 
 ### PRD (Product Requirements Document)
+
 Comprehensive specification of what to build and why. Include problem statement, goals, user stories, requirements, technical considerations, risks, and launch plan.
 
 ### Feature Brief
+
 Lighter-weight than PRD; quick summary of a feature idea with key details. Use for early-stage exploration before committing to full PRD.
 
 ### User Research Synthesis
+
 Summary of user research findings (interviews, surveys, usability tests) with patterns, insights, and recommendations.
 
 ### Roadmap
+
 Strategic plan of what to build over time. Organize by themes and time horizons; focus on outcomes not just outputs.
 
 ### Decision Document
+
 Record of important product decisions, the options considered, the decision made, and the reasoning. Critical for institutional memory.
 
 ### Launch Plan
+
 Detailed plan for rolling out a feature including phases, feature flags, metrics, monitoring, and rollback procedures.
 
 ### Competitive Analysis
+
 Comparison of competitors' features, approaches, and positioning. Inform product strategy and feature prioritization.
 
 ### One-Pager
+
 Executive summary of a product initiative. Use to communicate to leadership and get alignment.
 
 ## Best practices for AI-assisted PM work
 
 ### When using AI to write PRDs
+
 - Provide comprehensive context about the product, users, and technical constraints.
 - Review and edit generated content carefully; AI may miss nuances or make wrong assumptions.
 - Use AI for structure and first drafts; refine with human judgment and stakeholder input.
 - Validate technical details with engineering; don't assume AI knows your architecture.
 
 ### When using AI for feature analysis
+
 - Provide quantitative data when possible (usage numbers, customer feedback counts).
 - Use structured frameworks (RICE, ICE) to make analysis consistent and defensible.
 - Don't let AI make the final decision; use it to organize thinking and surface considerations.
 - Supplement AI analysis with qualitative stakeholder input and strategic context.
 
 ### When using AI for research synthesis
+
 - Provide full transcripts or detailed notes for best results.
 - Ask AI to identify patterns but validate with your own reading of the data.
 - Use AI to extract quotes and organize themes; add your own interpretation and implications.

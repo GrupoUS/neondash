@@ -5,12 +5,14 @@
 This document describes the complete Asaas payment gateway integration implementation in the Portal Grupo US CRM system.
 
 **Tech Stack:**
+
 - Backend: Convex (Serverless database + API)
 - Frontend: React 19 + TanStack Router + shadcn/ui
 - Auth: Clerk
 - Payment Gateway: Asaas (Brazilian payment processor)
 
 **Key Features:**
+
 - ✅ Real-time webhook processing with HMAC SHA256 signature verification
 - ✅ Idempotency protection using SHA-256 hashes
 - ✅ LGPD compliance (AES-256-GCM encryption for PII)
@@ -158,7 +160,7 @@ Webhooks are secured using HMAC SHA256 signatures from Asaas:
 async function verifyAsaasSignature(
   payload: string,
   signature: string | null,
-  secret: string | undefined,
+  secret: string | undefined
 ): Promise<boolean> {
   if (!signature || !secret) return false;
 
@@ -172,7 +174,7 @@ async function verifyAsaasSignature(
       keyData,
       { name: "HMAC", hash: "SHA-256" },
       false,
-      ["sign"],
+      ["sign"]
     );
 
     // Generate HMAC signature
@@ -180,12 +182,12 @@ async function verifyAsaasSignature(
     const signatureBuffer = await crypto.subtle.sign(
       "HMAC",
       key,
-      payloadBuffer,
+      payloadBuffer
     );
 
     // Convert to hex
     const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
+      .map(b => b.toString(16).padStart(2, "0"))
       .join("");
 
     // Timing-safe comparison to prevent timing attacks
@@ -225,14 +227,14 @@ Using SHA-256 hashes with 24-hour TTL:
 ```typescript
 async function generateIdempotencyKey(
   event: string,
-  paymentId: string | undefined,
+  paymentId: string | undefined
 ): Promise<string> {
   const data = `${event}:${paymentId || "no-payment"}:${Math.floor(Date.now() / 600000)}`;
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
   const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 ```
 
@@ -330,6 +332,7 @@ All webhook payloads and PII are encrypted using AES-256-GCM:
 ## 💳 Payment Types Supported
 
 ### Billing Types
+
 - **BOLETO** - Brazilian bank slip (boleto)
 - **PIX** - Instant payment via QR code
 - **CREDIT_CARD** - Credit card (30-day confirmation)
@@ -349,27 +352,32 @@ PENDING
 ### Payment Flows
 
 **PIX:**
+
 ```
 PAYMENT_CREATED → PAYMENT_RECEIVED
 ```
 
 **Boleto:**
+
 ```
 PAYMENT_CREATED → PAYMENT_CONFIRMED → PAYMENT_RECEIVED
 ```
 
 **Credit Card:**
+
 ```
 PAYMENT_CREATED → PAYMENT_CONFIRMED (30 days) → PAYMENT_RECEIVED
 ```
 
 ### Subscription Status
+
 - **ACTIVE** - Subscription is active and billing
 - **INACTIVE** - Subscription temporarily paused
 - **CANCELLED** - Subscription cancelled
 - **EXPIRED** - Subscription ended (non-renewal)
 
 ### Subscription Cycles
+
 - **MONTHLY** - Monthly billing
 - **WEEKLY** - Weekly billing
 - **BIWEEKLY** - Every 2 weeks
@@ -417,10 +425,20 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 // Clean expired idempotency entries (every 6 hours)
-crons.interval("cleanup_expired_idempotency", { hours: 6 }, internal.asaas.idempotency.cleanupExpiredIdempotency, {});
+crons.interval(
+  "cleanup_expired_idempotency",
+  { hours: 6 },
+  internal.asaas.idempotency.cleanupExpiredIdempotency,
+  {}
+);
 
 // Clean expired webhooks (90-day retention, daily)
-crons.interval("cleanup_expired_webhooks", { days: 1 }, internal.asaas.webhooks.cleanupExpiredWebhooks, {});
+crons.interval(
+  "cleanup_expired_webhooks",
+  { days: 1 },
+  internal.asaas.webhooks.cleanupExpiredWebhooks,
+  {}
+);
 
 export default crons;
 ```
@@ -453,22 +471,22 @@ const webhookStats = await ctx.runQuery(
 
 ```typescript
 const PAYMENT_VALIDATION = {
-  MIN_AMOUNT: 0.01,    // R$ 0,01 (1 cent)
+  MIN_AMOUNT: 0.01, // R$ 0,01 (1 cent)
   MAX_AMOUNT: 1000000, // R$ 1.000.000 (1 million)
-  MAX_INSTALLMENTS: 120,  // Maximum 10 years
+  MAX_INSTALLMENTS: 120, // Maximum 10 years
 };
 ```
 
 ### Common Error Scenarios
 
-| Error | Cause | Handling |
-|-------|--------|----------|
-| Invalid signature | Wrong secret or tampered payload | Return HTTP 401 |
-| Missing fields | Malformed webhook | Return HTTP 400 |
-| Payment not found | Asaas ID exists but not in our DB | Log warning, skip |
-| Duplicate event | Already processed (idempotency) | Skip processing, return HTTP 200 |
-| Rate limit exceeded | >100 req/min/IP | Return HTTP 429 |
-| Encryption failure | Crypto error | Log error, continue processing |
+| Error               | Cause                             | Handling                         |
+| ------------------- | --------------------------------- | -------------------------------- |
+| Invalid signature   | Wrong secret or tampered payload  | Return HTTP 401                  |
+| Missing fields      | Malformed webhook                 | Return HTTP 400                  |
+| Payment not found   | Asaas ID exists but not in our DB | Log warning, skip                |
+| Duplicate event     | Already processed (idempotency)   | Skip processing, return HTTP 200 |
+| Rate limit exceeded | >100 req/min/IP                   | Return HTTP 429                  |
+| Encryption failure  | Crypto error                      | Log error, continue processing   |
 
 ---
 
@@ -573,6 +591,7 @@ function PaymentHistory() {
 ### Payment Status Not Updating
 
 1. **Check Webhook Logs:**
+
    ```typescript
    const webhook = await ctx.runQuery(
      internal.asaas.queries.getWebhookByEventId,
@@ -582,6 +601,7 @@ function PaymentHistory() {
    ```
 
 2. **Verify Payment Record:**
+
    ```typescript
    const payment = await ctx.runQuery(
      internal.asaas.queries.getPaymentByAsaasId,
@@ -592,10 +612,9 @@ function PaymentHistory() {
 
 3. **Manually Trigger Retry:**
    ```typescript
-   await ctx.runMutation(
-     internal.asaas.retry.processFailedEvent,
-     { eventId: "evt_test" }
-   );
+   await ctx.runMutation(internal.asaas.retry.processFailedEvent, {
+     eventId: "evt_test",
+   });
    ```
 
 ### Idempotency Issues
@@ -619,14 +638,17 @@ const stableKey = `payment:${paymentId}`;
 ## 📚 Additional Resources
 
 ### Asaas Documentation
+
 - [Asaas API Documentation](https://sandbox.asaas.com/api/v3/docs)
 - [Webhook Guide](https://docs.asaas.com/pt/webhooks)
 
 ### Internal Documentation
+
 - [Convex Documentation](https://docs.convex.dev/)
 - [Clerk Integration](https://clerk.com/docs)
 
 ### Related Files
+
 - `convex/asaas/client.ts` - Asaas API client with circuit breaker
 - `convex/lib/auth.ts` - Authentication helpers
 - `convex/lib/encryption.ts` - LGPD encryption utilities
@@ -654,6 +676,7 @@ const stableKey = `payment:${paymentId}`;
 ## 🎓 Changelog
 
 ### v1.0.0 (2025-01-05)
+
 - Initial implementation with complete webhook processing
 - HMAC SHA256 signature verification
 - LGPD compliance with AES-256-GCM encryption

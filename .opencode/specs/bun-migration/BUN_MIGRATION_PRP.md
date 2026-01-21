@@ -1,5 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
+
 # PRP: Migração Completa para Bun Package Manager
+
 # ═══════════════════════════════════════════════════════════════════════════════
 
 ```yaml
@@ -36,7 +38,7 @@ objective:
 # ─────────────────────────────────────────────────────────────────────────────
 current_state_analysis:
   primary_package_manager: "Bun ✅"
-  
+
   bun_usage_correct:
     - "package.json scripts: all use `bun run`, `bunx`"
     - ".github/workflows/ci.yml: uses bun correctly"
@@ -47,11 +49,11 @@ current_state_analysis:
     - file: "package-lock.json"
       issue: "Stale lockfile from npm era (2026-01-16), causes confusion"
       action: "DELETE"
-    
+
     - file: ".claude/settings.json"
       issue: "Hook uses `npx ultracite fix`"
       action: "CHANGE to `bunx ultracite fix`"
-    
+
     - file: ".cursor/hooks.json"
       issue: "Hook uses `npx ultracite fix`"
       action: "CHANGE to `bunx ultracite fix`"
@@ -67,12 +69,12 @@ current_state_analysis:
       lines: "12-15"
       issue: "Contains incorrect yarn/npm references in text"
       action: "VERIFY and clean documentation formatting"
-    
+
     - file: "GEMINI.md"
       lines: "12-15"
       issue: "Contains incorrect yarn/npm references in text"
       action: "VERIFY and clean documentation formatting"
-    
+
     - file: "convex/README.md"
       lines: "89-90"
       issue: "Uses npx in examples"
@@ -97,11 +99,11 @@ relevant_files:
       relevance: "Hook uses npx"
     - path: "convex/README.md"
       relevance: "Documentation uses npx"
-  
+
   must_delete:
     - path: "package-lock.json"
       relevance: "Stale npm lockfile causing confusion"
-  
+
   may_need_review:
     - path: "AGENTS.md"
       relevance: "Documentation formatting check"
@@ -127,7 +129,7 @@ atomic_tasks:
   # ═══════════════════════════════════════════════════════════════════════════
   # PHASE 1: CRITICAL FIXES (Executar primeiro)
   # ═══════════════════════════════════════════════════════════════════════════
-  
+
   - id: "AT-001"
     title: "Delete stale package-lock.json"
     phase: 1
@@ -195,8 +197,8 @@ atomic_tasks:
       action: "EDIT FILE"
       target: "D:\\gpus\\.github\\workflows\\deploy.yml"
       line: 179
-      old_content: "echo \"Run 'pnpm run type-check' locally to see full error details\""
-      new_content: "echo \"Run 'bun run type-check' locally to see full error details\""
+      old_content: 'echo "Run ''pnpm run type-check'' locally to see full error details"'
+      new_content: 'echo "Run ''bun run type-check'' locally to see full error details"'
       validation: "grep -q 'bun run type-check' .github/workflows/deploy.yml"
       rollback: "git checkout .github/workflows/deploy.yml"
     acceptance_criteria:
@@ -283,7 +285,7 @@ atomic_tasks:
       action: "APPEND TO FILE"
       target: "D:\\gpus\\.gitignore"
       content_to_add: |
-        
+
         # Prevent other package manager lockfiles
         package-lock.json
         pnpm-lock.yaml
@@ -303,22 +305,22 @@ validation:
       name: "No npm lockfile exists"
       command: "Test-Path -Path 'D:\\gpus\\package-lock.json' -PathType Leaf"
       expected: "False"
-    
+
     - id: "VT-002"
       name: "Bun lockfile exists"
       command: "Test-Path -Path 'D:\\gpus\\bun.lock' -PathType Leaf"
       expected: "True"
-    
+
     - id: "VT-003"
       name: "Build still works"
       command: "bun run build"
       expected: "Exit code 0"
-    
+
     - id: "VT-004"
       name: "Lint passes"
       command: "bun run lint:check"
       expected: "Exit code 0"
-    
+
     - id: "VT-005"
       name: "No npx in hooks"
       command: "Select-String -Path '.claude/settings.json','.cursor/hooks.json' -Pattern 'npx'"
@@ -328,7 +330,7 @@ validation:
     - id: "VT-006"
       description: "Verify Claude hook works with bunx"
       test: "Make a file edit and check if ultracite runs"
-    
+
     - id: "VT-007"
       description: "Verify Cursor hook works with bunx"
       test: "Make a file edit in Cursor and check if ultracite runs"
@@ -340,26 +342,26 @@ output:
   files_deleted:
     - path: "package-lock.json"
       reason: "Stale npm lockfile"
-  
+
   files_modified:
     - path: ".claude/settings.json"
       changes: "npx → bunx in PostToolUse hook"
-    
+
     - path: ".cursor/hooks.json"
       changes: "npx → bunx in afterFileEdit hook"
-    
+
     - path: ".github/workflows/deploy.yml"
       changes: "pnpm → bun in error message"
-    
+
     - path: "convex/README.md"
       changes: "npx → bunx in examples"
-    
+
     - path: "AGENTS.md"
       changes: "Clean formatting in package manager section"
-    
+
     - path: "GEMINI.md"
       changes: "Clean formatting in package manager section"
-    
+
     - path: ".gitignore"
       changes: "Add non-bun lockfiles to ignore list"
 
@@ -377,7 +379,7 @@ output:
     1. Check git diff for unintended changes
     2. Run: git checkout <affected-file>
     3. Retry with more careful edit
-    
+
     If build fails after changes:
     1. Verify bun.lock wasn't corrupted
     2. Run: bun install --frozen-lockfile
@@ -392,25 +394,25 @@ execution_order:
     tasks: ["AT-001", "AT-002", "AT-003"]
     parallel: true
     validate_after: ["VT-001", "VT-002", "VT-005"]
-  
+
   phase_2_cicd:
     description: "Fix CI/CD references"
     tasks: ["AT-004"]
     parallel: true
     validate_after: []
-  
+
   phase_3_docs:
     description: "Update documentation"
     tasks: ["AT-005", "AT-006", "AT-007"]
     parallel: true
     validate_after: []
-  
+
   phase_4_prevention:
     description: "Prevent future issues"
     tasks: ["AT-008"]
     parallel: true
     validate_after: []
-  
+
   final_validation:
     description: "Ensure everything works"
     tasks: []
@@ -461,17 +463,17 @@ bun run lint:check
 
 ## 📊 Estado Atual do Projeto GPUS
 
-| Componente | Package Manager | Status |
-|------------|-----------------|--------|
-| package.json scripts | Bun ✅ | Correto |
-| CI (ci.yml) | Bun ✅ | Correto |
-| Dockerfile | Bun ✅ | Correto |
-| bun.lock | Presente ✅ | Correto |
-| package-lock.json | npm ❌ | **REMOVER** |
-| .claude/settings.json | npx ❌ | **TROCAR por bunx** |
-| .cursor/hooks.json | npx ❌ | **TROCAR por bunx** |
-| deploy.yml | pnpm ❌ | **TROCAR por bun** |
-| convex/README.md | npx ❌ | **TROCAR por bunx** |
+| Componente            | Package Manager | Status              |
+| --------------------- | --------------- | ------------------- |
+| package.json scripts  | Bun ✅          | Correto             |
+| CI (ci.yml)           | Bun ✅          | Correto             |
+| Dockerfile            | Bun ✅          | Correto             |
+| bun.lock              | Presente ✅     | Correto             |
+| package-lock.json     | npm ❌          | **REMOVER**         |
+| .claude/settings.json | npx ❌          | **TROCAR por bunx** |
+| .cursor/hooks.json    | npx ❌          | **TROCAR por bunx** |
+| deploy.yml            | pnpm ❌         | **TROCAR por bun**  |
+| convex/README.md      | npx ❌          | **TROCAR por bunx** |
 
 ## 🎯 Impacto das Mudanças
 

@@ -3,13 +3,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Mail, Target, Users, UserCheck, UserX } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Mail,
+  Target,
+  Users,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type Turma = "neon_estrutura" | "neon_escala";
@@ -41,7 +64,7 @@ const defaultForm: MentoradoForm = {
 export default function GestaoMentorados() {
   const utils = trpc.useUtils();
   const { data: mentorados, isLoading } = trpc.mentorados.list.useQuery();
-  
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -56,7 +79,7 @@ export default function GestaoMentorados() {
       setIsCreateOpen(false);
       setForm(defaultForm);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Erro ao criar: ${error.message}`);
     },
   });
@@ -68,7 +91,7 @@ export default function GestaoMentorados() {
       setIsEditOpen(false);
       setSelectedMentorado(null);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Erro ao atualizar: ${error.message}`);
     },
   });
@@ -80,7 +103,7 @@ export default function GestaoMentorados() {
       setIsDeleteOpen(false);
       setSelectedMentorado(null);
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Erro ao remover: ${error.message}`);
     },
   });
@@ -141,22 +164,23 @@ export default function GestaoMentorados() {
     setIsDeleteOpen(true);
   };
 
-  const filteredMentorados = mentorados?.filter((m) => {
+  const filteredMentorados = mentorados?.filter(m => {
     if (filterTurma === "all") return true;
     return m.turma === filterTurma;
   });
 
   const stats = {
     total: mentorados?.length || 0,
-    estrutura: mentorados?.filter((m) => m.turma === "neon_estrutura").length || 0,
-    escala: mentorados?.filter((m) => m.turma === "neon_escala").length || 0,
-    comEmail: mentorados?.filter((m) => m.email).length || 0,
+    estrutura:
+      mentorados?.filter(m => m.turma === "neon_estrutura").length || 0,
+    escala: mentorados?.filter(m => m.turma === "neon_escala").length || 0,
+    comEmail: mentorados?.filter(m => m.email).length || 0,
   };
 
   const getInitials = (name: string) => {
     return name
       .split(" ")
-      .map((n) => n[0])
+      .map(n => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
@@ -168,8 +192,12 @@ export default function GestaoMentorados() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Gestão de Mentorados</h1>
-            <p className="text-slate-500 mt-1">Gerencie os perfis dos mentorados das turmas Neon</p>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Gestão de Mentorados
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Gerencie os perfis dos mentorados das turmas Neon
+            </p>
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
@@ -187,7 +215,9 @@ export default function GestaoMentorados() {
                   <Label>Nome Completo *</Label>
                   <Input
                     value={form.nomeCompleto}
-                    onChange={(e) => setForm({ ...form, nomeCompleto: e.target.value })}
+                    onChange={e =>
+                      setForm({ ...form, nomeCompleto: e.target.value })
+                    }
                     placeholder="Nome do mentorado"
                   />
                 </div>
@@ -196,7 +226,7 @@ export default function GestaoMentorados() {
                   <Input
                     type="email"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={e => setForm({ ...form, email: e.target.value })}
                     placeholder="email@exemplo.com"
                   />
                 </div>
@@ -204,18 +234,25 @@ export default function GestaoMentorados() {
                   <Label>URL da Foto</Label>
                   <Input
                     value={form.fotoUrl}
-                    onChange={(e) => setForm({ ...form, fotoUrl: e.target.value })}
+                    onChange={e =>
+                      setForm({ ...form, fotoUrl: e.target.value })
+                    }
                     placeholder="https://..."
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Turma *</Label>
-                  <Select value={form.turma} onValueChange={(v: Turma) => setForm({ ...form, turma: v })}>
+                  <Select
+                    value={form.turma}
+                    onValueChange={(v: Turma) => setForm({ ...form, turma: v })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="neon_estrutura">Neon Estrutura</SelectItem>
+                      <SelectItem value="neon_estrutura">
+                        Neon Estrutura
+                      </SelectItem>
                       <SelectItem value="neon_escala">Neon Escala</SelectItem>
                     </SelectContent>
                   </Select>
@@ -231,7 +268,12 @@ export default function GestaoMentorados() {
                       <Input
                         type="number"
                         value={form.metaFaturamento}
-                        onChange={(e) => setForm({ ...form, metaFaturamento: Number(e.target.value) })}
+                        onChange={e =>
+                          setForm({
+                            ...form,
+                            metaFaturamento: Number(e.target.value),
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-1">
@@ -239,7 +281,12 @@ export default function GestaoMentorados() {
                       <Input
                         type="number"
                         value={form.metaLeads}
-                        onChange={(e) => setForm({ ...form, metaLeads: Number(e.target.value) })}
+                        onChange={e =>
+                          setForm({
+                            ...form,
+                            metaLeads: Number(e.target.value),
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-1">
@@ -247,7 +294,12 @@ export default function GestaoMentorados() {
                       <Input
                         type="number"
                         value={form.metaProcedimentos}
-                        onChange={(e) => setForm({ ...form, metaProcedimentos: Number(e.target.value) })}
+                        onChange={e =>
+                          setForm({
+                            ...form,
+                            metaProcedimentos: Number(e.target.value),
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-1">
@@ -255,7 +307,12 @@ export default function GestaoMentorados() {
                       <Input
                         type="number"
                         value={form.metaPosts}
-                        onChange={(e) => setForm({ ...form, metaPosts: Number(e.target.value) })}
+                        onChange={e =>
+                          setForm({
+                            ...form,
+                            metaPosts: Number(e.target.value),
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-1">
@@ -263,7 +320,12 @@ export default function GestaoMentorados() {
                       <Input
                         type="number"
                         value={form.metaStories}
-                        onChange={(e) => setForm({ ...form, metaStories: Number(e.target.value) })}
+                        onChange={e =>
+                          setForm({
+                            ...form,
+                            metaStories: Number(e.target.value),
+                          })
+                        }
                       />
                     </div>
                   </div>
@@ -273,8 +335,8 @@ export default function GestaoMentorados() {
                 <DialogClose asChild>
                   <Button variant="outline">Cancelar</Button>
                 </DialogClose>
-                <Button 
-                  onClick={handleCreate} 
+                <Button
+                  onClick={handleCreate}
                   disabled={!form.nomeCompleto || createMutation.isPending}
                   className="bg-neon-blue hover:bg-neon-blue-dark"
                 >
@@ -294,7 +356,9 @@ export default function GestaoMentorados() {
                   <Users className="w-5 h-5 text-neon-blue" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {stats.total}
+                  </p>
                   <p className="text-xs text-slate-500">Total</p>
                 </div>
               </div>
@@ -307,7 +371,9 @@ export default function GestaoMentorados() {
                   <UserCheck className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats.estrutura}</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {stats.estrutura}
+                  </p>
                   <p className="text-xs text-slate-500">Estrutura</p>
                 </div>
               </div>
@@ -320,7 +386,9 @@ export default function GestaoMentorados() {
                   <UserX className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats.escala}</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {stats.escala}
+                  </p>
                   <p className="text-xs text-slate-500">Escala</p>
                 </div>
               </div>
@@ -333,7 +401,9 @@ export default function GestaoMentorados() {
                   <Mail className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-900">{stats.comEmail}</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {stats.comEmail}
+                  </p>
                   <p className="text-xs text-slate-500">Com Email</p>
                 </div>
               </div>
@@ -363,12 +433,16 @@ export default function GestaoMentorados() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-slate-500">Carregando...</div>
+              <div className="text-center py-8 text-slate-500">
+                Carregando...
+              </div>
             ) : filteredMentorados?.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">Nenhum mentorado encontrado</div>
+              <div className="text-center py-8 text-slate-500">
+                Nenhum mentorado encontrado
+              </div>
             ) : (
               <div className="space-y-3">
-                {filteredMentorados?.map((mentorado) => (
+                {filteredMentorados?.map(mentorado => (
                   <div
                     key={mentorado.id}
                     className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
@@ -381,7 +455,9 @@ export default function GestaoMentorados() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-slate-900">{mentorado.nomeCompleto}</p>
+                        <p className="font-medium text-slate-900">
+                          {mentorado.nomeCompleto}
+                        </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge
                             variant="outline"
@@ -391,10 +467,14 @@ export default function GestaoMentorados() {
                                 : "border-purple-300 bg-purple-50 text-purple-700"
                             }
                           >
-                            {mentorado.turma === "neon_estrutura" ? "Estrutura" : "Escala"}
+                            {mentorado.turma === "neon_estrutura"
+                              ? "Estrutura"
+                              : "Escala"}
                           </Badge>
                           {mentorado.email && (
-                            <span className="text-xs text-slate-500">{mentorado.email}</span>
+                            <span className="text-xs text-slate-500">
+                              {mentorado.email}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -435,7 +515,9 @@ export default function GestaoMentorados() {
                 <Label>Nome Completo *</Label>
                 <Input
                   value={form.nomeCompleto}
-                  onChange={(e) => setForm({ ...form, nomeCompleto: e.target.value })}
+                  onChange={e =>
+                    setForm({ ...form, nomeCompleto: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -443,24 +525,29 @@ export default function GestaoMentorados() {
                 <Input
                   type="email"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>URL da Foto</Label>
                 <Input
                   value={form.fotoUrl}
-                  onChange={(e) => setForm({ ...form, fotoUrl: e.target.value })}
+                  onChange={e => setForm({ ...form, fotoUrl: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Turma *</Label>
-                <Select value={form.turma} onValueChange={(v: Turma) => setForm({ ...form, turma: v })}>
+                <Select
+                  value={form.turma}
+                  onValueChange={(v: Turma) => setForm({ ...form, turma: v })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="neon_estrutura">Neon Estrutura</SelectItem>
+                    <SelectItem value="neon_estrutura">
+                      Neon Estrutura
+                    </SelectItem>
                     <SelectItem value="neon_escala">Neon Escala</SelectItem>
                   </SelectContent>
                 </Select>
@@ -476,7 +563,12 @@ export default function GestaoMentorados() {
                     <Input
                       type="number"
                       value={form.metaFaturamento}
-                      onChange={(e) => setForm({ ...form, metaFaturamento: Number(e.target.value) })}
+                      onChange={e =>
+                        setForm({
+                          ...form,
+                          metaFaturamento: Number(e.target.value),
+                        })
+                      }
                     />
                   </div>
                   <div className="space-y-1">
@@ -484,7 +576,9 @@ export default function GestaoMentorados() {
                     <Input
                       type="number"
                       value={form.metaLeads}
-                      onChange={(e) => setForm({ ...form, metaLeads: Number(e.target.value) })}
+                      onChange={e =>
+                        setForm({ ...form, metaLeads: Number(e.target.value) })
+                      }
                     />
                   </div>
                   <div className="space-y-1">
@@ -492,7 +586,12 @@ export default function GestaoMentorados() {
                     <Input
                       type="number"
                       value={form.metaProcedimentos}
-                      onChange={(e) => setForm({ ...form, metaProcedimentos: Number(e.target.value) })}
+                      onChange={e =>
+                        setForm({
+                          ...form,
+                          metaProcedimentos: Number(e.target.value),
+                        })
+                      }
                     />
                   </div>
                   <div className="space-y-1">
@@ -500,7 +599,9 @@ export default function GestaoMentorados() {
                     <Input
                       type="number"
                       value={form.metaPosts}
-                      onChange={(e) => setForm({ ...form, metaPosts: Number(e.target.value) })}
+                      onChange={e =>
+                        setForm({ ...form, metaPosts: Number(e.target.value) })
+                      }
                     />
                   </div>
                   <div className="space-y-1">
@@ -508,7 +609,12 @@ export default function GestaoMentorados() {
                     <Input
                       type="number"
                       value={form.metaStories}
-                      onChange={(e) => setForm({ ...form, metaStories: Number(e.target.value) })}
+                      onChange={e =>
+                        setForm({
+                          ...form,
+                          metaStories: Number(e.target.value),
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -536,8 +642,9 @@ export default function GestaoMentorados() {
               <DialogTitle>Confirmar Exclusão</DialogTitle>
             </DialogHeader>
             <p className="text-slate-600">
-              Tem certeza que deseja remover <strong>{selectedMentorado?.nomeCompleto}</strong>?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja remover{" "}
+              <strong>{selectedMentorado?.nomeCompleto}</strong>? Esta ação não
+              pode ser desfeita.
             </p>
             <DialogFooter>
               <DialogClose asChild>

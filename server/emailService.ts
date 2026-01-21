@@ -8,18 +8,22 @@ export type EmailPayload = {
 
 /**
  * Sends an email notification to a mentorado.
- * Uses the Manus notification service to send emails.
+ * Uses the configured notification service to send emails.
  * Returns true if successful, false otherwise.
  */
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const { to, subject, body } = payload;
 
   if (!to || !subject || !body) {
-    console.warn("[Email] Missing required fields:", { to, subject, bodyLength: body?.length });
+    console.warn("[Email] Missing required fields:", {
+      to,
+      subject,
+      bodyLength: body?.length,
+    });
     return false;
   }
 
-  if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
+  if (!ENV.llmApiUrl || !ENV.llmApiKey) {
     console.warn("[Email] Notification service not configured");
     return false;
   }
@@ -43,10 +47,11 @@ export async function sendWelcomeEmail(
   nomeCompleto: string,
   turma: string
 ): Promise<boolean> {
-  const turmaFormatada = turma === "neon_estrutura" ? "Neon Estrutura" : "Neon Escala";
-  
+  const turmaFormatada =
+    turma === "neon_estrutura" ? "Neon Estrutura" : "Neon Escala";
+
   const subject = `🎉 Bem-vindo ao Dashboard Neon - ${turmaFormatada}`;
-  
+
   const body = `
 Olá ${nomeCompleto}!
 

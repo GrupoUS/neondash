@@ -88,22 +88,27 @@ task_execution:
 ## Step 2: Phase-Based Execution (1-5)
 
 ### Phase 1: Setup & Scaffolding
+
 - Checkpoint: `bun install`
 - Activities: Directories, config, initial schemas.
 
 ### Phase 2: Core Logic & Backend
+
 - Checkpoint: `bunx convex dev` (verified types)
 - Activities: Mutations, actions, database indexes.
 
 ### Phase 3: Frontend Components
+
 - Checkpoint: `bun run build` (no lint errors)
 - Activities: UI development, hooks integration.
 
 ### Phase 4: Integration & Routes
+
 - Checkpoint: `tanstack router generate`
 - Activities: Page assembling, auth guards.
 
 ### Phase 5: Verification & Polish
+
 - Checkpoint: `bun test`
 - Activities: VT tasks, screenshots, walkthrough.
 
@@ -118,5 +123,6 @@ task_execution:
 ---
 
 ## Referências
+
 - Princípios: `code-principles.md`
 - Pesquisa: `research.md`

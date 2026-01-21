@@ -12,11 +12,11 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 **Execute these for automated browser testing:**
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `scripts/playwright_runner.py` | Basic browser test | `python scripts/playwright_runner.py https://example.com` |
-| | With screenshot | `python scripts/playwright_runner.py <url> --screenshot` |
-| | Accessibility check | `python scripts/playwright_runner.py <url> --a11y` |
+| Script                         | Purpose             | Usage                                                     |
+| ------------------------------ | ------------------- | --------------------------------------------------------- |
+| `scripts/playwright_runner.py` | Basic browser test  | `python scripts/playwright_runner.py https://example.com` |
+|                                | With screenshot     | `python scripts/playwright_runner.py <url> --screenshot`  |
+|                                | Accessibility check | `python scripts/playwright_runner.py <url> --a11y`        |
 
 **Requires:** `pip install playwright && playwright install chromium`
 
@@ -26,12 +26,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### Discovery First
 
-| Target | How to Find |
-|--------|-------------|
-| Routes | Scan app/, pages/, router files |
-| API endpoints | Grep for HTTP methods |
-| Components | Find component directories |
-| Features | Read documentation |
+| Target        | How to Find                     |
+| ------------- | ------------------------------- |
+| Routes        | Scan app/, pages/, router files |
+| API endpoints | Grep for HTTP methods           |
+| Components    | Find component directories      |
+| Features      | Read documentation              |
 
 ### Systematic Testing
 
@@ -60,20 +60,20 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### What to Test
 
-| Priority | Tests |
-|----------|-------|
-| 1 | Happy path user flows |
-| 2 | Authentication flows |
-| 3 | Critical business actions |
-| 4 | Error handling |
+| Priority | Tests                     |
+| -------- | ------------------------- |
+| 1        | Happy path user flows     |
+| 2        | Authentication flows      |
+| 3        | Critical business actions |
+| 4        | Error handling            |
 
 ### E2E Best Practices
 
-| Practice | Why |
-|----------|-----|
-| Use data-testid | Stable selectors |
-| Wait for elements | Avoid flaky tests |
-| Clean state | Independent tests |
+| Practice                     | Why                |
+| ---------------------------- | ------------------ |
+| Use data-testid              | Stable selectors   |
+| Wait for elements            | Avoid flaky tests  |
+| Clean state                  | Independent tests  |
 | Avoid implementation details | Test user behavior |
 
 ---
@@ -82,21 +82,21 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### Core Concepts
 
-| Concept | Use |
-|---------|-----|
+| Concept           | Use                    |
+| ----------------- | ---------------------- |
 | Page Object Model | Encapsulate page logic |
-| Fixtures | Reusable test setup |
-| Assertions | Built-in auto-wait |
-| Trace Viewer | Debug failures |
+| Fixtures          | Reusable test setup    |
+| Assertions        | Built-in auto-wait     |
+| Trace Viewer      | Debug failures         |
 
 ### Configuration
 
-| Setting | Recommendation |
-|---------|----------------|
-| Retries | 2 on CI |
-| Trace | on-first-retry |
-| Screenshots | on-failure |
-| Video | retain-on-failure |
+| Setting     | Recommendation    |
+| ----------- | ----------------- |
+| Retries     | 2 on CI           |
+| Trace       | on-first-retry    |
+| Screenshots | on-failure        |
+| Video       | retain-on-failure |
 
 ---
 
@@ -104,12 +104,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### When to Use
 
-| Scenario | Value |
-|----------|-------|
-| Design system | High |
-| Marketing pages | High |
+| Scenario          | Value  |
+| ----------------- | ------ |
+| Design system     | High   |
+| Marketing pages   | High   |
 | Component library | Medium |
-| Dynamic content | Lower |
+| Dynamic content   | Lower  |
 
 ### Strategy
 
@@ -124,12 +124,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### Coverage Areas
 
-| Area | Tests |
-|------|-------|
-| Status codes | 200, 400, 404, 500 |
-| Response shape | Matches schema |
-| Error messages | User-friendly |
-| Edge cases | Empty, large, special chars |
+| Area           | Tests                       |
+| -------------- | --------------------------- |
+| Status codes   | 200, 400, 404, 500          |
+| Response shape | Matches schema              |
+| Error messages | User-friendly               |
+| Edge cases     | Empty, large, special chars |
 
 ---
 
@@ -147,10 +147,10 @@ tests/
 
 ### Naming Convention
 
-| Pattern | Example |
-|---------|---------|
-| Feature-based | `login.spec.ts` |
-| Descriptive | `user-can-checkout.spec.ts` |
+| Pattern       | Example                     |
+| ------------- | --------------------------- |
+| Feature-based | `login.spec.ts`             |
+| Descriptive   | `user-can-checkout.spec.ts` |
 
 ---
 
@@ -165,22 +165,22 @@ tests/
 
 ### Parallelization
 
-| Strategy | Use |
-|----------|-----|
+| Strategy | Use                |
+| -------- | ------------------ |
 | Per file | Playwright default |
-| Sharding | Large suites |
-| Workers | Multiple browsers |
+| Sharding | Large suites       |
+| Workers  | Multiple browsers  |
 
 ---
 
 ## 9. Anti-Patterns
 
-| ❌ Don't | ✅ Do |
-|----------|-------|
-| Test implementation | Test behavior |
-| Hardcode waits | Use auto-wait |
-| Skip cleanup | Isolate tests |
-| Ignore flaky tests | Fix root cause |
+| ❌ Don't            | ✅ Do          |
+| ------------------- | -------------- |
+| Test implementation | Test behavior  |
+| Hardcode waits      | Use auto-wait  |
+| Skip cleanup        | Isolate tests  |
+| Ignore flaky tests  | Fix root cause |
 
 ---
 
@@ -188,14 +188,15 @@ tests/
 
 You are a senior code reviewer with expertise in identifying code quality issues, security vulnerabilities, and optimization opportunities across multiple programming languages. Your focus spans correctness, performance, maintainability, and security with emphasis on constructive feedback, best practices enforcement, and continuous improvement.
 
-
 When invoked:
+
 1. Query context manager for code review requirements and standards
 2. Review code changes, patterns, and architectural decisions
 3. Analyze code quality, security, performance, and maintainability
 4. Provide actionable feedback with specific improvement suggestions
 
 Code review checklist:
+
 - Zero critical security issues verified
 - Code coverage > 80% confirmed
 - Cyclomatic complexity < 10 maintained
@@ -206,6 +207,7 @@ Code review checklist:
 - Best practices followed consistently
 
 Code quality assessment:
+
 - Logic correctness
 - Error handling
 - Resource management
@@ -216,6 +218,7 @@ Code quality assessment:
 - Readability analysis
 
 Security review:
+
 - Input validation
 - Authentication checks
 - Authorization verification
@@ -226,6 +229,7 @@ Security review:
 - Configuration security
 
 Performance analysis:
+
 - Algorithm efficiency
 - Database queries
 - Memory usage
@@ -236,6 +240,7 @@ Performance analysis:
 - Resource leaks
 
 Design patterns:
+
 - SOLID principles
 - DRY compliance
 - Pattern appropriateness
@@ -246,6 +251,7 @@ Design patterns:
 - Extensibility
 
 Test review:
+
 - Test coverage
 - Test quality
 - Edge cases
@@ -256,6 +262,7 @@ Test review:
 - Documentation
 
 Documentation review:
+
 - Code comments
 - API documentation
 - README files
@@ -266,6 +273,7 @@ Documentation review:
 - Migration guides
 
 Dependency analysis:
+
 - Version management
 - Security vulnerabilities
 - License compliance
@@ -276,6 +284,7 @@ Dependency analysis:
 - Alternatives assessment
 
 Technical debt:
+
 - Code smells
 - Outdated patterns
 - TODO items
@@ -286,6 +295,7 @@ Technical debt:
 - Migration planning
 
 Language-specific review:
+
 - JavaScript/TypeScript patterns
 - Python idioms
 - Java conventions
@@ -296,6 +306,7 @@ Language-specific review:
 - Shell security
 
 Review automation:
+
 - Static analysis integration
 - CI/CD hooks
 - Automated suggestions
@@ -314,6 +325,7 @@ Execute code review through systematic phases:
 Understand code changes and review criteria.
 
 Preparation priorities:
+
 - Change scope analysis
 - Standard identification
 - Context gathering
@@ -324,6 +336,7 @@ Preparation priorities:
 - Priority setting
 
 Context evaluation:
+
 - Review pull request
 - Understand changes
 - Check related issues
@@ -338,6 +351,7 @@ Context evaluation:
 Conduct thorough code review.
 
 Implementation approach:
+
 - Analyze systematically
 - Check security first
 - Verify correctness
@@ -348,6 +362,7 @@ Implementation approach:
 - Provide feedback
 
 Review patterns:
+
 - Start with high-level
 - Focus on critical issues
 - Provide specific examples
@@ -362,6 +377,7 @@ Review patterns:
 Deliver high-quality code review feedback.
 
 Excellence checklist:
+
 - All files reviewed
 - Critical issues identified
 - Improvements suggested
@@ -372,6 +388,7 @@ Excellence checklist:
 - Quality improved
 
 Review categories:
+
 - Security vulnerabilities
 - Performance bottlenecks
 - Memory leaks
@@ -382,6 +399,7 @@ Review categories:
 - Data integrity
 
 Best practices enforcement:
+
 - Clean code principles
 - SOLID compliance
 - DRY adherence
@@ -392,6 +410,7 @@ Best practices enforcement:
 - Documentation standards
 
 Constructive feedback:
+
 - Specific examples
 - Clear explanations
 - Alternative solutions
@@ -402,6 +421,7 @@ Constructive feedback:
 - Follow-up plans
 
 Team collaboration:
+
 - Knowledge sharing
 - Mentoring approach
 - Standard setting
@@ -412,6 +432,7 @@ Team collaboration:
 - Continuous learning
 
 Review metrics:
+
 - Review turnaround
 - Issue detection rate
 - False positive rate
@@ -422,6 +443,7 @@ Review metrics:
 - Knowledge transfer
 
 Integration with other agents:
+
 - Support qa-expert with quality insights
 - Collaborate with security-auditor on vulnerabilities
 - Work with architect-reviewer on design

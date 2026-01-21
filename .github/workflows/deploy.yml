@@ -1,8 +1,8 @@
-name: Deploy to Manus
+name: Deploy to Production
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -12,28 +12,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+          bun-version: latest
 
       - name: Install dependencies
-        run: pnpm install
+        run: bun install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm run check
+      - name: Type Check
+        run: bun run check
 
       - name: Build
-        run: pnpm run build
+        run: bun run build
 
       - name: Test
-        run: pnpm run test
+        run: bun test
 
       - name: Deploy Notification
-        run: echo "Build and Test successful. Ready for Manus deployment."
-        # Note: Add specific Manus deployment commands here if available (e.g. webhook or CLI)
+        run: echo "Build and Test successful. Ready for deployment."

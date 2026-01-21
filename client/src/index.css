@@ -47,25 +47,25 @@
 
   /* Neon Brand Extensions */
   --color-neon-blue-dark: linear-gradient(to bottom, #112031, #162a40);
-  --color-neon-blue: #20445B;
-  --color-neon-gold: #AC9469;
-  --color-neon-paper: #FAF9F6;
+  --color-neon-blue: #20445b;
+  --color-neon-gold: #ac9469;
+  --color-neon-paper: #faf9f6;
 }
 
 :root {
   /* Neon Stitch Hybrid Palette - Premium AI Lab Aesthetic */
 
   /* Foundation Colors */
-  --color-paper: #FAF9F6;  /* Premium Off-white Background */
-  --color-pure-white: #FFFFFF;
+  --color-paper: #faf9f6; /* Premium Off-white Background */
+  --color-pure-white: #ffffff;
   --color-neon-blue-dark: #112031; /* Deep Navy - Primary Text */
-  --color-neon-blue-medium: #20445B; /* Corporate Blue */
-  --color-neon-gold: #AC9469; /* Luxury Accent */
-  --color-neon-gray-light: #F3F4F6; /* Subtle Backgrounds */
-  --color-neon-border: #E5E7EB; /* Clean Lines */
+  --color-neon-blue-medium: #20445b; /* Corporate Blue */
+  --color-neon-gold: #ac9469; /* Luxury Accent */
+  --color-neon-gray-light: #f3f4f6; /* Subtle Backgrounds */
+  --color-neon-border: #e5e7eb; /* Clean Lines */
 
-  --font-sans: 'Outfit', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 
   --radius: 0.75rem; /* 12px - Modern Soft */
 
@@ -112,54 +112,54 @@
   --chart-1: var(--color-neon-blue-dark);
   --chart-2: var(--color-neon-gold);
   --chart-3: var(--color-neon-blue-medium);
-  --chart-4: #D2D0C7; /* Neon Gray */
-  --chart-5: #1A1A1A; /* Black Accent */
+  --chart-4: #d2d0c7; /* Neon Gray */
+  --chart-5: #1a1a1a; /* Black Accent */
 }
 
 /* Dark Mode - Maintained for fallback, but aligned with new identity */
 .dark {
   --background: #112031; /* Deep Navy Background */
-  --foreground: #FAF9F6; /* Off-white Text */
+  --foreground: #faf9f6; /* Off-white Text */
 
   --card: #162a40; /* Slightly Lighter Navy */
-  --card-foreground: #FAF9F6;
+  --card-foreground: #faf9f6;
 
   --popover: #162a40;
-  --popover-foreground: #FAF9F6;
+  --popover-foreground: #faf9f6;
 
-  --primary: #AC9469; /* Gold Primary in Dark Mode */
+  --primary: #ac9469; /* Gold Primary in Dark Mode */
   --primary-foreground: #112031;
 
-  --secondary: #20445B;
-  --secondary-foreground: #FAF9F6;
+  --secondary: #20445b;
+  --secondary-foreground: #faf9f6;
 
-  --muted: #20445B;
-  --muted-foreground: #FAF9F6;
+  --muted: #20445b;
+  --muted-foreground: #faf9f6;
 
-  --accent: #20445B;
-  --accent-foreground: #FAF9F6;
+  --accent: #20445b;
+  --accent-foreground: #faf9f6;
 
   --destructive: oklch(0.6 0.25 20);
   --destructive-foreground: oklch(1 0 0);
 
-  --border: #20445B;
-  --input: #20445B;
-  --ring: #AC9469;
+  --border: #20445b;
+  --input: #20445b;
+  --ring: #ac9469;
 
   --sidebar: #112031;
-  --sidebar-foreground: #FAF9F6;
-  --sidebar-primary: #AC9469;
+  --sidebar-foreground: #faf9f6;
+  --sidebar-primary: #ac9469;
   --sidebar-primary-foreground: #112031;
-  --sidebar-accent: #20445B;
-  --sidebar-accent-foreground: #FAF9F6;
-  --sidebar-border: #20445B;
-  --sidebar-ring: #AC9469;
+  --sidebar-accent: #20445b;
+  --sidebar-accent-foreground: #faf9f6;
+  --sidebar-border: #20445b;
+  --sidebar-ring: #ac9469;
 
-  --chart-1: #AC9469;
-  --chart-2: #20445B;
-  --chart-3: #FAF9F6;
-  --chart-4: #D2D0C7;
-  --chart-5: #FFD700;
+  --chart-1: #ac9469;
+  --chart-2: #20445b;
+  --chart-3: #faf9f6;
+  --chart-4: #d2d0c7;
+  --chart-5: #ffd700;
 }
 
 @layer base {
@@ -224,43 +224,43 @@
     }
   }
 }
-  /* Neon Brand Utility Classes */
-  .bg-neon-blue-dark {
-    background-color: var(--color-neon-blue-dark);
-  }
+/* Neon Brand Utility Classes */
+.bg-neon-blue-dark {
+  background-color: var(--color-neon-blue-dark);
+}
 
-  .bg-neon-blue {
-    background-color: var(--color-neon-blue);
-  }
+.bg-neon-blue {
+  background-color: var(--color-neon-blue);
+}
 
-  .bg-neon-gold {
-    background-color: var(--color-neon-gold);
-  }
+.bg-neon-gold {
+  background-color: var(--color-neon-gold);
+}
 
-  .bg-neon-gray {
-    background-color: var(--color-neon-gray);
-  }
+.bg-neon-gray {
+  background-color: var(--color-neon-gray);
+}
 
-  .text-neon-blue-dark {
-    color: var(--color-neon-blue-dark);
-  }
+.text-neon-blue-dark {
+  color: var(--color-neon-blue-dark);
+}
 
-  .text-neon-blue {
-    color: var(--color-neon-blue);
-  }
+.text-neon-blue {
+  color: var(--color-neon-blue);
+}
 
-  .text-neon-gold {
-    color: var(--color-neon-gold);
-  }
+.text-neon-gold {
+  color: var(--color-neon-gold);
+}
 
-  .text-neon-gray {
-    color: var(--color-neon-gray);
-  }
+.text-neon-gray {
+  color: var(--color-neon-gray);
+}
 
-  .border-neon-blue {
-    border-color: var(--color-neon-blue);
-  }
+.border-neon-blue {
+  border-color: var(--color-neon-blue);
+}
 
-  .border-neon-gold {
-    border-color: var(--color-neon-gold);
-  }
+.border-neon-gold {
+  border-color: var(--color-neon-gold);
+}

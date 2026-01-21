@@ -1,7 +1,12 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
-import { getAuth } from "@clerk/express";
+import { createClerkClient, getAuth } from "@clerk/express";
 import { upsertUserFromClerk } from "../db";
+
+// Initialize Clerk client for backend API calls
+const clerkClient = createClerkClient({
+  secretKey: process.env.CLERK_SECRET_KEY,
+});
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -18,8 +23,17 @@ export async function createContext(
     return { req: opts.req, res: opts.res, user: null };
   }
 
-  // Sync user from Clerk to local DB
-  const user = await upsertUserFromClerk(auth.userId);
+  // Fetch full user data from Clerk to sync email, name, etc.
+  let clerkUser: Awaited<ReturnType<typeof clerkClient.users.getUser>> | null =
+    null;
+  try {
+    clerkUser = await clerkClient.users.getUser(auth.userId);
+  } catch (error) {
+    console.warn("[Context] Failed to fetch Clerk user:", error);
+  }
+
+  // Sync user from Clerk to local DB with full user data
+  const user = await upsertUserFromClerk(auth.userId, clerkUser ?? undefined);
 
   return {
     req: opts.req,

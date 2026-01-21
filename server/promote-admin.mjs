@@ -21,11 +21,15 @@ async function promoteToAdmin() {
       .limit(1);
 
     if (existingUsers.length === 0) {
-      console.log(`⚠️  Usuário com email ${ADMIN_EMAIL} ainda não existe no banco.`);
+      console.log(
+        `⚠️  Usuário com email ${ADMIN_EMAIL} ainda não existe no banco.`
+      );
       console.log(`📝 Instruções:`);
       console.log(`   1. Acesse a plataforma e faça login com ${ADMIN_EMAIL}`);
       console.log(`   2. Após o primeiro login, execute este script novamente`);
-      console.log(`   3. O sistema promoverá automaticamente sua conta para admin`);
+      console.log(
+        `   3. O sistema promoverá automaticamente sua conta para admin`
+      );
       return;
     }
 
@@ -37,10 +41,7 @@ async function promoteToAdmin() {
     }
 
     // Promover para admin
-    await db
-      .update(users)
-      .set({ role: "admin" })
-      .where(eq(users.id, user.id));
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id));
 
     console.log(`✅ ${ADMIN_EMAIL} promovido para administrador com sucesso!`);
     console.log(`🎉 Agora você tem acesso completo ao sistema.`);

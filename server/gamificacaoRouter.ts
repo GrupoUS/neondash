@@ -117,7 +117,11 @@ export const gamificacaoRouter = router({
 
       // If mentoradoId provided, process only that mentorado
       if (input.mentoradoId) {
-        const newBadges = await checkAndAwardBadges(input.mentoradoId, input.ano, input.mes);
+        const newBadges = await checkAndAwardBadges(
+          input.mentoradoId,
+          input.ano,
+          input.mes
+        );
         await updateProgressiveGoals(input.mentoradoId, input.ano, input.mes);
         return { badgesAwarded: newBadges.length };
       }

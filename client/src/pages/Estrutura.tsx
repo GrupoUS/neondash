@@ -6,17 +6,23 @@ import { Target, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function Estrutura() {
   const benchmarks = analiseData.neon_estrutura.benchmarks;
-  const totalFaturamento = Object.values(analiseData.neon_estrutura.analise)
-    .reduce((acc, curr) => acc + curr.dados.faturamento, 0);
-  
-  const mediaFaturamento = totalFaturamento / Object.keys(analiseData.neon_estrutura.analise).length;
+  const totalFaturamento = Object.values(
+    analiseData.neon_estrutura.analise
+  ).reduce((acc, curr) => acc + curr.dados.faturamento, 0);
+
+  const mediaFaturamento =
+    totalFaturamento / Object.keys(analiseData.neon_estrutura.analise).length;
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Neon Estrutura</h1>
-          <p className="text-slate-500 mt-2">Análise detalhada da turma de estruturação</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Neon Estrutura
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Análise detalhada da turma de estruturação
+          </p>
         </div>
 
         {/* Benchmarks Section */}
@@ -29,7 +35,10 @@ export default function Estrutura() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(benchmarks.meta_faturamento)}
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(benchmarks.meta_faturamento)}
               </div>
               <p className="text-xs text-slate-500 mt-1">Por mentorado / mês</p>
             </CardContent>
@@ -43,10 +52,17 @@ export default function Estrutura() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-slate-900">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mediaFaturamento)}
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(mediaFaturamento)}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {((mediaFaturamento / benchmarks.meta_faturamento) * 100).toFixed(1)}% da meta
+                {(
+                  (mediaFaturamento / benchmarks.meta_faturamento) *
+                  100
+                ).toFixed(1)}
+                % da meta
               </p>
             </CardContent>
           </Card>
@@ -69,7 +85,9 @@ export default function Estrutura() {
                 </div>
                 <div className="flex justify-between">
                   <span>Procedimentos:</span>
-                  <span className="font-bold">{benchmarks.procedimentos_min}</span>
+                  <span className="font-bold">
+                    {benchmarks.procedimentos_min}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -78,14 +96,16 @@ export default function Estrutura() {
 
         {/* Mentorados Grid */}
         <div>
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Ranking de Performance</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-6">
+            Ranking de Performance
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {analiseData.neon_estrutura.ranking.map(([nome, score], index) => (
-              <MentoradoCard 
-                key={nome} 
-                nome={nome} 
-                data={analiseData.neon_estrutura.analise[nome]} 
-                rank={index + 1} 
+              <MentoradoCard
+                key={nome}
+                nome={nome}
+                data={analiseData.neon_estrutura.analise[nome]}
+                rank={index + 1}
               />
             ))}
           </div>

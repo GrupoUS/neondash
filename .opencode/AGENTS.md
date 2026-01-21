@@ -6,12 +6,12 @@
 
 ## 1. Pure Orchestrator Rules
 
-| ❌ NUNCA Usar | ✅ SEMPRE Usar |
-|--------------|----------------|
-| `edit` (modificar código) | `todoread` (ler estado) |
-| `write` (criar arquivos de código) | `todowrite` (atualizar status) |
-| `bash` (comandos que modificam) | `Task tool` (delegar para subagents) |
-| | `bash` read-only (lint, build, test) |
+| ❌ NUNCA Usar                      | ✅ SEMPRE Usar                       |
+| ---------------------------------- | ------------------------------------ |
+| `edit` (modificar código)          | `todoread` (ler estado)              |
+| `write` (criar arquivos de código) | `todowrite` (atualizar status)       |
+| `bash` (comandos que modificam)    | `Task tool` (delegar para subagents) |
+|                                    | `bash` read-only (lint, build, test) |
 
 **Princípio**: Toda modificação de código vai para um subagent. SEM EXCEÇÕES.
 
@@ -21,22 +21,22 @@
 
 ### Subagents por Domínio
 
-| Path Pattern | Owner | Fallback | Validation Trigger |
-|--------------|-------|----------|-------------------|
-| `convex/**` | @database-specialist | @apex-dev | Schema changes → @architect-reviewer |
-| `src/components/ui/**` | @apex-ui-ux-designer | @apex-dev | — |
-| `src/components/**` | @apex-dev | — | User data → @code-reviewer |
-| `src/routes/**` | @apex-dev | — | Auth guards → @code-reviewer |
-| `src/hooks/**` | @apex-dev | — | — |
-| `src/lib/**` | @apex-dev | — | Security → @code-reviewer |
-| `tests/**` | @apex-dev | — | — |
+| Path Pattern           | Owner                | Fallback  | Validation Trigger                   |
+| ---------------------- | -------------------- | --------- | ------------------------------------ |
+| `convex/**`            | @database-specialist | @apex-dev | Schema changes → @architect-reviewer |
+| `src/components/ui/**` | @apex-ui-ux-designer | @apex-dev | —                                    |
+| `src/components/**`    | @apex-dev            | —         | User data → @code-reviewer           |
+| `src/routes/**`        | @apex-dev            | —         | Auth guards → @code-reviewer         |
+| `src/hooks/**`         | @apex-dev            | —         | —                                    |
+| `src/lib/**`           | @apex-dev            | —         | Security → @code-reviewer            |
+| `tests/**`             | @apex-dev            | —         | —                                    |
 
 ### Validation Subagents (Read-Only)
 
-| Agent | Triggers | Blocking | Mode |
-|-------|----------|----------|------|
-| @code-reviewer | auth, LGPD, PII, security | Critical, High | Read-only |
-| @architect-reviewer | schema, API, patterns | Rejected | Read-only |
+| Agent               | Triggers                  | Blocking       | Mode      |
+| ------------------- | ------------------------- | -------------- | --------- |
+| @code-reviewer      | auth, LGPD, PII, security | Critical, High | Read-only |
+| @architect-reviewer | schema, API, patterns     | Rejected       | Read-only |
 
 ---
 
@@ -44,13 +44,13 @@
 
 ### MCP Overview
 
-| MCP | Purpose | When to Use |
-|-----|---------|-------------|
-| **serena** | Symbol discovery, references, structure | Antes de delegar (entender contexto) |
-| **context7** | Official docs (Convex, React, etc.) | API reference, patterns |
-| **tavily** | Web search, crawl, extract | Research, external APIs |
-| **zai-mcp** | UI from screenshots, visual audits | Mockups → React code |
-| **sequentialthinking** | Complex problem solving | Task start, every 5 steps, after errors |
+| MCP                    | Purpose                                 | When to Use                             |
+| ---------------------- | --------------------------------------- | --------------------------------------- |
+| **serena**             | Symbol discovery, references, structure | Antes de delegar (entender contexto)    |
+| **context7**           | Official docs (Convex, React, etc.)     | API reference, patterns                 |
+| **tavily**             | Web search, crawl, extract              | Research, external APIs                 |
+| **zai-mcp**            | UI from screenshots, visual audits      | Mockups → React code                    |
+| **sequentialthinking** | Complex problem solving                 | Task start, every 5 steps, after errors |
 
 **Regra**: MCPs são para ANÁLISE. Modificação de código vai para subagent.
 
@@ -58,42 +58,42 @@
 
 #### Sequential Thinking - OBRIGATÓRIO
 
-| Situação | Ação |
-|----------|------|
-| Início de qualquer tarefa L4+ | `sequentialthinking` para decompor problema |
-| Após QUALQUER erro (build/deploy/runtime) | `sequentialthinking` para root cause analysis |
-| A cada 5 passos de implementação | `sequentialthinking` para checkpoint de progresso |
-| Múltiplas soluções possíveis | `sequentialthinking` para comparar trade-offs |
-| Antes de decisões arquiteturais | `sequentialthinking` para validar abordagem |
+| Situação                                  | Ação                                              |
+| ----------------------------------------- | ------------------------------------------------- |
+| Início de qualquer tarefa L4+             | `sequentialthinking` para decompor problema       |
+| Após QUALQUER erro (build/deploy/runtime) | `sequentialthinking` para root cause analysis     |
+| A cada 5 passos de implementação          | `sequentialthinking` para checkpoint de progresso |
+| Múltiplas soluções possíveis              | `sequentialthinking` para comparar trade-offs     |
+| Antes de decisões arquiteturais           | `sequentialthinking` para validar abordagem       |
 
 #### Context7 - Documentação Oficial
 
-| Trigger | Ação |
-|---------|------|
-| Código com Convex | `context7 resolve-library-id("convex")` → `query-docs` |
-| Código com Clerk | `context7 resolve-library-id("clerk")` → `query-docs` |
+| Trigger                    | Ação                                                            |
+| -------------------------- | --------------------------------------------------------------- |
+| Código com Convex          | `context7 resolve-library-id("convex")` → `query-docs`          |
+| Código com Clerk           | `context7 resolve-library-id("clerk")` → `query-docs`           |
 | Código com TanStack Router | `context7 resolve-library-id("tanstack router")` → `query-docs` |
-| Código com shadcn/ui | `context7 resolve-library-id("shadcn ui")` → `query-docs` |
-| Código com Recharts | `context7 resolve-library-id("recharts")` → `query-docs` |
-| Qualquer biblioteca npm | `context7 resolve-library-id` → `query-docs` |
+| Código com shadcn/ui       | `context7 resolve-library-id("shadcn ui")` → `query-docs`       |
+| Código com Recharts        | `context7 resolve-library-id("recharts")` → `query-docs`        |
+| Qualquer biblioteca npm    | `context7 resolve-library-id` → `query-docs`                    |
 
 #### Tavily - Pesquisa Web
 
-| Trigger | Ação |
-|---------|------|
+| Trigger                                | Ação                                 |
+| -------------------------------------- | ------------------------------------ |
 | context7 retorna vazio ou insuficiente | `tavily-search` com query específica |
-| Erro sem solução em docs oficiais | `tavily-search` → `tavily-extract` |
-| Padrões/best practices 2024+ | `tavily-search` para tendências |
-| APIs externas não documentadas | `tavily-search` → `tavily-crawl` |
+| Erro sem solução em docs oficiais      | `tavily-search` → `tavily-extract`   |
+| Padrões/best practices 2024+           | `tavily-search` para tendências      |
+| APIs externas não documentadas         | `tavily-search` → `tavily-crawl`     |
 
 #### Serena - Análise de Codebase
 
-| Trigger | Ação |
-|---------|------|
+| Trigger                       | Ação                                           |
+| ----------------------------- | ---------------------------------------------- |
 | Antes de QUALQUER modificação | `serena find_symbol` ou `get_symbols_overview` |
-| Entender estrutura de arquivo | `serena list_dir` + `get_symbols_overview` |
-| Encontrar padrões existentes | `serena search_for_pattern` |
-| Rastrear uso de função | `serena find_referencing_symbols` |
+| Entender estrutura de arquivo | `serena list_dir` + `get_symbols_overview`     |
+| Encontrar padrões existentes  | `serena search_for_pattern`                    |
+| Rastrear uso de função        | `serena find_referencing_symbols`              |
 
 ### Research Cascade (Ordem Obrigatória)
 
@@ -113,11 +113,11 @@ Para problemas desconhecidos, seguir esta cascata:
 
 ## 4. Workflow Lifecycle
 
-| Mode | Command | Agent | Constraint |
-|------|---------|-------|------------|
-| **Plan** | `/research` | @apex-researcher | Research → YAML → TodoWrite → Approval. NEVER implement. |
-| **Act** | `/implement` | @apex-dev | Phase-based (1-5) → Validation Gates. Follow UTP. |
-| **Verify** | `/qa` | @code-reviewer | Local → Arch → Deploy. 100% pass for PR. |
+| Mode       | Command      | Agent            | Constraint                                               |
+| ---------- | ------------ | ---------------- | -------------------------------------------------------- |
+| **Plan**   | `/research`  | @apex-researcher | Research → YAML → TodoWrite → Approval. NEVER implement. |
+| **Act**    | `/implement` | @apex-dev        | Phase-based (1-5) → Validation Gates. Follow UTP.        |
+| **Verify** | `/qa`        | @code-reviewer   | Local → Arch → Deploy. 100% pass for PR.                 |
 
 ---
 
@@ -141,55 +141,55 @@ Para problemas desconhecidos, seguir esta cascata:
 
 ### MCP Checkpoints no Workflow
 
-| Fase | MCP Obrigatório | Quando |
-|------|-----------------|--------|
-| **Início** | `sequentialthinking` | Sempre para L4+, opcional para L1-L3 |
-| **Análise** | `serena` | Antes de qualquer modificação |
-| **Pesquisa** | `context7` | Se envolve Convex/Clerk/React/shadcn |
-| **Fallback** | `tavily` | Se context7 insuficiente |
-| **Erro** | `sequentialthinking` | Após qualquer falha |
-| **Checkpoint** | `sequentialthinking` | A cada 5 ações completadas |
+| Fase           | MCP Obrigatório      | Quando                               |
+| -------------- | -------------------- | ------------------------------------ |
+| **Início**     | `sequentialthinking` | Sempre para L4+, opcional para L1-L3 |
+| **Análise**    | `serena`             | Antes de qualquer modificação        |
+| **Pesquisa**   | `context7`           | Se envolve Convex/Clerk/React/shadcn |
+| **Fallback**   | `tavily`             | Se context7 insuficiente             |
+| **Erro**       | `sequentialthinking` | Após qualquer falha                  |
+| **Checkpoint** | `sequentialthinking` | A cada 5 ações completadas           |
 
 ### Validation Gates (After Each Action)
 
-| Gate | Command | On Fail |
-|------|---------|---------|
-| Lint | `bun run lint:check` | Rollback |
-| Build | `bun run build` | Rollback |
-| Test | `bun run test --run` | Rollback |
-| Convex | `bunx convex dev --once` | Rollback (if convex/*) |
+| Gate   | Command                  | On Fail                 |
+| ------ | ------------------------ | ----------------------- |
+| Lint   | `bun run lint:check`     | Rollback                |
+| Build  | `bun run build`          | Rollback                |
+| Test   | `bun run test --run`     | Rollback                |
+| Convex | `bunx convex dev --once` | Rollback (if convex/\*) |
 
 ### Parallelization Rules
 
-| Condition | Parallel? | Action |
-|-----------|-----------|--------|
-| Distinct files + no deps | ✅ Yes | Max 3 simultaneous |
-| Same file | ❌ No | Sequential |
-| Auth/security/LGPD | ❌ No | Sequential + @code-reviewer |
-| Unmet dependency | ❌ No | Wait |
+| Condition                | Parallel? | Action                      |
+| ------------------------ | --------- | --------------------------- |
+| Distinct files + no deps | ✅ Yes    | Max 3 simultaneous          |
+| Same file                | ❌ No     | Sequential                  |
+| Auth/security/LGPD       | ❌ No     | Sequential + @code-reviewer |
+| Unmet dependency         | ❌ No     | Wait                        |
 
 ---
 
 ## 6. Compliance Gates
 
-| Domain | Requirement | Validator |
-|--------|-------------|-----------|
-| **LGPD** | PII (student/user data) | @code-reviewer (mandatory) |
-| **WCAG 2.1 AA** | Frontend accessibility | @apex-ui-ux-designer |
-| **Security** | Auth, encryption, secrets | @code-reviewer |
-| **Architecture** | Schema, API contracts | @architect-reviewer |
+| Domain           | Requirement               | Validator                  |
+| ---------------- | ------------------------- | -------------------------- |
+| **LGPD**         | PII (student/user data)   | @code-reviewer (mandatory) |
+| **WCAG 2.1 AA**  | Frontend accessibility    | @apex-ui-ux-designer       |
+| **Security**     | Auth, encryption, secrets | @code-reviewer             |
+| **Architecture** | Schema, API contracts     | @architect-reviewer        |
 
 ---
 
 ## 7. Fallback Chains
 
-| Agent | Retry | Fallback 1 | Fallback 2 | Final |
-|-------|-------|------------|------------|-------|
-| @database-specialist | 2x | @apex-dev | split_task | escalate_user |
-| @apex-ui-ux-designer | 2x | @apex-dev | — | escalate_user |
-| @apex-dev | 3x | split_task | — | escalate_user |
-| @code-reviewer | 1x | proceed_with_warning | log_for_review | — |
-| @architect-reviewer | 1x | proceed_with_warning | log_for_review | — |
+| Agent                | Retry | Fallback 1           | Fallback 2     | Final         |
+| -------------------- | ----- | -------------------- | -------------- | ------------- |
+| @database-specialist | 2x    | @apex-dev            | split_task     | escalate_user |
+| @apex-ui-ux-designer | 2x    | @apex-dev            | —              | escalate_user |
+| @apex-dev            | 3x    | split_task           | —              | escalate_user |
+| @code-reviewer       | 1x    | proceed_with_warning | log_for_review | —             |
+| @architect-reviewer  | 1x    | proceed_with_warning | log_for_review | —             |
 
 ---
 
@@ -201,10 +201,12 @@ Para problemas desconhecidos, seguir esta cascata:
 Execute action [X.XX] in BACKGROUND:
 
 ## Context
+
 - Action: [description]
 - Files: [files_affected]
 
 ## Instructions
+
 1. Use `todoread` first
 2. Focus ONLY on this action
 3. Do NOT modify files from other in_progress actions
@@ -216,37 +218,37 @@ Rollback: `git checkout [files_affected]`
 
 ### Additional Context by Subagent
 
-| Agent | Extra Instructions |
-|-------|-------------------|
-| @database-specialist | Follow `convex/AGENTS.md`, use validators, add indexes |
-| @apex-ui-ux-designer | WCAG 2.1 AA, Portuguese UI, mobile-first, shadcn/ui |
-| @code-reviewer | READ-ONLY, output YAML with findings (critical/high/medium/low) |
-| @architect-reviewer | READ-ONLY, output assessment (Approved/Concerns/Rejected) |
+| Agent                | Extra Instructions                                              |
+| -------------------- | --------------------------------------------------------------- |
+| @database-specialist | Follow `convex/AGENTS.md`, use validators, add indexes          |
+| @apex-ui-ux-designer | WCAG 2.1 AA, Portuguese UI, mobile-first, shadcn/ui             |
+| @code-reviewer       | READ-ONLY, output YAML with findings (critical/high/medium/low) |
+| @architect-reviewer  | READ-ONLY, output assessment (Approved/Concerns/Rejected)       |
 
 ---
 
 ## 9. Critical Reminders
 
-| Rule | Priority |
-|------|----------|
-| Build Agent NEVER implements code | 🔴 Critical |
-| ALWAYS `todoread` before ANY work | 🔴 Critical |
-| ALWAYS `todowrite` on status change | 🔴 Critical |
-| ONE action per subagent at a time | 🔴 Critical |
-| Validation gates after EVERY completion | 🟡 High |
-| Subagents must also use todoread/todowrite | 🟡 High |
-| Include descriptive notes in updates | 🟢 Medium |
+| Rule                                       | Priority    |
+| ------------------------------------------ | ----------- |
+| Build Agent NEVER implements code          | 🔴 Critical |
+| ALWAYS `todoread` before ANY work          | 🔴 Critical |
+| ALWAYS `todowrite` on status change        | 🔴 Critical |
+| ONE action per subagent at a time          | 🔴 Critical |
+| Validation gates after EVERY completion    | 🟡 High     |
+| Subagents must also use todoread/todowrite | 🟡 High     |
+| Include descriptive notes in updates       | 🟢 Medium   |
 
 ---
 
 ## 10. Status Reference
 
-| Status | Meaning | Next States |
-|--------|---------|-------------|
-| pending | Available | → in_progress |
-| in_progress | Active work | → completed, → pending (rollback) |
-| completed | Verified done | (final) |
-| cancelled | Descoped | (terminal) |
+| Status      | Meaning       | Next States                       |
+| ----------- | ------------- | --------------------------------- |
+| pending     | Available     | → in_progress                     |
+| in_progress | Active work   | → completed, → pending (rollback) |
+| completed   | Verified done | (final)                           |
+| cancelled   | Descoped      | (terminal)                        |
 
 ---
 

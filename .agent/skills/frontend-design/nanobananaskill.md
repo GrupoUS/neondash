@@ -31,11 +31,13 @@ Use this skill to generate clean, consistent placeholder images while building a
 
 Choose the model by intent:
 
-1) Speed / bulk placeholders (default)
+1. Speed / bulk placeholders (default)
+
 - Model: `gemini-2.5-flash-image` (Nano Banana)
 - Use for: most card images, blog thumbnails, generic b-roll
 
-2) Higher-fidelity hero or “marketing-looking” assets
+2. Higher-fidelity hero or “marketing-looking” assets
+
 - Model: `gemini-3-pro-image-preview` (Nano Banana Pro)
 - Use for: hero banners, premium landing pages, images that need more controlled composition
 - Consider `image_size="2K"` for hero assets
@@ -43,6 +45,7 @@ Choose the model by intent:
 ## Aspect ratio mapping (use one of these)
 
 Common web ratios you’ll use:
+
 - Avatar: `1:1`
 - Blog thumbnail: `3:2` or `4:3`
 - Product portrait: `4:5` or `3:4`
@@ -54,6 +57,7 @@ Set it with `image_config.aspect_ratio`.
 ## Prompting system (repeatable + consistent)
 
 ### Step 1 — Define the “Placeholder Spec”
+
 For each image, write a short spec:
 
 - `id`: unique name (e.g., `hero-home`, `card-feature-01`)
@@ -65,16 +69,21 @@ For each image, write a short spec:
 - `notes`: optional composition constraints (e.g., “empty space on left for headline”)
 
 ### Step 2 — Use a style preset (pick ONE)
+
 **A. Abstract Gradient (default, safest)**
+
 - “soft abstract gradient, subtle grain, modern, minimal”
 
 **B. Minimal 3D Objects**
+
 - “simple geometric 3D shapes, matte finish, studio light, no text”
 
 **C. Flat Vector Illustration**
+
 - “clean vector illustration, minimal details, modern SaaS style, no text”
 
 **D. Generic Product Photography**
+
 - “unbranded product-like object, neutral background, soft shadow, studio lighting”
 
 ### Step 3 — Build the final prompt (template)
@@ -119,10 +128,13 @@ Constraints: no text, no logos, no trademarks, no recognizable faces."
 ## How to use the generation script
 
 ### Step 1 — Dependencies
+
 Ensure you have the required dependency:
+
 - `pip install google-genai`
 
 ### Step 2 — Run the script
+
 Use the provided script in the skill's `scripts` directory to generate images based on your prompt:
 
 ```bash
@@ -132,10 +144,13 @@ python .agent/skills/frontend-design/scripts/generate_images.py "Your prompt her
 The script uses a built-in API key for convenience, but will respect `GEMINI_API_KEY` if set in the environment.
 
 ### Step 3 — Integrate in Frontend
+
 The script will save images in the current directory (or specified path). Move them to your project's `public/` or `assets/` folder and update your code.
 
 ### Step 4 — Generate a manifest (Optional)
+
 If generating multiple assets, create a `manifest.json` in your images folder for easy reference:
+
 ```json
 {
   "id": "hero-home",

@@ -1,11 +1,23 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +26,7 @@ import { Loader2, CheckCircle2, TrendingUp } from "lucide-react";
 export default function SubmitMetrics() {
   const { user } = useAuth();
   const currentDate = new Date();
-  
+
   const [ano, setAno] = useState(currentDate.getFullYear());
   const [mes, setMes] = useState(currentDate.getMonth() + 1);
   const [faturamento, setFaturamento] = useState("");
@@ -39,7 +51,7 @@ export default function SubmitMetrics() {
       setProcedimentos("");
       setObservacoes("");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error("Erro ao enviar métricas", {
         description: error.message,
       });
@@ -48,7 +60,7 @@ export default function SubmitMetrics() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     submitMutation.mutate({
       ano,
       mes,
@@ -63,8 +75,20 @@ export default function SubmitMetrics() {
   };
 
   const getMesNome = (m: number) => {
-    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
-                   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const meses = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
     return meses[m - 1];
   };
 
@@ -72,8 +96,12 @@ export default function SubmitMetrics() {
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Enviar Métricas Mensais</h1>
-          <p className="text-slate-500 mt-2">Preencha seus resultados do mês para acompanhamento de performance</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Enviar Métricas Mensais
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Preencha seus resultados do mês para acompanhamento de performance
+          </p>
         </div>
 
         <Card>
@@ -83,7 +111,8 @@ export default function SubmitMetrics() {
               Dados de Performance
             </CardTitle>
             <CardDescription>
-              Todos os campos são obrigatórios. Preencha com os dados reais do período selecionado.
+              Todos os campos são obrigatórios. Preencha com os dados reais do
+              período selecionado.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -92,7 +121,10 @@ export default function SubmitMetrics() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="ano">Ano</Label>
-                  <Select value={ano.toString()} onValueChange={(v) => setAno(parseInt(v))}>
+                  <Select
+                    value={ano.toString()}
+                    onValueChange={v => setAno(parseInt(v))}
+                  >
                     <SelectTrigger id="ano">
                       <SelectValue />
                     </SelectTrigger>
@@ -106,12 +138,15 @@ export default function SubmitMetrics() {
 
                 <div className="space-y-2">
                   <Label htmlFor="mes">Mês</Label>
-                  <Select value={mes.toString()} onValueChange={(v) => setMes(parseInt(v))}>
+                  <Select
+                    value={mes.toString()}
+                    onValueChange={v => setMes(parseInt(v))}
+                  >
                     <SelectTrigger id="mes">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                         <SelectItem key={m} value={m.toString()}>
                           {getMesNome(m)}
                         </SelectItem>
@@ -131,7 +166,7 @@ export default function SubmitMetrics() {
                     step="0.01"
                     placeholder="0.00"
                     value={faturamento}
-                    onChange={(e) => setFaturamento(e.target.value)}
+                    onChange={e => setFaturamento(e.target.value)}
                     required
                   />
                 </div>
@@ -144,7 +179,7 @@ export default function SubmitMetrics() {
                     step="0.01"
                     placeholder="0.00"
                     value={lucro}
-                    onChange={(e) => setLucro(e.target.value)}
+                    onChange={e => setLucro(e.target.value)}
                     required
                   />
                 </div>
@@ -159,7 +194,7 @@ export default function SubmitMetrics() {
                     type="number"
                     placeholder="0"
                     value={postsFeed}
-                    onChange={(e) => setPostsFeed(e.target.value)}
+                    onChange={e => setPostsFeed(e.target.value)}
                     required
                   />
                 </div>
@@ -171,7 +206,7 @@ export default function SubmitMetrics() {
                     type="number"
                     placeholder="0"
                     value={stories}
-                    onChange={(e) => setStories(e.target.value)}
+                    onChange={e => setStories(e.target.value)}
                     required
                   />
                 </div>
@@ -186,19 +221,21 @@ export default function SubmitMetrics() {
                     type="number"
                     placeholder="0"
                     value={leads}
-                    onChange={(e) => setLeads(e.target.value)}
+                    onChange={e => setLeads(e.target.value)}
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="procedimentos">Procedimentos Realizados</Label>
+                  <Label htmlFor="procedimentos">
+                    Procedimentos Realizados
+                  </Label>
                   <Input
                     id="procedimentos"
                     type="number"
                     placeholder="0"
                     value={procedimentos}
-                    onChange={(e) => setProcedimentos(e.target.value)}
+                    onChange={e => setProcedimentos(e.target.value)}
                     required
                   />
                 </div>
@@ -211,7 +248,7 @@ export default function SubmitMetrics() {
                   id="observacoes"
                   placeholder="Adicione notas sobre o mês, desafios enfrentados, conquistas, etc."
                   value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
+                  onChange={e => setObservacoes(e.target.value)}
                   rows={4}
                 />
               </div>
@@ -240,8 +277,9 @@ export default function SubmitMetrics() {
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="pt-6">
             <p className="text-sm text-blue-900">
-              <strong>Dica:</strong> Você pode atualizar os dados do mesmo mês quantas vezes precisar. 
-              O sistema sempre salvará a versão mais recente.
+              <strong>Dica:</strong> Você pode atualizar os dados do mesmo mês
+              quantas vezes precisar. O sistema sempre salvará a versão mais
+              recente.
             </p>
           </CardContent>
         </Card>

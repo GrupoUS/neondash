@@ -4,6 +4,7 @@ globs: **/*.{html,js,jsx,ts,tsx,vue,svelte,css,scss,sass,md,mdx,php,blade.php,ej
 ---
 
 ## General Guidelines
+
 - Use Tailwind utility classes for consistent styling, with custom CSS only for special cases
 - Organize classes logically (layout, spacing, color, typography)
 - Use responsive and state variants (e.g., sm:, md:, lg:, hover:, focus:, dark:) in markup
@@ -12,6 +13,7 @@ globs: **/*.{html,js,jsx,ts,tsx,vue,svelte,css,scss,sass,md,mdx,php,blade.php,ej
 - Rely on Tailwind classes rather than inline styles or external CSS files for a unified design language
 
 ## Configuration (CSS Files)
+
 - Use the `@theme` directive to define custom design tokens like fonts, breakpoints, and colors
 - Prefer modern color formats such as `oklch` for better color gamut support, defining them in the `:root` scope
 - Take advantage of automatic content detection, which eliminates the need for a `content` array in configuration
@@ -20,6 +22,7 @@ globs: **/*.{html,js,jsx,ts,tsx,vue,svelte,css,scss,sass,md,mdx,php,blade.php,ej
 - Extend Tailwind with custom utilities using the `@utility` directive in CSS files
 
 ## Styling (CSS Files)
+
 - Incorporate 3D transform utilities like `rotate-x-*`, `rotate-y-*`, and `scale-z-*` for advanced visual effects
 - Implement container queries with `@container`, `@max-*`, and `@min-*` utilities for adaptive layouts
 - Use arbitrary values and properties with square bracket notation (e.g., `[mask-type:luminance]` or `top-[117px]`)
@@ -28,6 +31,7 @@ globs: **/*.{html,js,jsx,ts,tsx,vue,svelte,css,scss,sass,md,mdx,php,blade.php,ej
 - Check browser support for advanced features like `@starting-style` using resources like caniuse
 
 ## Components (HTML)
+
 - Apply Tailwind utility classes directly in HTML for styling components
 - Use dynamic arbitrary values like `grid-cols-[1fr_500px_2fr]` for flexible layouts
 - Implement data attribute variants like `data-current:opacity-100` for conditional styling
@@ -35,6 +39,7 @@ globs: **/*.{html,js,jsx,ts,tsx,vue,svelte,css,scss,sass,md,mdx,php,blade.php,ej
 - Use `aria-hidden="true"` or `role="presentation"` when applying utilities like `hidden` or `sr-only`
 
 ## Components (TypeScript/JavaScript)
+
 - Prefer TypeScript over JavaScript for component files to ensure type safety when applying Tailwind classes
 - Use dynamic utility classes with template literals or arrays (e.g., `className={`p-${padding} bg-${color}`}`)
 - Validate dynamic values with TypeScript types
@@ -42,6 +47,7 @@ globs: **/*.{html,js,jsx,ts,tsx,vue,svelte,css,scss,sass,md,mdx,php,blade.php,ej
 - Favor functional components over class-based ones in frameworks like React
 
 ## Project-Wide Systems
+
 - Leverage the Oxide engine's fast build times for performance optimization
 - Avoid manual content configuration unless explicitly required
 - Maintain consistency by using theme variables defined in CSS configuration files

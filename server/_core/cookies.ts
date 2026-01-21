@@ -26,12 +26,14 @@ export function getSessionCookieOptions(
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
   const hostname = req.hostname || "";
   const isSecure = isSecureRequest(req);
-  
+
   // For Manus proxy domains (*.manus.computer, *.manus.space), don't set domain
   // This allows the cookie to be set for the exact hostname
-  const isManusProxy = hostname.includes("manus.computer") || hostname.includes("manus.space");
-  const isLocalHost = !hostname || LOCAL_HOSTS.has(hostname) || isIpAddress(hostname);
-  
+  const isManusProxy =
+    hostname.includes("manus.computer") || hostname.includes("manus.space");
+  const isLocalHost =
+    !hostname || LOCAL_HOSTS.has(hostname) || isIpAddress(hostname);
+
   // Don't set domain for Manus proxy or localhost - let browser use exact hostname
   const domain = undefined;
 

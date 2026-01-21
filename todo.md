@@ -3,12 +3,14 @@
 ## ✅ Concluído
 
 ### Dashboard Inicial (Dezembro 2025)
+
 - [x] Dashboard estático com visualizações de dezembro 2025
 - [x] Análise de performance Neon Estrutura e Neon Escala
 - [x] Sugestões personalizadas para cada mentorado
 - [x] Gráficos comparativos e rankings
 
 ### Upgrade Full Stack
+
 - [x] Upgrade para Full Stack (DB + Auth)
 - [x] Resolver conflitos de merge do upgrade
 - [x] Modelar banco de dados (mentorados, métricas mensais, feedbacks)
@@ -16,28 +18,33 @@
 - [x] Configurar roles (admin/user)
 
 ### Funcionalidades de Alunos
+
 - [x] Criar formulários de entrada de dados mensais
 - [x] Desenvolver dashboard individual com gráficos de evolução
 - [x] Adicionar comparativo histórico (gráficos de linha e barra)
 - [x] Exibir feedbacks personalizados do mentor
 
 ### Área Administrativa
+
 - [x] Criar página administrativa completa (/admin)
 - [x] Listar todos os mentorados com filtros
 - [x] Visualizar estatísticas consolidadas
 - [x] Configurar email msm.jur@gmail.com como admin automático
 
 ### Migração de Dados
+
 - [x] Script de migração de dados de dezembro criado
 - [x] Migração executada com sucesso (14 mentorados)
 - [x] Dados de faturamento, métricas e feedbacks importados
 
 ### Melhorias de UX
+
 - [x] Implementar filtro de mês/ano no dashboard
 - [x] Adicionar navegação completa no sidebar
 - [x] Criar estados de loading e empty states
 
 ### SEO e Performance
+
 - [x] Adicionar meta description (155 caracteres)
 - [x] Adicionar palavras-chave relevantes
 - [x] Adicionar Open Graph tags para compartilhamento
@@ -45,27 +52,31 @@
 ## 📋 Backlog (Futuras Melhorias)
 
 ### Notificações
+
 - [x] Sistema de notificações por email (implementado ao vincular perfil)
 - [x] Lembretes automáticos para envio de métricas
 - [x] Alertas de metas não atingidas
 
 ### Gamificação
+
 - [x] Sistema de badges e conquistas (14 badges em 5 categorias)
 - [x] Ranking mensal com recompensas (pódio + lista completa)
 - [x] Metas progressivas (aumento automático de 10% ao atingir meta)
 
 ### Relatórios
+
 - [ ] Exportação de relatórios em PDF
 - [ ] Relatórios comparativos entre turmas
 - [ ] Análise de tendências e previsões
 
 ### Integrações
+
 - [ ] Integração com Instagram API
 - [ ] Integração com Google Analytics
 - [ ] Webhook para automações externas
 
-
 ## Nova Solicitação - Identidade Visual
+
 - [x] Analisar manual de identidade visual (cores, tipografia, símbolos)
 - [x] Criar logo SVG (símbolo N + tipografia completa)
 - [x] Atualizar paleta de cores (#112031, #20445B, #AC9469, #D2D0C7)
@@ -74,8 +85,8 @@
 - [x] Atualizar favicon e título da página
 - [x] Adicionar classes utilitárias para cores da marca
 
-
 ## Nova Solicitação - Sistema de Login Independente (Opção 1)
+
 - [x] Reverter alterações do Clerk (manter Manus OAuth)
 - [x] Restaurar schema original com openId
 - [x] Adicionar campo email na tabela mentorados
@@ -87,8 +98,8 @@
 - [x] Criar checkpoint final
 - [x] Preparar para deploy
 
-
 ## Nova Solicitação - Conformidade com Diretrizes de Design (style/)
+
 - [x] Analisar arquivos de design na pasta style/
 - [x] Comparar design atual com diretrizes (95% conforme)
 - [x] Identificar gaps de ícones, miniaturas e thumbnails
@@ -98,8 +109,8 @@
 - [x] Validar logo e branding em todas as páginas
 - [x] Criar checkpoint final
 
-
 ### Nova Solicitação - Atualizar Símbolo N Oficial
+
 - [x] Copiar arquivo símbolo-07.png para o projeto
 - [x] Atualizar DashboardLayout para usar símbolo oficial
 - [x] Atualizar LandingPage para usar símbolo oficial
@@ -108,15 +119,15 @@
 - [x] Configurar redirecionamento após login para /dashboard
 - [x] Criar checkpoint final
 
-
 ### Nova Solicitação - Corrigir Redirecionamento Após Login
+
 - [x] Verificar se o OAuth callback está redirecionando corretamente para /dashboard
 - [x] Garantir que usuários autenticados sejam redirecionados do / para /dashboard
 - [x] Testar fluxo completo: Landing Page → Login → Dashboard
 - [x] Criar checkpoint após validação
 
-
 ### Nova Solicitação - Corrigir Redirecionamento para Contas Não-Admin
+
 - [x] Investigar problema de redirecionamento após login com contas não-admin
 - [x] Verificar configuração de cookies (domínio, path, sameSite)
 - [x] Ajustar configuração de cookies para suportar HTTPS e localhost
@@ -124,8 +135,8 @@
 - [x] Garantir que o redirecionamento funcione para admin e não-admin
 - [x] Criar checkpoint após validação completa
 
-
 ### Nova Solicitação - Sistema de Vinculação e Detecção de Mentorados
+
 - [x] Criar página /admin/vincular para associar emails aos mentorados
 - [x] Implementar formulário de vinculação com seleção de mentorado e input de email
 - [x] Atualizar MyDashboard para detectar automaticamente mentorado pelo email
@@ -135,8 +146,8 @@
 - [x] Testar fluxo completo: login → detecção → dashboard personalizado
 - [x] Criar checkpoint final
 
-
 ### Nova Solicitação - Notificações, Gestão de Mentorados e Dashboard Comparativo
+
 - [x] Implementar sistema de notificações por email ao vincular perfil
 - [x] Criar função de envio de email usando API do Manus
 - [x] Integrar notificação na ação de vincular email
@@ -151,8 +162,8 @@
 - [x] Atualizar rotas e navegação
 - [x] Criar checkpoint final
 
-
 ### Nova Solicitação - Remover Clerk e Corrigir Autenticação
+
 - [x] Identificar todas as referências ao Clerk no código
 - [x] Remover imports e configurações do Clerk
 - [x] Garantir que apenas Manus Auth seja utilizado
@@ -160,8 +171,8 @@
 - [x] Testar fluxo completo de autenticação
 - [x] Criar checkpoint após validação
 
-
 ### Nova Solicitação - Correção de Bugs Críticos
+
 - [x] Corrigir logout incompleto (não volta para landing page)
 - [x] Corrigir query feedback retornando undefined
 - [x] Corrigir erro de âncoras aninhadas no DashboardLayout
@@ -169,16 +180,16 @@
 - [x] Testar fluxo completo: login → dashboard → logout → landing page
 - [x] Criar checkpoint após validação
 
-
 ### Nova Solicitação - Corrigir Loop de Login
+
 - [x] Investigar por que o cookie de sessão não está sendo persistido após OAuth callback
 - [x] Verificar configuração de cookies (domain, path, sameSite, secure)
 - [x] Corrigir persistência do cookie para evitar loop de login (removido domínio do cookie)
 - [x] Testar fluxo completo: landing page → login → dashboard
 - [x] Criar checkpoint após validação
 
-
 ### Nova Solicitação - Corrigir Logout e Redirecionamento
+
 - [x] Corrigir logout para garantir que o cookie seja limpo antes do redirecionamento
 - [x] Garantir que o redirecionamento para landing page funcione após logout
 - [x] Adicionar delay na LandingPage para evitar redirecionamento prematuro

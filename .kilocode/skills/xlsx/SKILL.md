@@ -9,23 +9,29 @@ license: Proprietary. LICENSE.txt has complete terms
 When working with imperfect input files (e.g., user uploads, legacy system exports), apply the following intelligent processing strategies.
 
 ## 1. Intelligent Header Detection
+
 **Full Guide**: [header-detection.md](intelligence/header-detection.md)
 
 Never assume the first row is the header. Use the following heuristics:
+
 - **Semantic Analysis**: Look for row content matching known keywords using Levenshtein distance (e.g., "Telefome" ≈ "Telefone").
 - **Data Pattern Analysis**: The header is typically the last text-heavy row before data-heavy rows (dates, emails, CPFs).
 - **Context**: Headers have high density (few empty cells) and are often below metadata rows (titles, dates).
 
 ## 2. Semantic Column Mapping
+
 **Full Guide**: [column-mapping.md](intelligence/column-mapping.md)
 
 Map source columns to target fields using specific scoring:
+
 - **Semantic (40%)**: Normalization + Synonyms (e.g., "Zap" -> "Phone").
 - **Pattern (30%)**: Data validation samples (e.g., column has `\d{11}` -> "CPF").
 - **Context (30%)**: Position and frequency of occurrence.
 
 ## 3. Real-World Examples
+
 **See**: [examples.md](intelligence/examples.md) for handling:
+
 - Metadata headers (Reports with titles)
 - Ambiguous columns (Date formats)
 - Unknown columns
@@ -37,9 +43,11 @@ Map source columns to target fields using specific scoring:
 ## All Excel files
 
 ### Zero Formula Errors
+
 - Every Excel model MUST be delivered with ZERO formula errors (#REF!, #DIV/0!, #VALUE!, #N/A, #NAME?)
 
 ### Preserve Existing Templates (when updating templates)
+
 - Study and EXACTLY match existing format, style, and conventions when modifying files
 - Never impose standardized formatting on files with established patterns
 - Existing template conventions ALWAYS override these guidelines
@@ -47,9 +55,11 @@ Map source columns to target fields using specific scoring:
 ## Financial models
 
 ### Color Coding Standards
+
 Unless otherwise stated by the user or existing template
 
 #### Industry-Standard Color Conventions
+
 - **Blue text (RGB: 0,0,255)**: Hardcoded inputs, and numbers users will change for scenarios
 - **Black text (RGB: 0,0,0)**: ALL formulas and calculations
 - **Green text (RGB: 0,128,0)**: Links pulling from other worksheets within same workbook
@@ -59,6 +69,7 @@ Unless otherwise stated by the user or existing template
 ### Number Formatting Standards
 
 #### Required Format Rules
+
 - **Years**: Format as text strings (e.g., "2024" not "2,024")
 - **Currency**: Use $#,##0 format; ALWAYS specify units in headers ("Revenue ($mm)")
 - **Zeros**: Use number formatting to make all zeros "-", including percentages (e.g., "$#,##0;($#,##0);-")
@@ -69,11 +80,13 @@ Unless otherwise stated by the user or existing template
 ### Formula Construction Rules
 
 #### Assumptions Placement
+
 - Place ALL assumptions (growth rates, margins, multiples, etc.) in separate assumption cells
 - Use cell references instead of hardcoded values in formulas
 - Example: Use =B5*(1+$B$6) instead of =B5*1.05
 
 #### Formula Error Prevention
+
 - Verify all cell references are correct
 - Check for off-by-one errors in ranges
 - Ensure consistent formulas across all projection periods
@@ -81,6 +94,7 @@ Unless otherwise stated by the user or existing template
 - Verify no unintended circular references
 
 #### Documentation Requirements for Hardcodes
+
 - Comment or in cells beside (if end of table). Format: "Source: [System/Document], [Date], [Specific Reference], [URL if applicable]"
 - Examples:
   - "Source: Company 10-K, FY2024, Page 45, Revenue Note, [SEC EDGAR URL]"
@@ -101,6 +115,7 @@ A user may ask you to create, edit, or analyze the contents of an .xlsx file. Yo
 ## Reading and analyzing data
 
 ### Data analysis with pandas
+
 For data analysis, visualization, and basic operations, use **pandas** which provides powerful data manipulation capabilities:
 
 ```python
@@ -126,6 +141,7 @@ df.to_excel('output.xlsx', index=False)
 **Always use Excel formulas instead of calculating values in Python and hardcoding them.** This ensures the spreadsheet remains dynamic and updateable.
 
 ### ❌ WRONG - Hardcoding Calculated Values
+
 ```python
 # Bad: Calculating in Python and hardcoding result
 total = df['Sales'].sum()
@@ -141,6 +157,7 @@ sheet['D20'] = avg  # Hardcodes 42.5
 ```
 
 ### ✅ CORRECT - Using Excel Formulas
+
 ```python
 # Good: Let Excel calculate the sum
 sheet['B10'] = '=SUM(B2:B9)'
@@ -155,6 +172,7 @@ sheet['D20'] = '=AVERAGE(D2:D19)'
 This applies to ALL calculations - totals, percentages, ratios, differences, etc. The spreadsheet should be able to recalculate when source data changes.
 
 ## Common Workflow
+
 1. **Choose tool**: pandas for data, openpyxl for formulas/formatting
 2. **Create/Load**: Create new workbook or load existing file
 3. **Modify**: Add/edit data, formulas, and formatting
@@ -238,11 +256,13 @@ python recalc.py <excel_file> [timeout_seconds]
 ```
 
 Example:
+
 ```bash
 python recalc.py output.xlsx 30
 ```
 
 The script:
+
 - Automatically sets up LibreOffice macro on first run
 - Recalculates all formulas in all sheets
 - Scans ALL cells for Excel errors (#REF!, #DIV/0!, etc.)
@@ -254,11 +274,13 @@ The script:
 Quick checks to ensure formulas work correctly:
 
 ### Essential Verification
+
 - [ ] **Test 2-3 sample references**: Verify they pull correct values before building full model
 - [ ] **Column mapping**: Confirm Excel columns match (e.g., column 64 = BL, not BK)
 - [ ] **Row offset**: Remember Excel rows are 1-indexed (DataFrame row 5 = Excel row 6)
 
 ### Common Pitfalls
+
 - [ ] **NaN handling**: Check for null values with `pd.notna()`
 - [ ] **Far-right columns**: FY data often in columns 50+
 - [ ] **Multiple matches**: Search all occurrences, not just first
@@ -267,18 +289,22 @@ Quick checks to ensure formulas work correctly:
 - [ ] **Cross-sheet references**: Use correct format (Sheet1!A1) for linking sheets
 
 ### Formula Testing Strategy
+
 - [ ] **Start small**: Test formulas on 2-3 cells before applying broadly
 - [ ] **Verify dependencies**: Check all cells referenced in formulas exist
 - [ ] **Test edge cases**: Include zero, negative, and very large values
 
 ### Interpreting recalc.py Output
+
 The script returns JSON with error details:
+
 ```json
 {
-  "status": "success",           // or "errors_found"
-  "total_errors": 0,              // Total error count
-  "total_formulas": 42,           // Number of formulas in file
-  "error_summary": {              // Only present if errors found
+  "status": "success", // or "errors_found"
+  "total_errors": 0, // Total error count
+  "total_formulas": 42, // Number of formulas in file
+  "error_summary": {
+    // Only present if errors found
     "#REF!": {
       "count": 2,
       "locations": ["Sheet1!B5", "Sheet1!C10"]
@@ -290,10 +316,12 @@ The script returns JSON with error details:
 ## Best Practices
 
 ### Library Selection
+
 - **pandas**: Best for data analysis, bulk operations, and simple data export
 - **openpyxl**: Best for complex formatting, formulas, and Excel-specific features
 
 ### Working with openpyxl
+
 - Cell indices are 1-based (row=1, column=1 refers to cell A1)
 - Use `data_only=True` to read calculated values: `load_workbook('file.xlsx', data_only=True)`
 - **Warning**: If opened with `data_only=True` and saved, formulas are replaced with values and permanently lost
@@ -301,17 +329,21 @@ The script returns JSON with error details:
 - Formulas are preserved but not evaluated - use recalc.py to update values
 
 ### Working with pandas
+
 - Specify data types to avoid inference issues: `pd.read_excel('file.xlsx', dtype={'id': str})`
 - For large files, read specific columns: `pd.read_excel('file.xlsx', usecols=['A', 'C', 'E'])`
 - Handle dates properly: `pd.read_excel('file.xlsx', parse_dates=['date_column'])`
 
 ## Code Style Guidelines
+
 **IMPORTANT**: When generating Python code for Excel operations:
+
 - Write minimal, concise Python code without unnecessary comments
 - Avoid verbose variable names and redundant operations
 - Avoid unnecessary print statements
 
 **For Excel files themselves**:
+
 - Add comments to cells with complex formulas or important assumptions
 - Document data sources for hardcoded values
 - Include notes for key calculations and model sections
@@ -323,6 +355,7 @@ The script returns JSON with error details:
 ## Overview
 
 When importing or analyzing spreadsheets, especially for data import workflows, intelligent detection and mapping capabilities are essential for handling real-world spreadsheets that may have:
+
 - Non-standard layouts (metadata rows, empty rows, merged cells)
 - Varied column naming (synonyms, abbreviations, typos)
 - Multiple data types requiring pattern recognition
@@ -337,6 +370,7 @@ This section provides advanced techniques for intelligent header detection, colu
 ### Overview
 
 Header detection is the process of identifying which row in a spreadsheet contains the column names. Real-world spreadsheets often have:
+
 - Title rows or metadata at the top
 - Empty separator rows
 - Multi-line headers (merged cells)
@@ -351,6 +385,7 @@ Use a combination of semantic analysis, pattern recognition, and contextual clue
 **String Similarity Algorithms**
 
 Use similarity metrics to compare row cells against known header keywords. Implement Levenshtein distance, Jaro-Winkler similarity, and normalization functions to handle:
+
 - Accent removal (á → a)
 - Case insensitivity
 - Whitespace normalization
@@ -359,6 +394,7 @@ Use similarity metrics to compare row cells against known header keywords. Imple
 **Synonym Recognition**
 
 Maintain a knowledge base of header synonyms and variations in multiple languages (Portuguese, English) and handle:
+
 - Regional variations ("celular" vs "móvel")
 - Common typos ("E-mail" vs "Email")
 - Abbreviations ("Tel" = "Telefone")
@@ -367,6 +403,7 @@ Maintain a knowledge base of header synonyms and variations in multiple language
 #### 2. Pattern-Based Data Type Detection
 
 Analyze sample data values (first 5-10 rows) to infer column types:
+
 - **CPF**: 11 digits, format XXX.XXX.XXX-XX
 - **Email**: Contains @ and valid domain
 - **Phone**: 10-11 digits, Brazilian formats
@@ -379,6 +416,7 @@ Use pattern matching with regex and validation functions to detect types with co
 #### 3. Contextual Analysis
 
 Consider multiple contextual factors:
+
 - **Position**: Headers usually in first 5 rows
 - **Density**: Headers have many filled cells
 - **Consistency**: Headers are text, data rows vary in type
@@ -387,6 +425,7 @@ Consider multiple contextual factors:
 ### Multi-Factor Scoring
 
 Calculate header likelihood score using:
+
 - Text ratio (30%): Headers are usually text, not numbers
 - Keyword matches (40%): Match against known header keywords
 - Fill ratio (20%): Headers usually have many filled cells
@@ -424,6 +463,7 @@ Use weighted scoring to determine best mapping:
 ### Expanded Knowledge Base
 
 Maintain comprehensive synonym mappings including:
+
 - Portuguese and English variations
 - Regional differences
 - Common typos and abbreviations
@@ -686,6 +726,7 @@ def find_best_match(column_header: str, knowledge_base: Dict[str, List[str]]) ->
 ### Intelligent Suggestions
 
 When confidence is low (< 70%), provide multiple mapping options:
+
 - Show top 3-5 suggestions ordered by score
 - Include reasoning for each suggestion
 - Highlight pattern mismatches (e.g., column named "ID" but contains CPF values)
@@ -697,6 +738,7 @@ When confidence is low (< 70%), provide multiple mapping options:
 ### Overview
 
 Pattern analysis identifies data types and formats by examining actual values, not just column names. This is crucial for:
+
 - Validating mappings
 - Detecting errors
 - Normalizing data formats
@@ -705,6 +747,7 @@ Pattern analysis identifies data types and formats by examining actual values, n
 ### Pattern Recognition
 
 Define comprehensive patterns for common data types:
+
 - **CPF**: Brazilian tax ID with validation algorithm
 - **Email**: Standard email format validation
 - **Phone (Brazilian)**: 10-11 digits with formatting
@@ -716,6 +759,7 @@ Define comprehensive patterns for common data types:
 ### Validation and Normalization
 
 For each pattern type:
+
 - **Regex matching**: Initial pattern detection
 - **Validator function**: Domain-specific validation (e.g., CPF check digits)
 - **Normalizer function**: Convert to standard format
@@ -738,14 +782,19 @@ For each pattern type:
 Enhance `detectHeaderRow()` function in `src/lib/xlsx-helper.ts`:
 
 **Current Implementation:**
+
 ```typescript
 // Current basic implementation
-export function detectHeaderRow(rows: unknown[][], maxRowsToScan = 15): HeaderDetectionResult {
+export function detectHeaderRow(
+  rows: unknown[][],
+  maxRowsToScan = 15
+): HeaderDetectionResult {
   // Basic keyword matching and scoring
 }
 ```
 
 **Enhanced Implementation:**
+
 ```typescript
 // Enhanced with multi-factor analysis
 export function detectHeaderRowEnhanced(
@@ -761,16 +810,18 @@ export function detectHeaderRowEnhanced(
   // Factor 1: Text ratio (headers are usually text)
   const calculateTextRatio = (row: unknown[]): number => {
     const textCells = row.filter(
-      cell => cell && !String(cell).trim().match(/^\d+([.,]\d+)?$/)
+      cell =>
+        cell &&
+        !String(cell)
+          .trim()
+          .match(/^\d+([.,]\d+)?$/)
     );
     return textCells.length / Math.max(row.length, 1);
   };
 
   // Factor 2: Keyword matches
   const countKeywordMatches = (row: unknown[]): number => {
-    const normalizedRow = row.map(cell =>
-      normalizeHeader(String(cell || ''))
-    );
+    const normalizedRow = row.map(cell => normalizeHeader(String(cell || "")));
     return normalizedRow.filter(cell =>
       HEADER_KEYWORDS.some(kw => cell.includes(kw) || kw.includes(cell))
     ).length;
@@ -820,9 +871,7 @@ export function detectHeaderRowEnhanced(
     // Factor 5: Pattern consistency (5 points)
     score += checkPatternConsistency(row, rows[i + 1] || [], i);
 
-    const headers = row
-      .map(h => String(h ?? '').trim())
-      .filter(Boolean);
+    const headers = row.map(h => String(h ?? "").trim()).filter(Boolean);
 
     if (headers.length >= 2) {
       candidates.push({
@@ -837,7 +886,7 @@ export function detectHeaderRowEnhanced(
     return {
       headerRowIndex: 0,
       confidence: 0,
-      headers: rows[0]?.map(h => String(h ?? '').trim()).filter(Boolean) || [],
+      headers: rows[0]?.map(h => String(h ?? "").trim()).filter(Boolean) || [],
       candidates: [],
     };
   }
@@ -868,10 +917,10 @@ export function detectHeaderRowEnhanced(
 function normalizeHeader(header: string): string {
   return header
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents
     .trim()
-    .replace(/\s+/g, ' ');
+    .replace(/\s+/g, " ");
 }
 ```
 
@@ -880,6 +929,7 @@ function normalizeHeader(header: string): string {
 Enhance `mapCSVHeaders()` function:
 
 **Current Implementation:**
+
 ```typescript
 // Current static mapping
 export function mapCSVHeaders(headers: string[]): Record<string, string> {
@@ -895,12 +945,16 @@ export function mapCSVHeaders(headers: string[]): Record<string, string> {
 ```
 
 **Enhanced Implementation:**
+
 ```typescript
 // Enhanced with pattern analysis and fuzzy matching
 export interface ColumnMappingResult {
   mapping: Record<string, string>;
   confidence: Record<string, number>;
-  suggestions: Record<string, Array<{ field: string; score: number; reason: string }>>;
+  suggestions: Record<
+    string,
+    Array<{ field: string; score: number; reason: string }>
+  >;
 }
 
 export function mapCSVHeadersIntelligent(
@@ -910,7 +964,10 @@ export function mapCSVHeadersIntelligent(
 ): ColumnMappingResult {
   const mapping: Record<string, string> = {};
   const confidence: Record<string, number> = {};
-  const suggestions: Record<string, Array<{ field: string; score: number; reason: string }>> = {};
+  const suggestions: Record<
+    string,
+    Array<{ field: string; score: number; reason: string }>
+  > = {};
 
   for (const header of headers) {
     // Get column data
@@ -923,7 +980,11 @@ export function mapCSVHeadersIntelligent(
     const pattern = detectColumnPattern(columnData);
 
     // Find best matches
-    const matches = findBestSchemaMatches(header, pattern, headers.indexOf(header));
+    const matches = findBestSchemaMatches(
+      header,
+      pattern,
+      headers.indexOf(header)
+    );
 
     if (matches.length > 0 && matches[0].score >= 0.5) {
       mapping[header] = matches[0].field;
@@ -950,15 +1011,17 @@ function detectColumnPattern(values: unknown[]): {
   matchRatio: number;
 } {
   if (values.length === 0) {
-    return { type: 'empty', confidence: 0, matchRatio: 0 };
+    return { type: "empty", confidence: 0, matchRatio: 0 };
   }
 
   // CPF pattern
   const cpfPattern = /^\d{3}[.\-]?\d{3}[.\-]?\d{3}[.\-]?\d{2}$/;
-  const cpfMatches = values.filter(v => cpfPattern.test(String(v).replace(/\s/g, '')));
+  const cpfMatches = values.filter(v =>
+    cpfPattern.test(String(v).replace(/\s/g, ""))
+  );
   if (cpfMatches.length / values.length > 0.7) {
     return {
-      type: 'cpf',
+      type: "cpf",
       confidence: cpfMatches.length / values.length,
       matchRatio: cpfMatches.length / values.length,
     };
@@ -966,10 +1029,12 @@ function detectColumnPattern(values: unknown[]): {
 
   // Email pattern
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const emailMatches = values.filter(v => emailPattern.test(String(v).toLowerCase()));
+  const emailMatches = values.filter(v =>
+    emailPattern.test(String(v).toLowerCase())
+  );
   if (emailMatches.length / values.length > 0.7) {
     return {
-      type: 'email',
+      type: "email",
       confidence: emailMatches.length / values.length,
       matchRatio: emailMatches.length / values.length,
     };
@@ -978,18 +1043,20 @@ function detectColumnPattern(values: unknown[]): {
   // Phone pattern (Brazilian)
   const phonePattern = /^[\d\s\(\)\-\+]{10,15}$/;
   const phoneMatches = values.filter(v => {
-    const digits = String(v).replace(/\D/g, '');
-    return phonePattern.test(String(v)) && digits.length >= 10 && digits.length <= 11;
+    const digits = String(v).replace(/\D/g, "");
+    return (
+      phonePattern.test(String(v)) && digits.length >= 10 && digits.length <= 11
+    );
   });
   if (phoneMatches.length / values.length > 0.7) {
     return {
-      type: 'phone',
+      type: "phone",
       confidence: phoneMatches.length / values.length,
       matchRatio: phoneMatches.length / values.length,
     };
   }
 
-  return { type: 'text', confidence: 0.3, matchRatio: 0 };
+  return { type: "text", confidence: 0.3, matchRatio: 0 };
 }
 
 // Find best schema matches with scoring
@@ -1004,7 +1071,7 @@ function findBestSchemaMatches(
   // Check against expanded knowledge base
   for (const [field, synonyms] of Object.entries(EXPANDED_HEADER_KNOWLEDGE)) {
     let semanticScore = 0;
-    let reason = '';
+    let reason = "";
 
     // Check synonyms
     for (const synonym of synonyms) {
@@ -1014,13 +1081,18 @@ function findBestSchemaMatches(
         semanticScore = 1.0;
         reason = `Exact match with '${synonym}'`;
         break;
-      } else if (normalizedSynonym.includes(normalizedHeader) ||
-                 normalizedHeader.includes(normalizedSynonym)) {
+      } else if (
+        normalizedSynonym.includes(normalizedHeader) ||
+        normalizedHeader.includes(normalizedSynonym)
+      ) {
         semanticScore = Math.max(semanticScore, 0.9);
         reason = `Contains keyword '${synonym}'`;
       } else {
         // Fuzzy match
-        const similarity = jaroWinklerSimilarity(normalizedHeader, normalizedSynonym);
+        const similarity = jaroWinklerSimilarity(
+          normalizedHeader,
+          normalizedSynonym
+        );
         if (similarity > 0.7) {
           semanticScore = Math.max(semanticScore, similarity * 0.85);
           reason = `Similar to '${synonym}' (${Math.round(similarity * 100)}% similarity)`;
@@ -1030,9 +1102,11 @@ function findBestSchemaMatches(
 
     // Pattern match bonus
     const patternScore = getPatternMatchScore(field, pattern.type);
-    const totalScore = semanticScore * 0.4 + patternScore * 0.3 +
-                       getPositionScore(field, columnIndex) * 0.15 +
-                       getFrequencyScore(field, normalizedHeader) * 0.15;
+    const totalScore =
+      semanticScore * 0.4 +
+      patternScore * 0.3 +
+      getPositionScore(field, columnIndex) * 0.15 +
+      getFrequencyScore(field, normalizedHeader) * 0.15;
 
     if (totalScore >= 0.3) {
       matches.push({
@@ -1056,7 +1130,7 @@ function jaroWinklerSimilarity(s1: string, s2: string): number {
   // Simple character overlap
   const longer = s1.length > s2.length ? s1 : s2;
   const shorter = s1.length > s2.length ? s2 : s1;
-  const matches = shorter.split('').filter(c => longer.includes(c)).length;
+  const matches = shorter.split("").filter(c => longer.includes(c)).length;
 
   return matches / Math.max(s1.length, s2.length);
 }
@@ -1078,6 +1152,7 @@ function jaroWinklerSimilarity(s1: string, s2: string): number {
 ### Example 1: Detecting Header in Spreadsheet with Metadata
 
 **Spreadsheet Structure:**
+
 ```
 Row 0: "Relatório de Alunos - 2024"
 Row 1: (empty)
@@ -1112,6 +1187,7 @@ result = detect_header_row(rows, max_rows_to_scan=15)
 ```
 
 **Scoring Breakdown for Row 2:**
+
 - Text ratio: 100% (all cells are text) → 30 points
 - Keyword matches: 4 matches (nome, email, telefone, cpf) → 40 points
 - Fill ratio: 100% (all cells filled) → 20 points
@@ -1142,6 +1218,7 @@ mappings = map_columns_intelligently(
 **Column:** "Contato"
 
 **Sample Data:**
+
 ```
 "Contato"
 "11999999999"
@@ -1195,6 +1272,7 @@ total_score = 0.60 * 0.40 + 0.95 * 0.30 + 0.70 * 0.15 + 0.4 * 0.15
 
 **Column:** "ID"
 **Values:**
+
 ```
 "ID"
 "123.456.789-00"
@@ -1233,6 +1311,7 @@ for value in column_data:
 **Result:** Map to `cpf` (0.95 confidence), not numeric `id`
 
 **User Feedback:**
+
 ```
 ⚠️ Column "ID" appears to contain CPF values (confidence: 95%)
    Suggested mapping: CPF
@@ -1244,6 +1323,7 @@ for value in column_data:
 **Column:** "Dados"
 
 **Sample Data:**
+
 ```
 "Dados"
 "João Silva"
@@ -1335,6 +1415,7 @@ const suggestions = getMappingSuggestions("Dados", columnData, 0);
 **Column:** "Móvel" (Portuguese for mobile/phone)
 
 **Sample Data:**
+
 ```
 "Móvel"
 "11999999999"
@@ -1372,6 +1453,7 @@ total_score = 0.88 * 0.40 + 0.92 * 0.30 + 0.70 * 0.15 + 0.8 * 0.15
 ### Example 6: Handling Multiple Data Blocks
 
 **Spreadsheet Structure:**
+
 ```
 Row 0: "Relatório de Vendas - Q1 2024"
 Row 1: (empty)
@@ -1402,6 +1484,7 @@ summary_data = extract_data_with_headers(rows[5:], result2.header_row_index)
 ### Example 7: Merged Cells / Multi-line Headers
 
 **Spreadsheet Structure:**
+
 ```
 Row 0: "Dados Pessoais" (merged across columns A-D)
 Row 1: "Nome" | "Email" | "Telefone" | "CPF"
@@ -1431,6 +1514,7 @@ header_row_index = 1  # Use second row as actual column headers
 
 **Column:** "CPF"
 **Values:**
+
 ```
 "CPF"
 "123.456.789-00"  ✓ Valid
@@ -1495,11 +1579,11 @@ function learnFromCorrection(correction: UserCorrection) {
   const pattern = detectColumnPattern(correction.columnData);
 
   // If pattern matches user's choice better, update knowledge base
-  if (pattern.type === 'email' && correction.userSelectedField === 'email') {
+  if (pattern.type === "email" && correction.userSelectedField === "email") {
     // Add "contato" as email synonym in specific contexts
-    updateKnowledgeBase('email', {
-      context: 'when_pattern_is_email',
-      synonyms: [...existingSynonyms, 'contato']
+    updateKnowledgeBase("email", {
+      context: "when_pattern_is_email",
+      synonyms: [...existingSynonyms, "contato"],
     });
   }
 

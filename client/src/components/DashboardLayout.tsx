@@ -1,25 +1,37 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, Redirect } from "wouter";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, TrendingUp, Menu, X, Shield, Link2, UserCog, BarChart3, Trophy, Medal, Bell } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  TrendingUp,
+  Menu,
+  X,
+  Shield,
+  Link2,
+  UserCog,
+  BarChart3,
+  Trophy,
+  Medal,
+  Bell,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
 
   // Redirect to login if not authenticated
   if (!user) {
-    if (typeof window !== "undefined") {
-      window.location.href = getLoginUrl();
-    }
-    return null;
+    return <Redirect to="/" />;
   }
-
 
   const navItems = [
     { href: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
@@ -30,15 +42,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/notificacoes", label: "Notificações", icon: Bell },
     { href: "/enviar-metricas", label: "Enviar Métricas", icon: TrendingUp },
     { href: "/admin", label: "Administração", icon: Shield, adminOnly: true },
-    { href: "/admin/vincular", label: "Vincular Emails", icon: Link2, adminOnly: true },
-    { href: "/admin/mentorados", label: "Gestão Mentorados", icon: UserCog, adminOnly: true },
+    {
+      href: "/admin/vincular",
+      label: "Vincular Emails",
+      icon: Link2,
+      adminOnly: true,
+    },
+    {
+      href: "/admin/mentorados",
+      label: "Gestão Mentorados",
+      icon: UserCog,
+      adminOnly: true,
+    },
     { href: "/estrutura", label: "Neon Estrutura", icon: Users },
     { href: "/escala", label: "Neon Escala", icon: TrendingUp },
   ];
 
   // Filter nav items based on user role
-  const filteredNavItems = navItems.filter(item => 
-    !item.adminOnly || user.role === 'admin'
+  const filteredNavItems = navItems.filter(
+    item => !item.adminOnly || user.role === "admin"
   );
 
   return (
@@ -46,36 +68,61 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-sidebar/80 backdrop-blur-md border-b border-sidebar-border sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <img src="/brand/neon-symbol-official.png" alt="Neon" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-xl text-primary tracking-tight font-sans">NEON</span>
+          <img
+            src="/brand/neon-symbol-official.png"
+            alt="Neon"
+            className="w-8 h-8 object-contain"
+          />
+          <span className="font-bold text-xl text-primary tracking-tight font-sans">
+            NEON
+          </span>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-primary hover:text-neon-gold transition-colors">
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="text-primary hover:text-neon-gold transition-colors"
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
         </Button>
       </div>
 
       {/* Sidebar / Mobile Menu */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-72 bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border transform transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] md:translate-x-0 md:static md:h-screen overflow-y-auto",
-        isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
-      )}>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-72 bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border transform transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] md:translate-x-0 md:static md:h-screen overflow-y-auto",
+          isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        )}
+      >
         <div className="p-8 hidden md:block">
           <div className="flex items-center gap-3 mb-2">
-            <img src="/brand/neon-symbol-official.png" alt="Neon" className="w-10 h-10 object-contain" />
+            <img
+              src="/brand/neon-symbol-official.png"
+              alt="Neon"
+              className="w-10 h-10 object-contain"
+            />
             <div>
-              <h1 className="text-2xl font-bold text-primary tracking-tighter font-sans">NEON</h1>
-              <p className="text-[10px] text-neon-blue-medium uppercase tracking-[0.2em] font-mono font-medium">Mentoria Black</p>
+              <h1 className="text-2xl font-bold text-primary tracking-tighter font-sans">
+                NEON
+              </h1>
+              <p className="text-[10px] text-neon-blue-medium uppercase tracking-[0.2em] font-mono font-medium">
+                Mentoria Black
+              </p>
             </div>
           </div>
         </div>
 
         <nav className="px-6 py-4 space-y-2">
-          {filteredNavItems.map((item) => {
+          {filteredNavItems.map(item => {
             const Icon = item.icon;
             const isActive = location === item.href;
             return (
-              <Link 
-                key={item.href} 
+              <Link
+                key={item.href}
                 href={item.href}
                 className={cn(
                   "group flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 border border-transparent",
@@ -85,7 +132,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Icon className={cn("h-4 w-4 transition-colors duration-300", isActive ? "text-neon-gold" : "text-muted-foreground group-hover:text-neon-gold")} />
+                <Icon
+                  className={cn(
+                    "h-4 w-4 transition-colors duration-300",
+                    isActive
+                      ? "text-neon-gold"
+                      : "text-muted-foreground group-hover:text-neon-gold"
+                  )}
+                />
                 {item.label}
               </Link>
             );
@@ -93,17 +147,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         <div className="px-6 py-2 space-y-1">
-             <div className="px-4 py-2 text-sm text-muted-foreground">
-                {user.name || user.email}
-             </div>
-             <Button
-                variant="ghost"
-                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 h-10 px-4"
-                onClick={() => logout()}
-             >
-                <LogOut className="mr-3 h-4 w-4" />
-                Sair
-             </Button>
+          <div className="px-4 py-2 text-sm text-muted-foreground">
+            {user.name || user.email}
+          </div>
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 h-10 px-4"
+            onClick={() => logout()}
+          >
+            <LogOut className="mr-3 h-4 w-4" />
+            Sair
+          </Button>
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-8">
@@ -113,9 +167,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               System Status
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-primary font-sans">Operacional</span>
+              <span className="text-sm font-semibold text-primary font-sans">
+                Operacional
+              </span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 font-mono">v2.5.0 (Stitch)</p>
+            <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+              v2.5.0 (Stitch)
+            </p>
           </div>
         </div>
       </aside>

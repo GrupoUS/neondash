@@ -1,6 +1,12 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
@@ -9,8 +15,18 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 const meses = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
 ];
 
 export default function RankingMensal() {
@@ -18,7 +34,9 @@ export default function RankingMensal() {
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth() + 1);
-  const [turma, setTurma] = useState<"neon_estrutura" | "neon_escala" | "todas">("todas");
+  const [turma, setTurma] = useState<
+    "neon_estrutura" | "neon_escala" | "todas"
+  >("todas");
 
   const { data: ranking, isLoading } = trpc.gamificacao.ranking.useQuery({
     ano,
@@ -37,7 +55,9 @@ export default function RankingMensal() {
       case 3:
         return <Award className="w-6 h-6 text-orange-500" />;
       default:
-        return <span className="text-lg font-bold text-slate-500">{posicao}º</span>;
+        return (
+          <span className="text-lg font-bold text-slate-500">{posicao}º</span>
+        );
     }
   };
 
@@ -59,12 +79,19 @@ export default function RankingMensal() {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Ranking Mensal</h1>
-            <p className="text-slate-500 mt-2">Classificação de performance dos mentorados</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+              Ranking Mensal
+            </h1>
+            <p className="text-slate-500 mt-2">
+              Classificação de performance dos mentorados
+            </p>
           </div>
 
           <div className="flex gap-3">
-            <Select value={turma} onValueChange={(v) => setTurma(v as typeof turma)}>
+            <Select
+              value={turma}
+              onValueChange={v => setTurma(v as typeof turma)}
+            >
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Turma" />
               </SelectTrigger>
@@ -75,7 +102,10 @@ export default function RankingMensal() {
               </SelectContent>
             </Select>
 
-            <Select value={mes.toString()} onValueChange={(v) => setMes(parseInt(v))}>
+            <Select
+              value={mes.toString()}
+              onValueChange={v => setMes(parseInt(v))}
+            >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Mês" />
               </SelectTrigger>
@@ -88,7 +118,10 @@ export default function RankingMensal() {
               </SelectContent>
             </Select>
 
-            <Select value={ano.toString()} onValueChange={(v) => setAno(parseInt(v))}>
+            <Select
+              value={ano.toString()}
+              onValueChange={v => setAno(parseInt(v))}
+            >
               <SelectTrigger className="w-[100px]">
                 <SelectValue placeholder="Ano" />
               </SelectTrigger>
@@ -120,11 +153,11 @@ export default function RankingMensal() {
           <>
             {/* Top 3 Podium */}
             <div className="grid grid-cols-3 gap-4 mb-8">
-              {[1, 0, 2].map((idx) => {
+              {[1, 0, 2].map(idx => {
                 const item = ranking[idx];
                 if (!item) return <div key={idx} />;
                 const isCurrentUser = mentorado?.id === item.mentorado.id;
-                
+
                 return (
                   <Card
                     key={item.ranking.id}
@@ -156,7 +189,9 @@ export default function RankingMensal() {
                         {item.mentorado.nomeCompleto.split(" ")[0]}
                       </h3>
                       <Badge variant="outline" className="text-xs mb-2">
-                        {item.mentorado.turma === "neon_estrutura" ? "Estrutura" : "Escala"}
+                        {item.mentorado.turma === "neon_estrutura"
+                          ? "Estrutura"
+                          : "Escala"}
                       </Badge>
                       <div className="text-2xl font-bold text-neon-green">
                         {item.ranking.pontuacaoTotal}
@@ -176,13 +211,15 @@ export default function RankingMensal() {
             {/* Full Ranking List */}
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg">Classificação Completa</CardTitle>
+                <CardTitle className="text-lg">
+                  Classificação Completa
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {ranking.map((item) => {
+                  {ranking.map(item => {
                     const isCurrentUser = mentorado?.id === item.mentorado.id;
-                    
+
                     return (
                       <div
                         key={item.ranking.id}
@@ -195,7 +232,7 @@ export default function RankingMensal() {
                         <div className="w-10 flex justify-center">
                           {getPosicaoIcon(item.ranking.posicao)}
                         </div>
-                        
+
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {item.mentorado.fotoUrl ? (
                             <img
@@ -214,25 +251,32 @@ export default function RankingMensal() {
                           <h4 className="font-semibold text-slate-900 truncate">
                             {item.mentorado.nomeCompleto}
                             {isCurrentUser && (
-                              <Badge variant="secondary" className="ml-2 text-xs">
+                              <Badge
+                                variant="secondary"
+                                className="ml-2 text-xs"
+                              >
                                 Você
                               </Badge>
                             )}
                           </h4>
                           <p className="text-sm text-slate-500">
-                            {item.mentorado.turma === "neon_estrutura" ? "Neon Estrutura" : "Neon Escala"}
+                            {item.mentorado.turma === "neon_estrutura"
+                              ? "Neon Estrutura"
+                              : "Neon Escala"}
                           </p>
                         </div>
 
                         <div className="text-right">
                           <div className="text-xl font-bold text-slate-900">
                             {item.ranking.pontuacaoTotal}
-                            <span className="text-sm text-slate-500 ml-1">pts</span>
+                            <span className="text-sm text-slate-500 ml-1">
+                              pts
+                            </span>
                           </div>
                           {item.ranking.pontosBonus > 0 && (
                             <div className="flex items-center justify-end gap-1 text-xs text-purple-600">
-                              <TrendingUp className="w-3 h-3" />
-                              +{item.ranking.pontosBonus} bônus
+                              <TrendingUp className="w-3 h-3" />+
+                              {item.ranking.pontosBonus} bônus
                             </div>
                           )}
                         </div>

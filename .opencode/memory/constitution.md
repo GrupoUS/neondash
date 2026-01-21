@@ -13,6 +13,7 @@ This constitution defines the non-negotiable principles and validation rules for
 **Rule**: ALWAYS use `bun` as the package manager and runtime. NEVER use `npm`, `yarn`, or `pnpm`.
 
 **Validation**:
+
 - ✅ `bun install`, `bun run`, `bunx`
 - ❌ `npm install`, `npm run`, `npx`
 - ❌ `yarn add`, `yarn run`
@@ -27,6 +28,7 @@ This constitution defines the non-negotiable principles and validation rules for
 **Rule**: ALL code MUST use TypeScript with strict mode enabled. The `any` type is FORBIDDEN.
 
 **Validation**:
+
 - ✅ Explicit type annotations for function parameters and returns
 - ✅ Proper generic types where needed
 - ✅ `unknown` with type guards instead of `any`
@@ -42,6 +44,7 @@ This constitution defines the non-negotiable principles and validation rules for
 **Rule**: ALL student, lead, and user data MUST comply with Brazilian LGPD (Lei Geral de Proteção de Dados).
 
 **Validation**:
+
 - ✅ CPF, email, phone fields encrypted at rest
 - ✅ Audit logging for all data access
 - ✅ Consent tracking for data collection
@@ -61,6 +64,7 @@ This constitution defines the non-negotiable principles and validation rules for
 **Rule**: ALL code MUST pass Biome linting and formatting checks with zero errors.
 
 **Validation**:
+
 - ✅ `bun run lint:check` passes with 0 errors
 - ✅ `bun run format:check` passes
 - ✅ Tabs for indentation (not spaces)
@@ -70,6 +74,7 @@ This constitution defines the non-negotiable principles and validation rules for
 - ❌ Unused imports or variables
 
 **Commands**:
+
 ```bash
 bun run lint        # Auto-fix issues
 bun run lint:check  # Check only
@@ -85,6 +90,7 @@ bun run format      # Format code
 **Rule**: ALL Convex functions MUST follow established patterns for security and performance.
 
 **Validation**:
+
 - ✅ Authentication check in mutations accessing user data
 - ✅ Indexes defined for all query filters
 - ✅ `.withIndex()` used instead of `.filter()` for indexed fields
@@ -93,6 +99,7 @@ bun run format      # Format code
 - ❌ Queries using `.filter()` on large tables without indexes
 
 **Example**:
+
 ```typescript
 // ✅ Good: Auth check + index usage
 export const updateLead = mutation({
@@ -121,6 +128,7 @@ export const updateLead = mutation({
 **Rule**: Critical paths MUST have ≥80% test coverage. Security-related code MUST have ≥95% coverage.
 
 **Validation**:
+
 - ✅ Unit tests for all utility functions
 - ✅ Integration tests for Convex functions
 - ✅ E2E tests for critical user flows
@@ -145,6 +153,7 @@ export const updateLead = mutation({
 **Rule**: ALL user-facing interfaces MUST comply with WCAG 2.1 Level AA standards.
 
 **Validation**:
+
 - ✅ Color contrast ≥4.5:1 (normal text), ≥3:1 (large text)
 - ✅ Touch targets ≥44px
 - ✅ Complete keyboard navigation
@@ -164,6 +173,7 @@ export const updateLead = mutation({
 **Rule**: ALL user-facing text MUST be in Brazilian Portuguese.
 
 **Validation**:
+
 - ✅ Labels, buttons, placeholders in Portuguese
 - ✅ Error messages in Portuguese
 - ✅ Tooltips and descriptions in Portuguese
@@ -180,6 +190,7 @@ export const updateLead = mutation({
 **Rule**: ALL pages and API calls MUST meet performance targets.
 
 **Validation**:
+
 - ✅ Initial page load: <3 seconds
 - ✅ Route transitions: <500ms
 - ✅ API responses: <200ms (p95)
@@ -195,6 +206,7 @@ export const updateLead = mutation({
 **Rule**: ALL React components MUST be functional components with hooks. Class components are FORBIDDEN.
 
 **Validation**:
+
 - ✅ `function Component()` or `const Component = () =>`
 - ✅ `useState`, `useEffect`, `useMemo`, `useCallback`
 - ✅ Custom hooks for shared logic
@@ -244,13 +256,13 @@ bun run lint:check && bun run build && bun run test
 
 ## Quick Reference
 
-| Principle | Check Command | Threshold |
-|-----------|---------------|-----------|
-| TypeScript | `bun run build` | 0 errors |
-| Biome | `bun run lint:check` | 0 errors |
-| Tests | `bun run test:coverage` | ≥80% |
-| Performance | Lighthouse | ≥90 score |
+| Principle   | Check Command           | Threshold |
+| ----------- | ----------------------- | --------- |
+| TypeScript  | `bun run build`         | 0 errors  |
+| Biome       | `bun run lint:check`    | 0 errors  |
+| Tests       | `bun run test:coverage` | ≥80%      |
+| Performance | Lighthouse              | ≥90 score |
 
 ---
 
-*This constitution is the source of truth for code quality standards in Portal Grupo US.*
+_This constitution is the source of truth for code quality standards in Portal Grupo US._

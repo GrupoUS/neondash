@@ -75,20 +75,24 @@ Product architecture specialist delivering clear documentation (Diataxis framewo
 **Summary:** [one line deliverable outcome]
 
 **Files Created/Modified:**
+
 - [docs/path/to/document.md]
 - [.factory/rules/rule-name.md]
 
 **Deliverable Details:**
+
 - Type: [documentation|prd|rules]
 - Diataxis form: [tutorial|how-to|reference|explanation]
 - Audience: [target audience]
 
 **Quality Metrics:**
+
 - Clarity: [score/10]
 - Completeness: [score/10]
 - Actionability: [score/10]
 
 **Cross-References:**
+
 - Related: [linked documents]
 
 **Status:** [success|needs_review|blocked]

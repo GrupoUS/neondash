@@ -7,6 +7,7 @@ Este documento ilustra cenários reais de detecção e mapeamento para guiar a i
 Muitas planilhas exportadas de sistemas legado (SAPs, ERPs antigos) contêm cabeçalhos de "impressão".
 
 ### Input
+
 ```csv
 Linha 1: RELATÓRIO DE VENDAS MENSAIS - 2024
 Linha 2: Gerado em: 15/10/2024 por Admin
@@ -18,6 +19,7 @@ Linha 7: 00153  | MERCADO LIVRE  | 02/10/2024 | 500,00      | PENDENTE
 ```
 
 ### Processo de Detecção
+
 1.  **Linhas 1-3**: Ignoradas.
     - Contêm poucas colunas preenchidas (densidade baixa).
     - Não correspondem a keywords conhecidas.
@@ -32,6 +34,7 @@ Linha 7: 00153  | MERCADO LIVRE  | 02/10/2024 | 500,00      | PENDENTE
 ## Cenário 2: Cabeçalhos Ambíguos e Sinônimos
 
 ### Input
+
 ```csv
 Nome Completo | Zap | End. | Nasc. | Doc.
 Maria Silva   | 11999999999 | Rua A | 1990-01-01 | 12345678900
@@ -39,24 +42,26 @@ Maria Silva   | 11999999999 | Rua A | 1990-01-01 | 12345678900
 
 ### Processo de Mapeamento
 
-| Coluna Input | Análise dos Dados | Match Semântico | Decisão Final | Confiança |
-|--------------|-------------------|-----------------|---------------|-----------|
-| **Zap** | Padrão Celular (11 dig) | Sinônimo gíria de "WhatsApp/Telefone" | **phone** | Alta (90%) |
-| **End.** | Texto livre | Abreviação de "Endereço" | **address** | Alta (85%) |
-| **Nasc.** | Data ISO | Abreviação de "Nascimento" | **birthdate** | Alta (85%) |
-| **Doc.** | CPF Válido (11 dig) | Abreviação de "Documento" | **cpf** | Alta (95%) |
+| Coluna Input | Análise dos Dados       | Match Semântico                       | Decisão Final | Confiança  |
+| ------------ | ----------------------- | ------------------------------------- | ------------- | ---------- |
+| **Zap**      | Padrão Celular (11 dig) | Sinônimo gíria de "WhatsApp/Telefone" | **phone**     | Alta (90%) |
+| **End.**     | Texto livre             | Abreviação de "Endereço"              | **address**   | Alta (85%) |
+| **Nasc.**    | Data ISO                | Abreviação de "Nascimento"            | **birthdate** | Alta (85%) |
+| **Doc.**     | CPF Válido (11 dig)     | Abreviação de "Documento"             | **cpf**       | Alta (95%) |
 
 ---
 
 ## Cenário 3: Colunas "Lixo" ou Desconhecidas
 
 ### Input
+
 ```csv
 ID | Nome | Coluna1 | Check | Obs Interna
 1  | Ana  | X       | OK    | Cliente VIP
 ```
 
 ### Processo
+
 1.  **ID** -> `id` (Alta)
 2.  **Nome** -> `name` (Alta)
 3.  **Coluna1** -> ???
@@ -75,15 +80,18 @@ ID | Nome | Coluna1 | Check | Obs Interna
 ## Cenário 4: Datas Ambíguas
 
 ### Input
+
 ```csv
 Data
 02/05/2024
 ```
 
 ### Problema
+
 É 2 de Maio (DMY) ou 5 de Fevereiro (MDY)?
 
 ### Processo de Inteligência
+
 1.  Observar outras linhas: `02/05/2024`, `15/05/2024`.
 2.  `15` não pode ser mês. Logo, o formato **TEM** que ser DMY.
 3.  Se todos os valores forem ambíguos (ex: `01/01` até `12/12`), verificar locale do sistema ou perguntar.
@@ -99,7 +107,7 @@ function detectHeader(rows: any[][]): number {
   let maxScore = 0;
 
   rows.slice(0, 20).forEach((row, index) => {
-    let score = calculateRowScore(row, rows[index+1]); // Analisa linha + dados abaixo
+    let score = calculateRowScore(row, rows[index + 1]); // Analisa linha + dados abaixo
     if (score > maxScore) {
       maxScore = score;
       bestRowIndex = index;

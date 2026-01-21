@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "d04b5358-c6e2-4d42-9796-5b79397aa56d",
-  "prevId": "111335e1-c184-4fbe-85fe-3d31ae78f8c4",
+  "id": "0a8b8a2f-c930-4e25-a04b-df3b8b1295b7",
+  "prevId": "d04b5358-c6e2-4d42-9796-5b79397aa56d",
   "tables": {
     "feedbacks": {
       "name": "feedbacks",
@@ -80,12 +80,8 @@
           "name": "feedbacks_mentoradoId_mentorados_id_fk",
           "tableFrom": "feedbacks",
           "tableTo": "mentorados",
-          "columnsFrom": [
-            "mentoradoId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mentoradoId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -93,9 +89,7 @@
       "compositePrimaryKeys": {
         "feedbacks_id": {
           "name": "feedbacks_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -132,6 +126,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "fotoUrl": {
+          "name": "fotoUrl",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "turma": {
           "name": "turma",
           "type": "enum('neon_estrutura','neon_escala')",
@@ -146,6 +147,46 @@
           "notNull": true,
           "autoincrement": false,
           "default": 16000
+        },
+        "metaLeads": {
+          "name": "metaLeads",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 50
+        },
+        "metaProcedimentos": {
+          "name": "metaProcedimentos",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 10
+        },
+        "metaPosts": {
+          "name": "metaPosts",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 12
+        },
+        "metaStories": {
+          "name": "metaStories",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 60
+        },
+        "ativo": {
+          "name": "ativo",
+          "type": "enum('sim','nao')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'sim'"
         },
         "createdAt": {
           "name": "createdAt",
@@ -171,12 +212,8 @@
           "name": "mentorados_userId_users_id_fk",
           "tableFrom": "mentorados",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -184,17 +221,13 @@
       "compositePrimaryKeys": {
         "mentorados_id": {
           "name": "mentorados_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "mentorados_email_unique": {
           "name": "mentorados_email_unique",
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "checkConstraint": {}
@@ -309,12 +342,8 @@
           "name": "metricas_mensais_mentoradoId_mentorados_id_fk",
           "tableFrom": "metricas_mensais",
           "tableTo": "mentorados",
-          "columnsFrom": [
-            "mentoradoId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mentoradoId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -322,9 +351,7 @@
       "compositePrimaryKeys": {
         "metricas_mensais_id": {
           "name": "metricas_mensais_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -407,17 +434,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}

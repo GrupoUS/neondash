@@ -1,4 +1,10 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Calendar } from "lucide-react";
 
 interface MonthYearFilterProps {
@@ -35,12 +41,15 @@ export default function MonthYearFilter({
     <div className="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-slate-200">
       <Calendar className="w-5 h-5 text-neon-purple" />
       <div className="flex items-center gap-2">
-        <Select value={selectedMonth.toString()} onValueChange={(v) => onMonthChange(Number(v))}>
+        <Select
+          value={selectedMonth.toString()}
+          onValueChange={v => onMonthChange(Number(v))}
+        >
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Selecione o mês" />
           </SelectTrigger>
           <SelectContent>
-            {MONTHS.map((month) => (
+            {MONTHS.map(month => (
               <SelectItem key={month.value} value={month.value.toString()}>
                 {month.label}
               </SelectItem>
@@ -50,12 +59,15 @@ export default function MonthYearFilter({
 
         <span className="text-slate-400">/</span>
 
-        <Select value={selectedYear.toString()} onValueChange={(v) => onYearChange(Number(v))}>
+        <Select
+          value={selectedYear.toString()}
+          onValueChange={v => onYearChange(Number(v))}
+        >
           <SelectTrigger className="w-[100px]">
             <SelectValue placeholder="Ano" />
           </SelectTrigger>
           <SelectContent>
-            {YEARS.map((year) => (
+            {YEARS.map(year => (
               <SelectItem key={year} value={year.toString()}>
                 {year}
               </SelectItem>

@@ -36,11 +36,12 @@ Follow this systematic approach to create a new feature: $ARGUMENTS
    - Break down feature into `task.md` using the `[ ]`, `[/]`, `[x]` convention.
    - Identify affected components and potential impact areas.
    - Matriz de Requisitos
-| Categoria | Requisito | Prioridade | Método de Validação |
-|-----------|-----------|------------|---------------------|
-| Funcional | [REQ_1] | Must | [COMO_TESTAR] |
-| Non-Funcional | [PERF_REQ] | Must | [BENCHMARK] |
+     | Categoria | Requisito | Prioridade | Método de Validação |
+     |-----------|-----------|------------|---------------------|
+     | Funcional | [REQ_1] | Must | [COMO_TESTAR] |
+     | Non-Funcional | [PERF_REQ] | Must | [BENCHMARK] |
    - Avaliação de Estado Atual
+
 ```yaml
 existing_architecture: "[DESCREVA_ESTADO_ATUAL]"
 integration_points: ["[SISTEMA_1]", "[SISTEMA_2]"]
@@ -52,10 +53,11 @@ technical_debt: "[DÉBITO_RELEVANTE]"
    - **Librarian Agent**: Reference grep for official documentation via `context7`.
    - **Sequential Thinking**: Structured problem-solving for architectural decisions.
    - Avaliação de Tecnologias
-| Opção | Prós | Contras | Fit Score |
-|-------|------|---------|-----------|
-| [OPÇÃO_1] | [VANTAGENS] | [DESVANTAGENS] | [1-5] |
+     | Opção | Prós | Contras | Fit Score |
+     |-------|------|---------|-----------|
+     | [OPÇÃO_1] | [VANTAGENS] | [DESVANTAGENS] | [1-5] |
    - Padrões a Considerar
+
 ```yaml
 recommended_patterns:
   - pattern: "[NOME_PADRÃO]"
@@ -68,13 +70,16 @@ recommended_patterns:
    - Plan database schema changes if needed (Convex).
    - Define API endpoints and contracts.
    - Arquitetura da Solução
+
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │ Componente  │────▶│ Componente  │────▶│ Componente  │
 │      A      │     │      B      │     │      C      │
 └─────────────┘     └─────────────┘     └─────────────┘
 ```
-   - Registros de Decisão (ADRs)
+
+- Registros de Decisão (ADRs)
+
 ```yaml
 decision_1:
   context: "[SITUAÇÃO_REQUERENDO_DECISÃO]"
@@ -89,6 +94,7 @@ decision_1:
    - Follow the official schema: Goal Description, User Review Required, Proposed Changes, Verification Plan.
    - Plan validation with atomic tasks and subtasks (Phase 5).
    - Roadmap de Implementação
+
 ```yaml
 phase_1_foundation:
   duration: "[ESTIMATIVA]"
@@ -102,7 +108,9 @@ phase_2_core:
     - "[ENTREGÁVEL_3]"
   dependencies: ["phase_1_foundation"]
 ```
+
     - Estrutura de Arquivos
+
 ```
 src/
 ├── [module_1]/
@@ -168,7 +176,11 @@ orchestration:
         - id: "PLAN-1"
           agent: "apex-researcher"
           prompt: "Initial implementation_plan.md draft"
-      barrier: { require_done: ["EXP-STRUCT", "EXP-TRACE", "LIB-DOCS", "LIB-EXAMPLES", "PLAN-1"] }
+      barrier:
+        {
+          require_done:
+            ["EXP-STRUCT", "EXP-TRACE", "LIB-DOCS", "LIB-EXAMPLES", "PLAN-1"],
+        }
 
     - id: "P2"
       name: "Targeted Refinement"
@@ -205,5 +217,6 @@ orchestration:
 7. **NOTIFY**: Chame `notify_user` para travar a execução até a aprovação do plano.
 
 ## Referências
+
 - Princípios: `code-principles.md`
 - Implementação: `implement.md`

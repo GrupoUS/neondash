@@ -22,12 +22,12 @@ export const mentoradosRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
     // Try to find by userId first (legacy)
     let mentorado = await getMentoradoByUserId(ctx.user.id);
-    
+
     // If not found and user has email, try to find by email
     if (!mentorado && ctx.user.email) {
       mentorado = await getMentoradoByEmail(ctx.user.email);
     }
-    
+
     return mentorado;
   }),
 
@@ -132,7 +132,9 @@ export const mentoradosRouter = router({
     .mutation(async ({ ctx, input }) => {
       const mentorado = await getMentoradoByUserId(ctx.user.id);
       if (!mentorado) {
-        throw new Error("Perfil de mentorado não encontrado. Entre em contato com o administrador.");
+        throw new Error(
+          "Perfil de mentorado não encontrado. Entre em contato com o administrador."
+        );
       }
 
       const id = await upsertMetricaMensal({
@@ -215,12 +217,12 @@ export const mentoradosRouter = router({
       if (ctx.user.role !== "admin") {
         throw new Error("Acesso negado");
       }
-      
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       const { id, ...updateData } = input;
-      
+
       // Remove undefined values
       const cleanData = Object.fromEntries(
         Object.entries(updateData).filter(([_, v]) => v !== undefined)
@@ -230,10 +232,7 @@ export const mentoradosRouter = router({
         throw new Error("Nenhum campo para atualizar");
       }
 
-      await db
-        .update(mentorados)
-        .set(cleanData)
-        .where(eq(mentorados.id, id));
+      await db.update(mentorados).set(cleanData).where(eq(mentorados.id, id));
 
       return { success: true };
     }),
@@ -245,13 +244,11 @@ export const mentoradosRouter = router({
       if (ctx.user.role !== "admin") {
         throw new Error("Acesso negado");
       }
-      
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      await db
-        .delete(mentorados)
-        .where(eq(mentorados.id, input.id));
+      await db.delete(mentorados).where(eq(mentorados.id, input.id));
 
       return { success: true };
     }),
@@ -275,23 +272,26 @@ export const mentoradosRouter = router({
       if (ctx.user.role !== "admin") {
         throw new Error("Acesso negado");
       }
-      
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const result = await db.insert(mentorados).values({
-        nomeCompleto: input.nomeCompleto,
-        email: input.email || null,
-        fotoUrl: input.fotoUrl || null,
-        turma: input.turma,
-        metaFaturamento: input.metaFaturamento,
-        metaLeads: input.metaLeads,
-        metaProcedimentos: input.metaProcedimentos,
-        metaPosts: input.metaPosts,
-        metaStories: input.metaStories,
-      });
+      const result = await db
+        .insert(mentorados)
+        .values({
+          nomeCompleto: input.nomeCompleto,
+          email: input.email || null,
+          fotoUrl: input.fotoUrl || null,
+          turma: input.turma,
+          metaFaturamento: input.metaFaturamento,
+          metaLeads: input.metaLeads,
+          metaProcedimentos: input.metaProcedimentos,
+          metaPosts: input.metaPosts,
+          metaStories: input.metaStories,
+        })
+        .returning({ id: mentorados.id }); // MUDANÇA: returning() para Postgres
 
-      return { id: Number((result as any)[0]?.insertId || 0) };
+      return { id: result[0].id };
     }),
 
   // Get comparative stats for dashboard
@@ -324,14 +324,14 @@ export const mentoradosRouter = router({
 
       // Get metrics for all mentorados in the turma
       const allMetrics = await Promise.all(
-        turmaResult.map(async (m) => {
+        turmaResult.map(async m => {
           const metric = await getMetricaMensal(m.id, input.ano, input.mes);
           return { mentoradoId: m.id, metric };
         })
       );
 
       // Filter out mentorados without metrics
-      const validMetrics = allMetrics.filter((m) => m.metric !== null);
+      const validMetrics = allMetrics.filter(m => m.metric !== null);
 
       if (validMetrics.length === 0) {
         return {
@@ -345,22 +345,40 @@ export const mentoradosRouter = router({
 
       // Calculate turma averages
       const turmaAverage = {
-        faturamento: validMetrics.reduce((acc, m) => acc + (m.metric?.faturamento || 0), 0) / validMetrics.length,
-        lucro: validMetrics.reduce((acc, m) => acc + (m.metric?.lucro || 0), 0) / validMetrics.length,
-        leads: validMetrics.reduce((acc, m) => acc + (m.metric?.leads || 0), 0) / validMetrics.length,
-        procedimentos: validMetrics.reduce((acc, m) => acc + (m.metric?.procedimentos || 0), 0) / validMetrics.length,
-        postsFeed: validMetrics.reduce((acc, m) => acc + (m.metric?.postsFeed || 0), 0) / validMetrics.length,
-        stories: validMetrics.reduce((acc, m) => acc + (m.metric?.stories || 0), 0) / validMetrics.length,
+        faturamento:
+          validMetrics.reduce(
+            (acc, m) => acc + (m.metric?.faturamento || 0),
+            0
+          ) / validMetrics.length,
+        lucro:
+          validMetrics.reduce((acc, m) => acc + (m.metric?.lucro || 0), 0) /
+          validMetrics.length,
+        leads:
+          validMetrics.reduce((acc, m) => acc + (m.metric?.leads || 0), 0) /
+          validMetrics.length,
+        procedimentos:
+          validMetrics.reduce(
+            (acc, m) => acc + (m.metric?.procedimentos || 0),
+            0
+          ) / validMetrics.length,
+        postsFeed:
+          validMetrics.reduce((acc, m) => acc + (m.metric?.postsFeed || 0), 0) /
+          validMetrics.length,
+        stories:
+          validMetrics.reduce((acc, m) => acc + (m.metric?.stories || 0), 0) /
+          validMetrics.length,
       };
 
       // Get user's metrics
-      const userMetricData = validMetrics.find((m) => m.mentoradoId === userMentorado!.id);
+      const userMetricData = validMetrics.find(
+        m => m.mentoradoId === userMentorado!.id
+      );
       const userMetrics = userMetricData?.metric || null;
 
       // Calculate percentiles for user
       const calculatePercentile = (value: number, allValues: number[]) => {
         const sorted = [...allValues].sort((a, b) => a - b);
-        const index = sorted.findIndex((v) => v >= value);
+        const index = sorted.findIndex(v => v >= value);
         return Math.round(((index + 1) / sorted.length) * 100);
       };
 
@@ -369,19 +387,19 @@ export const mentoradosRouter = router({
         percentiles = {
           faturamento: calculatePercentile(
             userMetrics.faturamento,
-            validMetrics.map((m) => m.metric?.faturamento || 0)
+            validMetrics.map(m => m.metric?.faturamento || 0)
           ),
           lucro: calculatePercentile(
             userMetrics.lucro,
-            validMetrics.map((m) => m.metric?.lucro || 0)
+            validMetrics.map(m => m.metric?.lucro || 0)
           ),
           leads: calculatePercentile(
             userMetrics.leads,
-            validMetrics.map((m) => m.metric?.leads || 0)
+            validMetrics.map(m => m.metric?.leads || 0)
           ),
           procedimentos: calculatePercentile(
             userMetrics.procedimentos,
-            validMetrics.map((m) => m.metric?.procedimentos || 0)
+            validMetrics.map(m => m.metric?.procedimentos || 0)
           ),
         };
       }
@@ -407,7 +425,7 @@ export const mentoradosRouter = router({
       if (ctx.user.role !== "admin") {
         throw new Error("Acesso negado");
       }
-      
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -417,7 +435,7 @@ export const mentoradosRouter = router({
         .from(mentorados)
         .where(eq(mentorados.id, input.mentoradoId))
         .limit(1);
-      
+
       const mentorado = mentoradoResult[0];
       if (!mentorado) {
         throw new Error("Mentorado não encontrado");
@@ -445,6 +463,3 @@ export const mentoradosRouter = router({
       return { success: true, emailSent: true };
     }),
 });
-
-// Import gamification functions at the top of the file is not possible here,
-// so we'll create a separate router for gamification

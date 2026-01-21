@@ -1,9 +1,21 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { Link2, CheckCircle2, AlertCircle, Mail } from "lucide-react";
 import { useState } from "react";
@@ -12,7 +24,7 @@ import { toast } from "sonner";
 export default function VincularEmails() {
   const [selectedMentorado, setSelectedMentorado] = useState<string>("");
   const [email, setEmail] = useState("");
-  
+
   const { data: mentorados, isLoading } = trpc.mentorados.list.useQuery();
   const linkEmailMutation = trpc.mentorados.linkEmail.useMutation({
     onSuccess: () => {
@@ -20,7 +32,7 @@ export default function VincularEmails() {
       setSelectedMentorado("");
       setEmail("");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(`Erro ao vincular email: ${error.message}`);
     },
   });
@@ -51,7 +63,9 @@ export default function VincularEmails() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-neon-blue-dark tracking-tight">Vincular Emails</h1>
+          <h1 className="text-3xl font-bold text-neon-blue-dark tracking-tight">
+            Vincular Emails
+          </h1>
           <p className="text-muted-foreground mt-2">
             Associe o email de login de cada mentorado ao seu perfil no sistema
           </p>
@@ -66,21 +80,28 @@ export default function VincularEmails() {
                 Novo Vínculo
               </CardTitle>
               <CardDescription>
-                Selecione um mentorado e informe o email que ele usa para fazer login
+                Selecione um mentorado e informe o email que ele usa para fazer
+                login
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="mentorado">Mentorado</Label>
-                  <Select value={selectedMentorado} onValueChange={setSelectedMentorado}>
+                  <Select
+                    value={selectedMentorado}
+                    onValueChange={setSelectedMentorado}
+                  >
                     <SelectTrigger id="mentorado">
                       <SelectValue placeholder="Selecione um mentorado" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mentorados?.map((m) => (
+                      {mentorados?.map(m => (
                         <SelectItem key={m.id} value={m.id.toString()}>
-                          {m.nomeCompleto} - {m.turma === "neon_estrutura" ? "Estrutura" : "Escala"}
+                          {m.nomeCompleto} -{" "}
+                          {m.turma === "neon_estrutura"
+                            ? "Estrutura"
+                            : "Escala"}
                           {m.email && ` (${m.email})`}
                         </SelectItem>
                       ))}
@@ -95,11 +116,12 @@ export default function VincularEmails() {
                     type="email"
                     placeholder="exemplo@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Este deve ser o email que o mentorado usa para fazer login no sistema
+                    Este deve ser o email que o mentorado usa para fazer login
+                    no sistema
                   </p>
                 </div>
 
@@ -108,7 +130,9 @@ export default function VincularEmails() {
                   className="w-full bg-neon-blue-dark hover:bg-neon-blue"
                   disabled={linkEmailMutation.isPending}
                 >
-                  {linkEmailMutation.isPending ? "Vinculando..." : "Vincular Email"}
+                  {linkEmailMutation.isPending
+                    ? "Vinculando..."
+                    : "Vincular Email"}
                 </Button>
               </form>
             </CardContent>
@@ -127,15 +151,19 @@ export default function VincularEmails() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {mentorados?.map((m) => (
+                {mentorados?.map(m => (
                   <div
                     key={m.id}
                     className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
                   >
                     <div className="flex-1">
-                      <div className="font-medium text-sm text-foreground">{m.nomeCompleto}</div>
+                      <div className="font-medium text-sm text-foreground">
+                        {m.nomeCompleto}
+                      </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {m.turma === "neon_estrutura" ? "Neon Estrutura" : "Neon Escala"}
+                        {m.turma === "neon_estrutura"
+                          ? "Neon Estrutura"
+                          : "Neon Escala"}
                       </div>
                       {m.email && (
                         <div className="text-xs text-neon-blue mt-1 flex items-center gap-1">
@@ -161,20 +189,25 @@ export default function VincularEmails() {
         {/* Instruções */}
         <Card className="border-neon-gold/30 bg-neon-gold/5">
           <CardHeader>
-            <CardTitle className="text-neon-blue-dark">Como funciona?</CardTitle>
+            <CardTitle className="text-neon-blue-dark">
+              Como funciona?
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
               <strong>1.</strong> Selecione o mentorado que deseja vincular
             </p>
             <p>
-              <strong>2.</strong> Informe o email que ele usa para fazer login (Google, Microsoft, etc.)
+              <strong>2.</strong> Informe o email que ele usa para fazer login
+              (Google, Microsoft, etc.)
             </p>
             <p>
-              <strong>3.</strong> Após vincular, quando o mentorado fizer login, ele verá automaticamente apenas seus dados
+              <strong>3.</strong> Após vincular, quando o mentorado fizer login,
+              ele verá automaticamente apenas seus dados
             </p>
             <p className="text-xs mt-4 text-amber-700">
-              ⚠️ Atenção: O email deve ser exatamente o mesmo usado no login OAuth
+              ⚠️ Atenção: O email deve ser exatamente o mesmo usado no login
+              OAuth
             </p>
           </CardContent>
         </Card>

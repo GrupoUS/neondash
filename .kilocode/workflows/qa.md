@@ -34,6 +34,7 @@ flowchart TD
     K
     end
 ```
+
 # Code Quality Review
 
 Perform comprehensive code quality review: $ARGUMENTS
@@ -43,6 +44,7 @@ Perform comprehensive code quality review: $ARGUMENTS
 You are an expert debugger specializing in root cause analysis.
 
 When invoked:
+
 1. Capture error message and stack trace
 2. Identify reproduction steps
 3. Isolate the failure location
@@ -50,6 +52,7 @@ When invoked:
 5. Verify solution works
 
 Debugging process:
+
 - Analyze error messages and logs
 - Check recent code changes
 - Form and test hypotheses
@@ -57,6 +60,7 @@ Debugging process:
 - Inspect variable states
 
 For each issue, provide:
+
 - Root cause explanation
 - Evidence supporting the diagnosis
 - Specific code fix
@@ -186,11 +190,12 @@ Se erros forem detectados em qualquer fase:
    - `[ ] Apply fix to [file]`
    - `[ ] Verify fix (unit/build/lint)`
 
-3. **Aguarda Aprovação**: O usuário deve aprovar o `implementation_plan.md` e `task.md` gerados.
+4. **Aguarda Aprovação**: O usuário deve aprovar o `implementation_plan.md` e `task.md` gerados.
 
 ### Research Strategy (Docs & Best Practices)
 
 O workflow `/research` garantirá:
+
 - **Consulta a Docs Oficiais**: Uso obrigatório do `context7` e `librarian` para buscar a fonte da verdade (Convex, Clerk, TanStack, etc.).
 - **Atomic Tasks**: Decomposição do fix em subtasks atômicas verificáveis no `task.md` (ex: "Research Error X", "Fix Component Y", "Verify Z").
 - **Best Practices**: Garantia de que o fix segue os padrões recomendados, não apenas "workarounds".
@@ -200,13 +205,17 @@ O workflow `/research` garantirá:
 DEVE incorporar as seguintes skills no plano de correção:
 
 **A. Para Erros de Backend / Banco de Dados (Convex):**
+
 > **USE SKILL**: `ai-data-analyst`
+>
 > - **Objetivo**: Analisar consistência de dados, schemas e logs de query.
 > - **Ação**: Criar scripts Python para validar estado do banco vs. expectations.
 > - **Comando Exemplo**: "Use ai-data-analyst para verificar se todos os usuários possuem 'stripeId' válido na tabela 'users' do Convex."
 
 **B. Para Erros de Frontend / UI (React/TanStack):**
+
 > **USE SKILL**: `webapp-testing`
+>
 > - **Objetivo**: Reproduzir bugs visuais, testar fluxos de interação e validar fixes.
 > - **Ação**: Criar scripts Playwright (usando `scripts/with_server.py`) para reprodução controlada.
 > - **Comando Exemplo**: "Use webapp-testing para criar um teste que simula o clique no botão 'Checkout' e captura o erro de console."
@@ -225,23 +234,23 @@ Após o plano de correção e tarefas serem aprovados:
 
 ## Success Metrics
 
-| Gate | Command | Expected Result |
-|------|---------|----------------|
-| Lint | `bun run lint:check` | 0 errors |
-| Build | `bun run build` | Clean build |
-| Tests | `bun run test:coverage` | All tests pass |
-| Deploy | `railway status` | Healthy |
-| Backend | `bunx convex deploy --prod` | Success |
-| Railway Logs | `railway logs --latest -n 100` | No errors in logs |
-| Convex Logs | `bunx convex logs --prod --failure` | No failures |
+| Gate         | Command                             | Expected Result   |
+| ------------ | ----------------------------------- | ----------------- |
+| Lint         | `bun run lint:check`                | 0 errors          |
+| Build        | `bun run build`                     | Clean build       |
+| Tests        | `bun run test:coverage`             | All tests pass    |
+| Deploy       | `railway status`                    | Healthy           |
+| Backend      | `bunx convex deploy --prod`         | Success           |
+| Railway Logs | `railway logs --latest -n 100`      | No errors in logs |
+| Convex Logs  | `bunx convex logs --prod --failure` | No failures       |
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Run QA pipeline | `/qa` |
-| Fix errors automatically | `/qa --auto-fix` |
-| Debug specific phase | `/qa --phase=lint` |
+| Task                     | Command            |
+| ------------------------ | ------------------ |
+| Run QA pipeline          | `/qa`              |
+| Fix errors automatically | `/qa --auto-fix`   |
+| Debug specific phase     | `/qa --phase=lint` |
 
 ## Technical Notes
 

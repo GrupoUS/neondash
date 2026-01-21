@@ -6,6 +6,7 @@ description: Always use when planing and before implementing what was prompt
 # 🎯 MASTER PLAN GENERATOR — PRP Edition
 
 > **CORE**: Context Density > Brevity | Research-First > Implementation | Planning > Coding
+
 ```yaml
 METHODOLOGY: "PRP (Product Requirement Prompt) + ACE (Agentic Context Engineering)"
 PHILOSOPHY: "One-pass implementation success through comprehensive context"
@@ -14,6 +15,7 @@ PHILOSOPHY: "One-pass implementation success through comprehensive context"
 ## 🧠 FOUNDATIONAL PRINCIPLES
 
 **PRP = PRD + Curated Codebase Intelligence + Agent Runbook** — minimum viable packet for production-ready code on first pass.
+
 ```yaml
 PRP_LAYERS:
   layer_1: "What + Why (goal)"
@@ -29,16 +31,17 @@ ACE_MECHANISM:
 
 ## 📊 COMPLEXITY SELECTION
 
-| Level | Indicators | Thinking Budget | Research |
-|-------|------------|-----------------|----------|
-| L1-L2 | Bug fix, single function | 1K-4K tokens | Repo-only |
-| L3-L5 | Feature, multi-file | 8K-16K tokens | Docs + repo |
-| L6-L8 | Architecture, integration | 16K-32K tokens | Deep |
-| L9-L10 | Migrations, multi-service | 32K+ tokens | Comprehensive |
+| Level  | Indicators                | Thinking Budget | Research      |
+| ------ | ------------------------- | --------------- | ------------- |
+| L1-L2  | Bug fix, single function  | 1K-4K tokens    | Repo-only     |
+| L3-L5  | Feature, multi-file       | 8K-16K tokens   | Docs + repo   |
+| L6-L8  | Architecture, integration | 16K-32K tokens  | Deep          |
+| L9-L10 | Migrations, multi-service | 32K+ tokens     | Comprehensive |
 
 ## 🔬 R.P.I.V WORKFLOW
 
 ### Phase 0: RESEARCH (Mandatory First)
+
 ```yaml
 priority_order:
   1: "Search codebase for patterns, conventions"
@@ -58,6 +61,7 @@ anti_hallucination: |
 ```
 
 ### Phase 1: PLAN (Before Implementation)
+
 ```yaml
 decomposition:
   method: "Atomic Task Decomposition"
@@ -79,6 +83,7 @@ parallel_safe_when:
 ```
 
 ### Phase 2: IMPLEMENT (Proactive Execution)
+
 ```yaml
 behavior: "PROACTIVE"
 instruction: |
@@ -102,6 +107,7 @@ anti_hardcoding: |
 ```
 
 ### Phase 3: VALIDATE
+
 ```yaml
 tasks:
   - "Build: zero errors"
@@ -118,6 +124,7 @@ success: "All gates pass, no regressions, docs updated, backward compatible"
 ```
 
 ## 🎯 ONE-SHOT TEMPLATE
+
 ```yaml
 metadata:
   complexity: "L[1-10] — [JUSTIFICATION]"
@@ -171,8 +178,8 @@ chain_of_thought:
   think:
     step_by_step: ["First: _____", "Then: _____", "Finally: _____"]
     tree_of_thoughts:
-      approach_a: {description, pros, cons, score}
-      approach_b: {description, pros, cons, score}
+      approach_a: { description, pros, cons, score }
+      approach_b: { description, pros, cons, score }
       selected: "[CHOSEN]"
       rationale: "[WHY]"
 
@@ -191,21 +198,26 @@ atomic_tasks:
 
 validation:
   automated:
-    - {id: "VT-001", command: "bun run build", expected: "Exit 0"}
-    - {id: "VT-002", command: "bun run lint", expected: "No errors"}
-    - {id: "VT-003", command: "bun run test", expected: "All pass"}
+    - { id: "VT-001", command: "bun run build", expected: "Exit 0" }
+    - { id: "VT-002", command: "bun run lint", expected: "No errors" }
+    - { id: "VT-003", command: "bun run test", expected: "All pass" }
   manual_review:
-    - {reviewer: "@code-reviewer", focus: "[ASPECT]", required_if: "[CONDITION]"}
+    - {
+        reviewer: "@code-reviewer",
+        focus: "[ASPECT]",
+        required_if: "[CONDITION]",
+      }
 
 output:
   format: "[DELIVERABLE]"
-  files_created: [{path, purpose}]
-  files_modified: [{path, changes}]
+  files_created: [{ path, purpose }]
+  files_modified: [{ path, changes }]
   success_definition: "[CRITERIA]"
   failure_handling: "If [CONDITION], then [ACTION]. Rollback: [STEPS]"
 ```
 
 ## 🔧 BEHAVIOR CONFIG
+
 ```yaml
 # PROACTIVE (default for implementation)
 proactive: |
@@ -233,15 +245,16 @@ reflection: |
 
 ## ⚠️ ANTI-PATTERNS
 
-| Bad | Good |
-|-----|------|
-| "Implement auth" | Research → Search codebase → Query docs → Then implement |
-| "Build entire CRM" | Decompose: AT-001 schema, AT-002 API, AT-003 UI... |
-| "Create dashboard" | Create dashboard with: real-time, responsive, dark/light, loading states, a11y. Go beyond basics. |
-| "NEVER use inline styles" | Use Tailwind. Why: consistency, design tokens, maintainability |
-| "Use snake_case" | Use snake_case. Why: Convex conventions, frontend transformers expect it |
+| Bad                       | Good                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| "Implement auth"          | Research → Search codebase → Query docs → Then implement                                          |
+| "Build entire CRM"        | Decompose: AT-001 schema, AT-002 API, AT-003 UI...                                                |
+| "Create dashboard"        | Create dashboard with: real-time, responsive, dark/light, loading states, a11y. Go beyond basics. |
+| "NEVER use inline styles" | Use Tailwind. Why: consistency, design tokens, maintainability                                    |
+| "Use snake_case"          | Use snake_case. Why: Convex conventions, frontend transformers expect it                          |
 
 ## ✅ CHECKLIST
+
 ```yaml
 research:
   - [ ] Codebase searched?
@@ -276,6 +289,7 @@ validation:
 ```
 
 ## 🚀 QUICK REFERENCE
+
 ```
 R.P.I.V: RESEARCH → PLAN → IMPLEMENT → VALIDATE
 
@@ -303,6 +317,7 @@ L9-L10: 32K+   | New systems
 **Output complete prompt in English, single Markdown block (Markdown + YAML), ready to copy.**
 
 Follow R.P.I.V:
+
 1. RESEARCH — directives and sources
 2. PLAN — atomic tasks with dependencies
 3. IMPLEMENT — proactive, parallel

@@ -1,9 +1,31 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Target, TrendingUp, Rocket, Crown, Gem, Camera, Flame, Play, Users, Zap, Award, Trophy, Medal, Lock } from "lucide-react";
+import {
+  Loader2,
+  Target,
+  TrendingUp,
+  Rocket,
+  Crown,
+  Gem,
+  Camera,
+  Flame,
+  Play,
+  Users,
+  Zap,
+  Award,
+  Trophy,
+  Medal,
+  Lock,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -43,24 +65,37 @@ const categoriaLabels: Record<string, string> = {
 };
 
 export default function Conquistas() {
-  const { data: allBadges, isLoading: loadingAll } = trpc.gamificacao.allBadges.useQuery();
-  const { data: myBadges, isLoading: loadingMy } = trpc.gamificacao.myBadges.useQuery();
+  const { data: allBadges, isLoading: loadingAll } =
+    trpc.gamificacao.allBadges.useQuery();
+  const { data: myBadges, isLoading: loadingMy } =
+    trpc.gamificacao.myBadges.useQuery();
 
   const isLoading = loadingAll || loadingMy;
 
   const earnedBadgeIds = new Set(myBadges?.map(b => b.badge.id) || []);
 
-  const categorias = ["faturamento", "conteudo", "operacional", "consistencia", "especial"];
+  const categorias = [
+    "faturamento",
+    "conteudo",
+    "operacional",
+    "consistencia",
+    "especial",
+  ];
 
-  const totalPontos = myBadges?.reduce((acc, b) => acc + b.badge.pontos, 0) || 0;
+  const totalPontos =
+    myBadges?.reduce((acc, b) => acc + b.badge.pontos, 0) || 0;
   const totalBadges = myBadges?.length || 0;
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Conquistas</h1>
-          <p className="text-slate-500 mt-2">Suas medalhas e badges conquistados na mentoria</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Conquistas
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Suas medalhas e badges conquistados na mentoria
+          </p>
         </div>
 
         {isLoading ? (
@@ -80,7 +115,9 @@ export default function Conquistas() {
                 <CardContent>
                   <div className="text-4xl font-bold text-amber-900">
                     {totalBadges}
-                    <span className="text-lg text-amber-600 ml-1">/ {allBadges?.length || 0}</span>
+                    <span className="text-lg text-amber-600 ml-1">
+                      / {allBadges?.length || 0}
+                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -92,7 +129,9 @@ export default function Conquistas() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-4xl font-bold text-purple-900">{totalPontos}</div>
+                  <div className="text-4xl font-bold text-purple-900">
+                    {totalPontos}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -106,7 +145,8 @@ export default function Conquistas() {
                   <div className="text-4xl font-bold text-green-900">
                     {allBadges && allBadges.length > 0
                       ? Math.round((totalBadges / allBadges.length) * 100)
-                      : 0}%
+                      : 0}
+                    %
                   </div>
                 </CardContent>
               </Card>
@@ -128,7 +168,9 @@ export default function Conquistas() {
                   {allBadges?.map(badge => {
                     const earned = earnedBadgeIds.has(badge.id);
                     const Icon = iconMap[badge.icone] || Award;
-                    const earnedData = myBadges?.find(b => b.badge.id === badge.id);
+                    const earnedData = myBadges?.find(
+                      b => b.badge.id === badge.id
+                    );
 
                     return (
                       <Card
@@ -155,13 +197,26 @@ export default function Conquistas() {
                               <Lock className="w-6 h-6 text-gray-400" />
                             )}
                           </div>
-                          <h3 className={cn("font-bold mb-1", earned ? "text-slate-900" : "text-gray-400")}>
+                          <h3
+                            className={cn(
+                              "font-bold mb-1",
+                              earned ? "text-slate-900" : "text-gray-400"
+                            )}
+                          >
                             {badge.nome}
                           </h3>
-                          <p className={cn("text-xs mb-2", earned ? "text-slate-500" : "text-gray-400")}>
+                          <p
+                            className={cn(
+                              "text-xs mb-2",
+                              earned ? "text-slate-500" : "text-gray-400"
+                            )}
+                          >
                             {badge.descricao}
                           </p>
-                          <Badge variant={earned ? "default" : "outline"} className="text-xs">
+                          <Badge
+                            variant={earned ? "default" : "outline"}
+                            className="text-xs"
+                          >
                             {badge.pontos} pts
                           </Badge>
                           {earned && earnedData && (
@@ -184,7 +239,9 @@ export default function Conquistas() {
                       .map(badge => {
                         const earned = earnedBadgeIds.has(badge.id);
                         const Icon = iconMap[badge.icone] || Award;
-                        const earnedData = myBadges?.find(b => b.badge.id === badge.id);
+                        const earnedData = myBadges?.find(
+                          b => b.badge.id === badge.id
+                        );
 
                         return (
                           <Card
@@ -211,18 +268,32 @@ export default function Conquistas() {
                                   <Lock className="w-6 h-6 text-gray-400" />
                                 )}
                               </div>
-                              <h3 className={cn("font-bold mb-1", earned ? "text-slate-900" : "text-gray-400")}>
+                              <h3
+                                className={cn(
+                                  "font-bold mb-1",
+                                  earned ? "text-slate-900" : "text-gray-400"
+                                )}
+                              >
                                 {badge.nome}
                               </h3>
-                              <p className={cn("text-xs mb-2", earned ? "text-slate-500" : "text-gray-400")}>
+                              <p
+                                className={cn(
+                                  "text-xs mb-2",
+                                  earned ? "text-slate-500" : "text-gray-400"
+                                )}
+                              >
                                 {badge.descricao}
                               </p>
-                              <Badge variant={earned ? "default" : "outline"} className="text-xs">
+                              <Badge
+                                variant={earned ? "default" : "outline"}
+                                className="text-xs"
+                              >
                                 {badge.pontos} pts
                               </Badge>
                               {earned && earnedData && (
                                 <p className="text-xs text-neon-green mt-2">
-                                  Conquistado em {earnedData.mes}/{earnedData.ano}
+                                  Conquistado em {earnedData.mes}/
+                                  {earnedData.ano}
                                 </p>
                               )}
                             </CardContent>

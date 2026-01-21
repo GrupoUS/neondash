@@ -35,7 +35,7 @@ cleanup_tools:
   primary: Knip (dead code detection)
   secondary: Biome (unused imports)
   verification: TypeScript tsc + Vitest
-  
+
 package_manager: ALWAYS use bun (never npm/yarn/pnpm)
 ```
 
@@ -66,7 +66,7 @@ analysis_chain:
   phase_1: "serena find_symbol → get_symbols_overview → identify candidates"
   phase_2: "serena find_referencing_symbols → validate usage"
   phase_3: "serena search_for_pattern → dynamic import detection"
-  
+
 validation_chain:
   step_1: "bun run lint:check → Biome validation"
   step_2: "bun run build → TypeScript + Vite validation"
@@ -88,7 +88,7 @@ droid_assignment:
       - Execute atomic removal tasks
       - Validate build after each batch
       - Handle rollback operations
-    
+
   code-reviewer:
     role: "Security and compliance validation"
     tools: ["context7", "tavily"]
@@ -96,7 +96,7 @@ droid_assignment:
       - Validate no security patterns removed
       - Check LGPD compliance preserved
       - Verify shadcn/ui core components protected
-    
+
   database-specialist:
     role: "Convex backend cleanup validation"
     tools: ["serena"]
@@ -109,7 +109,7 @@ parallel_execution:
   phase_1_discovery:
     - apex-dev: [serena analysis]
     - database-specialist: [convex schema review]
-  
+
   phase_2_validation:
     - code-reviewer: [security + compliance check]
     - apex-dev: [build verification]
@@ -123,52 +123,45 @@ parallel_execution:
 
 ```typescript
 // knip.config.ts (recommended)
-import type { KnipConfig } from 'knip';
+import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
   // Entry points for analysis
-  entry: [
-    'src/main.tsx',
-    'src/routeTree.gen.ts',
-    'convex/**/*.ts',
-  ],
-  
+  entry: ["src/main.tsx", "src/routeTree.gen.ts", "convex/**/*.ts"],
+
   // Project files to analyze
-  project: [
-    'src/**/*.{ts,tsx}',
-    'convex/**/*.ts',
-  ],
-  
+  project: ["src/**/*.{ts,tsx}", "convex/**/*.ts"],
+
   // Framework-specific configurations
   vite: {
-    config: 'vite.config.ts',
+    config: "vite.config.ts",
   },
-  
+
   // Ignore patterns for safe cleanup
   ignore: [
-    'src/components/ui/**', // shadcn/ui components
-    'convex/_generated/**', // Convex generated files
-    'src/routeTree.gen.ts', // TanStack Router generated
+    "src/components/ui/**", // shadcn/ui components
+    "convex/_generated/**", // Convex generated files
+    "src/routeTree.gen.ts", // TanStack Router generated
   ],
-  
+
   // Ignore specific dependencies
   ignoreDependencies: [
-    '@tanstack/router-devtools', // Dev-only
-    'tailwindcss-animate', // CSS utility
+    "@tanstack/router-devtools", // Dev-only
+    "tailwindcss-animate", // CSS utility
   ],
-  
+
   // Rules configuration
   rules: {
-    files: 'warn',
-    dependencies: 'warn', 
-    devDependencies: 'warn',
-    unlisted: 'off',
-    binaries: 'off',
-    unresolved: 'off',
-    exports: 'warn',
-    types: 'warn',
-    enumMembers: 'warn',
-    duplicates: 'warn',
+    files: "warn",
+    dependencies: "warn",
+    devDependencies: "warn",
+    unlisted: "off",
+    binaries: "off",
+    unresolved: "off",
+    exports: "warn",
+    types: "warn",
+    enumMembers: "warn",
+    duplicates: "warn",
   },
 };
 
@@ -211,41 +204,41 @@ cleanup_types:
     detection_tool: "Knip + serena find_referencing_symbols"
     risk_level: "LOW-MEDIUM"
     verification: "bun run build"
-    
+
   orphan_components:
     description: "React components never rendered"
     detection_tool: "Knip + serena search_for_pattern (JSX usage)"
     protection: "NEVER remove shadcn/ui base components"
     risk_level: "MEDIUM"
-    
+
   orphan_routes:
     description: "TanStack Router routes not navigable"
     detection_tool: "serena find_referencing_symbols on route exports"
     verification: "Check routeTree.gen.ts references"
     risk_level: "MEDIUM"
-    
+
   unused_hooks:
     description: "Custom hooks in src/hooks never used"
     detection_tool: "Knip exports analysis"
     risk_level: "LOW-MEDIUM"
-    
+
   convex_dead_functions:
     description: "Convex mutations/queries never called from frontend"
     detection_tool: "serena search_for_pattern api.{module}.{function}"
     protection: "Verify no server-side calls"
     risk_level: "HIGH"
-    
+
   unused_imports:
     description: "Imported modules never used in file"
     detection_tool: "Biome lint (noUnusedImports)"
     auto_fix: "bun run lint (Biome auto-fix)"
     risk_level: "LOW"
-    
+
   unused_dependencies:
     description: "package.json deps never imported"
     detection_tool: "Knip dependencies analysis"
     risk_level: "MEDIUM-HIGH"
-    
+
   orphan_types:
     description: "TypeScript types/interfaces never referenced"
     detection_tool: "Knip types analysis"
@@ -266,7 +259,7 @@ verification_gates:
       - "No Convex _generated files touched"
       - "No routeTree.gen.ts modifications"
       - "Git backup branch created"
-    
+
   during_removal:
     incremental:
       batch_size: "1-5 files max per batch"
@@ -275,7 +268,7 @@ verification_gates:
         - "bun run build → success"
         - "bun run test → all passing"
     on_failure: "git checkout . && git clean -fd"
-    
+
   post_removal:
     final_validation:
       - "bun run lint:check → 0 errors"
@@ -283,7 +276,7 @@ verification_gates:
       - "bun run test → all passing"
       - "bunx convex dev --once → schema valid"
       - "Manual browser verification (optional)"
-    
+
   rollback_triggers:
     - "Any TypeScript error (tsc)"
     - "Any Biome lint error"
@@ -303,7 +296,7 @@ phase_1_discovery:
   parallel_execution: true
   estimated_time: "5-15 minutes"
   droids: ["apex-dev", "database-specialist"]
-  
+
   tasks:
     task_1.1_knip_analysis:
       title: "Run Knip dead code detection"
@@ -313,7 +306,7 @@ phase_1_discovery:
       outputs:
         - "knip-report.txt"
         - "candidates.json"
-        
+
     task_1.2_serena_analysis:
       title: "MCP serena symbol analysis"
       mcp_calls:
@@ -322,7 +315,7 @@ phase_1_discovery:
         - "search_for_pattern (dynamic imports)"
       outputs:
         - "symbol_analysis.json"
-        
+
     task_1.3_convex_validation:
       title: "Convex backend consistency check"
       droid: "database-specialist"
@@ -341,7 +334,7 @@ phase_2_analysis:
   parallel_execution: "partial"
   estimated_time: "10-20 minutes"
   droids: ["apex-dev", "code-reviewer"]
-  
+
   tasks:
     task_2.1_verify_candidates:
       title: "Cross-validate removal candidates"
@@ -352,7 +345,7 @@ phase_2_analysis:
       outputs:
         - "verified_removals.json"
         - "false_positives.json"
-        
+
     task_2.2_security_validation:
       title: "Security and compliance check"
       droid: "code-reviewer"
@@ -362,7 +355,7 @@ phase_2_analysis:
         - "No security-critical utilities removed"
       outputs:
         - "security_clearance.md"
-        
+
     task_2.3_dependency_analysis:
       title: "Analyze package.json unused deps"
       tool: "Knip dependencies"
@@ -378,7 +371,7 @@ phase_2_analysis:
 phase_3_planning:
   sequential: true
   estimated_time: "5-10 minutes"
-  
+
   tasks:
     task_3.1_prioritize_removals:
       title: "Create safe removal order"
@@ -393,7 +386,7 @@ phase_3_planning:
         8: "Convex dead functions (highest risk)"
       outputs:
         - "removal_plan.md"
-        
+
     task_3.2_generate_backup:
       title: "Create safety backup"
       commands:
@@ -407,14 +400,14 @@ phase_3_planning:
 phase_4_execution:
   mode: "SEQUENTIAL_WITH_VERIFICATION"
   parallel: false
-  
+
   tasks:
     task_4.1_biome_auto_fix:
       title: "Auto-fix unused imports with Biome"
       command: "bun run lint"
       verification: "bun run build"
       rollback: "git checkout ."
-      
+
     task_4.2_incremental_removal:
       title: "Remove verified dead code"
       batch_size: "1-5 files"
@@ -425,7 +418,7 @@ phase_4_execution:
         - "bun run test"
         - "Git commit if passing"
       on_failure: "git checkout . && report failure"
-      
+
     task_4.3_dependency_cleanup:
       title: "Remove unused dependencies"
       command: "bun remove [package]"
@@ -448,12 +441,12 @@ phase_5_documentation:
         - "Dependencies removed"
         - "Verification results"
         - "Recommendations for prevention"
-        
+
     task_5.2_update_changelog:
       title: "Update project changelog"
       commit_format: |
         chore(cleanup): remove dead code and unused exports
-        
+
         - Removed {count} unused files
         - Cleaned {count} orphan exports
         - Verified: lint ✓, build ✓, tests ✓
@@ -473,7 +466,7 @@ complexity_levels:
     estimated_time: "15-30 minutes"
     droids: ["apex-dev solo"]
     risk: "LOW"
-    
+
   L4-L6_moderate:
     indicators:
       - "10-50 removal candidates"
@@ -482,7 +475,7 @@ complexity_levels:
     estimated_time: "1-2 hours"
     droids: ["apex-dev", "code-reviewer"]
     risk: "MEDIUM"
-    
+
   L7-L8_complex:
     indicators:
       - "50+ removal candidates"
@@ -491,7 +484,7 @@ complexity_levels:
     estimated_time: "2-4 hours"
     droids: ["apex-dev", "code-reviewer", "database-specialist"]
     risk: "HIGH"
-    
+
   L9-L10_critical:
     indicators:
       - "Major tech stack migration remnants"
@@ -507,6 +500,7 @@ complexity_levels:
 ## Command Usage Examples
 
 ### Basic Cleanup Analysis
+
 ```bash
 /cleanup
 
@@ -517,6 +511,7 @@ complexity_levels:
 ```
 
 ### Quick Unused Imports Fix
+
 ```bash
 /cleanup --category=unused-imports
 
@@ -527,6 +522,7 @@ complexity_levels:
 ```
 
 ### Full Dead Code Analysis (Report Only)
+
 ```bash
 /cleanup --mode=analyze
 
@@ -537,6 +533,7 @@ complexity_levels:
 ```
 
 ### Convex Backend Cleanup
+
 ```bash
 /cleanup --scope=convex
 
@@ -547,6 +544,7 @@ complexity_levels:
 ```
 
 ### Full Autonomous Cleanup
+
 ```bash
 /cleanup --mode=auto --depth=deep
 
@@ -557,6 +555,7 @@ complexity_levels:
 ```
 
 ### Component-Focused Cleanup
+
 ```bash
 /cleanup --scope=src/components --protect=ui
 
@@ -580,7 +579,7 @@ NEVER:
   - Modify package.json without build verification
   - Force push over backup branches
   - Remove without git backup branch
-  
+
 ALWAYS:
   - Create git backup branch before any modification
   - Run bun run lint:check after EACH removal batch
@@ -611,32 +610,32 @@ PROTECTED_PATTERNS:
 ```yaml
 report_structure:
   location: ".factory/docs/cleanup-report-{YYYY-MM-DD}.md"
-  
+
   sections:
     executive_summary:
       - Cleanup scope and duration
       - Total items removed
       - Build/test verification status
       - Risk level handled
-      
+
     detailed_removals:
       - Category breakdown
       - File-by-file list with justifications
       - Dependency changes
       - MCP validation evidence
-      
+
     metrics:
       - Files before/after
       - Lines of code removed
       - Dependencies removed
       - Knip issues resolved
-      
+
     verification_results:
       - Biome lint: [pass|fail]
       - TypeScript: [pass|fail]
       - Vitest tests: [pass|fail]
       - Convex validation: [pass|fail]
-      
+
     recommendations:
       - Prevention strategies (CI integration)
       - Remaining technical debt
@@ -646,7 +645,7 @@ git_artifacts:
   backup_branch: "backup/cleanup-{YYYYMMDD-HHMMSS}"
   commit_format: |
     chore(cleanup): remove {category}
-    
+
     - Removed {count} {type}
     - Verified: lint ✓, build ✓, tests ✓
     - Justification: {brief_reason}
@@ -661,11 +660,11 @@ git_artifacts:
 ci_integration:
   pre_commit:
     - "bun run lint (auto-fix unused imports)"
-    
+
   pull_request:
     - "bunx knip --no-exit-code (dead code report)"
     - "Comment cleanup opportunities on PR"
-    
+
   scheduled_weekly:
     - "bunx knip --reporter json > metrics/knip-$(date +%Y-%m-%d).json"
     - "Track dead code trends"
@@ -692,7 +691,7 @@ trigger_detection:
     - "remove dead code"
     - "find unused files"
     - "codebase cleanup"
-    
+
 automatic_routing:
   primary_droid: "apex-dev"
   support_droids: ["code-reviewer", "database-specialist"]
@@ -701,7 +700,7 @@ automatic_routing:
   brazilian_compliance: "LGPD patterns protected"
 
 default_behavior:
-  mode: "plan"  # Always plan first
+  mode: "plan" # Always plan first
   backup: "required"
   verification: "all_gates"
   rollback: "automatic_on_failure"

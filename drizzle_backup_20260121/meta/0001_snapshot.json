@@ -80,12 +80,8 @@
           "name": "feedbacks_mentoradoId_mentorados_id_fk",
           "tableFrom": "feedbacks",
           "tableTo": "mentorados",
-          "columnsFrom": [
-            "mentoradoId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mentoradoId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -93,9 +89,7 @@
       "compositePrimaryKeys": {
         "feedbacks_id": {
           "name": "feedbacks_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -164,12 +158,8 @@
           "name": "mentorados_userId_users_id_fk",
           "tableFrom": "mentorados",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -177,9 +167,7 @@
       "compositePrimaryKeys": {
         "mentorados_id": {
           "name": "mentorados_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -295,12 +283,8 @@
           "name": "metricas_mensais_mentoradoId_mentorados_id_fk",
           "tableFrom": "metricas_mensais",
           "tableTo": "mentorados",
-          "columnsFrom": [
-            "mentoradoId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["mentoradoId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -308,9 +292,7 @@
       "compositePrimaryKeys": {
         "metricas_mensais_id": {
           "name": "metricas_mensais_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {},
@@ -393,17 +375,13 @@
       "compositePrimaryKeys": {
         "users_id": {
           "name": "users_id",
-          "columns": [
-            "id"
-          ]
+          "columns": ["id"]
         }
       },
       "uniqueConstraints": {
         "users_openId_unique": {
           "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "checkConstraint": {}

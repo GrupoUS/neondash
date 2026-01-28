@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { router, protectedProcedure } from "./_core/trpc";
-import { eq, and, desc, like, sql, getTableColumns, gte, lte, arrayContains } from "drizzle-orm";
+import { router, mentoradoProcedure } from "./_core/trpc";
+import { eq, and, desc, sql, gte, lte, arrayContains } from "drizzle-orm";
 import { getDb } from "./db";
-import { leads, interacoes, mentorados } from "../drizzle/schema";
+import { leads, interacoes } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
 
 export const leadsRouter = router({
-  list: protectedProcedure
+  list: mentoradoProcedure
     .input(
       z.object({
         busca: z.string().optional(),
@@ -22,16 +22,7 @@ export const leadsRouter = router({
     .query(async ({ ctx, input }) => {
       const db = getDb();
       
-      // Get mentoId from current user
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      if (!mentorado) {
-        return { leads: [], total: 0, page: input.page, totalPages: 0 };
-      }
-
-      const filters = [eq(leads.mentoradoId, mentorado.id)];
+      const filters = [eq(leads.mentoradoId, ctx.mentorado.id)];
 
       if (input.busca) {
         const search = `%${input.busca}%`;
@@ -93,15 +84,11 @@ export const leadsRouter = router({
       };
     }),
 
-  getById: protectedProcedure
+  getById: mentoradoProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
       const db = getDb();
       
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
       const lead = await db.query.leads.findFirst({
         where: eq(leads.id, input.id),
         with: {
@@ -115,15 +102,15 @@ export const leadsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Lead não encontrado" });
       }
 
-      // Check ownership or admin
-      if (ctx.user.role !== "admin" && (!mentorado || lead.mentoradoId !== mentorado.id)) {
+      // Check strict ownership
+      if (lead.mentoradoId !== ctx.mentorado.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
       return { lead, interacoes: lead.interacoes };
     }),
 
-  create: protectedProcedure
+  create: mentoradoProcedure
     .input(
       z.object({
         nome: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
@@ -137,18 +124,10 @@ export const leadsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      if (!mentorado) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Usuário não é um mentorado" });
-      }
-
       const [newLead] = await db
         .insert(leads)
         .values({
-          mentoradoId: mentorado.id,
+          mentoradoId: ctx.mentorado.id,
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
@@ -162,7 +141,7 @@ export const leadsRouter = router({
       return newLead;
     }),
 
-  update: protectedProcedure
+  update: mentoradoProcedure
     .input(
       z.object({
         id: z.number(),
@@ -177,22 +156,23 @@ export const leadsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      const lead = await db.query.leads.findFirst({
-        where: eq(leads.id, input.id),
-      });
+      // 1. Fetch to check ownership
+      const [lead] = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, input.id))
+        .limit(1);
 
       if (!lead) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Lead não encontrado" });
       }
 
-      if (ctx.user.role !== "admin" && (!mentorado || lead.mentoradoId !== mentorado.id)) {
+      // 2. Strict Ownership
+      if (lead.mentoradoId !== ctx.mentorado.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
+      // 3. Update
       await db
         .update(leads)
         .set({
@@ -209,7 +189,7 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  updateStatus: protectedProcedure
+  updateStatus: mentoradoProcedure
     .input(
       z.object({
         id: z.number(),
@@ -227,23 +207,23 @@ export const leadsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      const lead = await db.query.leads.findFirst({
-        where: eq(leads.id, input.id),
-      });
+      // 1. Fetch to check ownership
+      const [lead] = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, input.id))
+        .limit(1);
 
       if (!lead) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Lead não encontrado" });
       }
 
-      if (!mentorado || lead.mentoradoId !== mentorado.id) {
+      // 2. Strict Ownership
+      if (lead.mentoradoId !== ctx.mentorado.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
-      // Update status
+      // 3. Update status
       await db
         .update(leads)
         .set({
@@ -252,10 +232,10 @@ export const leadsRouter = router({
         })
         .where(eq(leads.id, input.id));
 
-      // Add auto interaction
+      // 4. Add auto interaction
       await db.insert(interacoes).values({
         leadId: lead.id,
-        mentoradoId: mentorado.id,
+        mentoradoId: ctx.mentorado.id,
         tipo: "nota",
         notas: `Status alterado de "${lead.status}" para "${input.status}"`,
       });
@@ -263,24 +243,25 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  delete: protectedProcedure
+  delete: mentoradoProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      const lead = await db.query.leads.findFirst({
-        where: eq(leads.id, input.id),
-      });
+      // 1. Fetch to check ownership
+      const [lead] = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, input.id))
+        .limit(1);
 
       if (!lead) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Lead não encontrado" });
       }
 
-      if (ctx.user.role !== "admin" && (!mentorado || lead.mentoradoId !== mentorado.id)) {
+      // 2. Strict Ownership (Admin exception removed as per request to have strict separation here)
+      // If admin needs delete, use admin router or separate procedure
+      if (lead.mentoradoId !== ctx.mentorado.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -289,7 +270,7 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  addInteraction: protectedProcedure
+  addInteraction: mentoradoProcedure
     .input(
       z.object({
         leadId: z.number(),
@@ -301,23 +282,19 @@ export const leadsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      if (!mentorado) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Usuário não é um mentorado" });
-      }
-
-      const lead = await db.query.leads.findFirst({
-        where: eq(leads.id, input.leadId),
-      });
+      // 1. Fetch lead
+      const [lead] = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, input.leadId))
+        .limit(1);
 
       if (!lead) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Lead não encontrado" });
       }
 
-      if (lead.mentoradoId !== mentorado.id) {
+      // 2. ownership
+      if (lead.mentoradoId !== ctx.mentorado.id) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -325,7 +302,7 @@ export const leadsRouter = router({
         .insert(interacoes)
         .values({
           leadId: input.leadId,
-          mentoradoId: mentorado.id,
+          mentoradoId: ctx.mentorado.id,
           tipo: input.tipo,
           notas: input.notas,
           duracao: input.duracao,
@@ -341,24 +318,11 @@ export const leadsRouter = router({
       return newInteraction;
     }),
 
-  stats: protectedProcedure
+  stats: mentoradoProcedure
     .input(z.object({ periodo: z.enum(["7d", "30d", "90d"]).optional() }))
     .query(async ({ ctx, input }) => {
       const db = getDb();
-
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      if (!mentorado) {
-        return {
-          totalAtivos: 0,
-          taxaConversao: 0,
-          tempoMedioFechamento: 0,
-          valorPipeline: 0,
-          leadsPorOrigem: {},
-        };
-      }
+      const mentorado = ctx.mentorado;
 
       // Calculate date filter based on periodo
       let dateFilter: Date | undefined;

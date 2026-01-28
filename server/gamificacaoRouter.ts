@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "./_core/trpc";
+import { 
+  protectedProcedure, 
+  router, 
+  mentoradoProcedure, 
+  adminProcedure 
+} from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { getDb } from "./db";
+import { notificacoes } from "../drizzle/schema";
 import {
   initializeBadges,
   checkAndAwardBadges,
@@ -14,14 +23,10 @@ import {
   getAllBadges,
   getProgressiveGoals,
 } from "./gamificacao";
-import { getMentoradoByUserId, getMentoradoByEmail } from "./mentorados";
 
 export const gamificacaoRouter = router({
   // Initialize badges in database (admin only, run once)
-  initBadges: protectedProcedure.mutation(async ({ ctx }) => {
-    if (ctx.user.role !== "admin") {
-      throw new Error("Acesso negado");
-    }
+  initBadges: adminProcedure.mutation(async () => {
     await initializeBadges();
     return { success: true };
   }),
@@ -32,29 +37,27 @@ export const gamificacaoRouter = router({
   }),
 
   // Get current user's badges
-  myBadges: protectedProcedure.query(async ({ ctx }) => {
-    let mentorado = await getMentoradoByUserId(ctx.user.id);
-    if (!mentorado && ctx.user.email) {
-      mentorado = await getMentoradoByEmail(ctx.user.email);
-    }
-    if (!mentorado) return [];
-    return await getMentoradoBadges(mentorado.id);
+  myBadges: mentoradoProcedure.query(async ({ ctx }) => {
+    return await getMentoradoBadges(ctx.mentorado.id);
   }),
 
-  // Get badges for a specific mentorado (admin)
-  mentoradoBadges: protectedProcedure
+  // Get badges for a specific mentorado (admin or self)
+  mentoradoBadges: mentoradoProcedure
     .input(z.object({ mentoradoId: z.number() }))
     .query(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        // Users can only see their own badges
-        let mentorado = await getMentoradoByUserId(ctx.user.id);
-        if (!mentorado && ctx.user.email) {
-          mentorado = await getMentoradoByEmail(ctx.user.email);
-        }
-        if (!mentorado || mentorado.id !== input.mentoradoId) {
-          throw new Error("Acesso negado");
-        }
+      // If user is admin, allow
+      if (ctx.user.role === "admin") {
+        return await getMentoradoBadges(input.mentoradoId);
       }
+
+      // If user is NOT admin, ensure they are requesting THEIR OWN badges
+      if (ctx.mentorado.id !== input.mentoradoId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Acesso negado: você só pode ver suas próprias badges"
+        });
+      }
+
       return await getMentoradoBadges(input.mentoradoId);
     }),
 
@@ -72,37 +75,49 @@ export const gamificacaoRouter = router({
     }),
 
   // Get current user's notifications
-  myNotificacoes: protectedProcedure
+  myNotificacoes: mentoradoProcedure
     .input(z.object({ apenasNaoLidas: z.boolean().default(false) }))
     .query(async ({ ctx, input }) => {
-      let mentorado = await getMentoradoByUserId(ctx.user.id);
-      if (!mentorado && ctx.user.email) {
-        mentorado = await getMentoradoByEmail(ctx.user.email);
-      }
-      if (!mentorado) return [];
-      return await getNotificacoes(mentorado.id, input.apenasNaoLidas);
+      return await getNotificacoes(ctx.mentorado.id, input.apenasNaoLidas);
     }),
 
-  // Mark notification as read
-  markRead: protectedProcedure
+  // Mark notification as read (with strict ownership check)
+  markRead: mentoradoProcedure
     .input(z.object({ notificacaoId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      
+      // 1. Fetch notification to verify ownership
+      const [notificacao] = await db
+        .select()
+        .from(notificacoes)
+        .where(eq(notificacoes.id, input.notificacaoId))
+        .limit(1);
+
+      if (!notificacao) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Notificação não encontrada" });
+      }
+
+      // 2. Strict Ownership Check
+      if (notificacao.mentoradoId !== ctx.mentorado.id) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "Esta notificação não pertence a você" 
+        });
+      }
+
+      // 3. Update
       await markNotificationRead(input.notificacaoId);
       return { success: true };
     }),
 
   // Get current user's progressive goals
-  myProgressiveGoals: protectedProcedure.query(async ({ ctx }) => {
-    let mentorado = await getMentoradoByUserId(ctx.user.id);
-    if (!mentorado && ctx.user.email) {
-      mentorado = await getMentoradoByEmail(ctx.user.email);
-    }
-    if (!mentorado) return [];
-    return await getProgressiveGoals(mentorado.id);
+  myProgressiveGoals: mentoradoProcedure.query(async ({ ctx }) => {
+    return await getProgressiveGoals(ctx.mentorado.id);
   }),
 
   // Admin: Process gamification for a specific month
-  processMonth: protectedProcedure
+  processMonth: adminProcedure
     .input(
       z.object({
         ano: z.number(),
@@ -110,11 +125,7 @@ export const gamificacaoRouter = router({
         mentoradoId: z.number().optional(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        throw new Error("Acesso negado");
-      }
-
+    .mutation(async ({ input }) => {
       // If mentoradoId provided, process only that mentorado
       if (input.mentoradoId) {
         const newBadges = await checkAndAwardBadges(
@@ -133,10 +144,7 @@ export const gamificacaoRouter = router({
     }),
 
   // Admin: Send metrics reminders
-  sendReminders: protectedProcedure.mutation(async ({ ctx }) => {
-    if (ctx.user.role !== "admin") {
-      throw new Error("Acesso negado");
-    }
+  sendReminders: adminProcedure.mutation(async () => {
     await sendMetricsReminders();
     return { success: true };
   }),

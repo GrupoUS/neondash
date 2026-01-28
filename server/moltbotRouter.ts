@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import { protectedProcedure, router } from "./_core/trpc";
+import { mentoradoProcedure, router } from "./_core/trpc";
 import { eq, and, desc } from "drizzle-orm";
 import { getDb } from "./db";
 import {
@@ -61,7 +61,7 @@ export const moltbotRouter = router({
   /**
    * Create a webchat session for the current user
    */
-  createWebchatSession: protectedProcedure
+  createWebchatSession: mentoradoProcedure
     .input(
       z.object({
         initialMessage: z.string().optional(),
@@ -99,7 +99,7 @@ export const moltbotRouter = router({
   /**
    * Get all active sessions for the current user
    */
-  getActiveSessions: protectedProcedure.query(async ({ ctx }) => {
+  getActiveSessions: mentoradoProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -120,7 +120,7 @@ export const moltbotRouter = router({
   /**
    * Terminate a chat session
    */
-  terminateSession: protectedProcedure
+  terminateSession: mentoradoProcedure
     .input(
       z.object({
         sessionId: z.string(),
@@ -149,7 +149,7 @@ export const moltbotRouter = router({
   /**
    * Send a message in a chat session
    */
-  sendMessage: protectedProcedure
+  sendMessage: mentoradoProcedure
     .input(
       z.object({
         sessionId: z.string(),
@@ -184,7 +184,7 @@ export const moltbotRouter = router({
   /**
    * Get message history for a session
    */
-  getMessageHistory: protectedProcedure
+  getMessageHistory: mentoradoProcedure
     .input(
       z.object({
         sessionId: z.string(),
@@ -222,25 +222,12 @@ export const moltbotRouter = router({
   /**
    * Get mentorado context data for AI assistant
    */
-  getMoltbotContext: protectedProcedure.query(async ({ ctx }) => {
+  getMoltbotContext: mentoradoProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
-    // Get mentorado by userId
-    const [mentorado] = await db
-      .select()
-      .from(mentorados)
-      .where(eq(mentorados.userId, ctx.user.id))
-      .limit(1);
-
-    if (!mentorado) {
-      return {
-        mentorado: null,
-        metrics: [],
-        latestFeedback: null,
-        goals: null,
-      };
-    }
+    // Mentorado is guaranteed by mentoradoProcedure
+    const mentorado = ctx.mentorado;
 
     // Get current year/month
     const now = new Date();
@@ -289,7 +276,7 @@ export const moltbotRouter = router({
   /**
    * Request WhatsApp QR code for pairing
    */
-  requestWhatsAppQR: protectedProcedure.mutation(async ({ ctx }) => {
+  requestWhatsAppQR: mentoradoProcedure.mutation(async ({ ctx }) => {
     const result = await moltbotService.requestQRCode(ctx.user.id);
 
     console.log(
@@ -308,7 +295,7 @@ export const moltbotRouter = router({
   /**
    * Disconnect WhatsApp session
    */
-  disconnectWhatsApp: protectedProcedure.mutation(async ({ ctx }) => {
+  disconnectWhatsApp: mentoradoProcedure.mutation(async ({ ctx }) => {
     const success = await moltbotService.disconnectWhatsApp(ctx.user.id);
 
     console.log(
@@ -328,7 +315,7 @@ export const moltbotRouter = router({
   /**
    * Get connection status for Moltbot gateway
    */
-  getStatus: protectedProcedure.query(async ({ ctx }) => {
+  getStatus: mentoradoProcedure.query(async ({ ctx }) => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 

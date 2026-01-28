@@ -32,7 +32,7 @@ export default function MyDashboard() {
   const { data: mentorado, isLoading: loadingMentorado } =
     trpc.mentorados.me.useQuery();
   const { data: metricas, isLoading: loadingMetricas } =
-    trpc.mentorados.metricas.useQuery({}, { enabled: !!mentorado });
+    trpc.mentorados.metricas.useQuery(undefined, { enabled: !!mentorado });
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();

@@ -1,12 +1,15 @@
 import { z } from "zod";
-import { protectedProcedure, router } from "./_core/trpc";
+import { 
+  protectedProcedure, 
+  router, 
+  mentoradoProcedure, 
+  adminProcedure 
+} from "./_core/trpc";
 import { eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { mentorados } from "../drizzle/schema";
 import { sendWelcomeEmail } from "./emailService";
 import {
-  getMentoradoByUserId,
-  getMentoradoByEmail,
   getAllMentorados,
   createMentorado,
   getMetricasMensaisByMentorado,
@@ -18,29 +21,17 @@ import {
 
 export const mentoradosRouter = router({
   // Get current user's mentorado profile
-  // First tries to find by userId, then by email
-  me: protectedProcedure.query(async ({ ctx }) => {
-    // Try to find by userId first (legacy)
-    let mentorado = await getMentoradoByUserId(ctx.user.id);
-
-    // If not found and user has email, try to find by email
-    if (!mentorado && ctx.user.email) {
-      mentorado = await getMentoradoByEmail(ctx.user.email);
-    }
-
-    return mentorado;
+  me: mentoradoProcedure.query(async ({ ctx }) => {
+    return ctx.mentorado;
   }),
 
   // Get all mentorados (admin only)
-  list: protectedProcedure.query(async ({ ctx }) => {
-    if (ctx.user.role !== "admin") {
-      throw new Error("Acesso negado");
-    }
+  list: adminProcedure.query(async () => {
     return await getAllMentorados();
   }),
 
-  // Create mentorado profile
-  create: protectedProcedure
+  // Create mentorado profile - Admin Only
+  create: adminProcedure
     .input(
       z.object({
         userId: z.number(),
@@ -55,67 +46,25 @@ export const mentoradosRouter = router({
     }),
 
   // Get metrics history for a mentorado
-  metricas: protectedProcedure
-    .input(
-      z.object({
-        mentoradoId: z.number().optional(),
-      })
-    )
-    .query(async ({ ctx, input }) => {
-      let mentoradoId = input.mentoradoId;
-
-      // If no mentoradoId provided, use current user's
-      if (!mentoradoId) {
-        const mentorado = await getMentoradoByUserId(ctx.user.id);
-        if (!mentorado) {
-          throw new Error("Perfil de mentorado não encontrado");
-        }
-        mentoradoId = mentorado.id;
-      }
-
-      // Admin can see any mentorado, users can only see their own
-      if (ctx.user.role !== "admin") {
-        const mentorado = await getMentoradoByUserId(ctx.user.id);
-        if (!mentorado || mentorado.id !== mentoradoId) {
-          throw new Error("Acesso negado");
-        }
-      }
-
-      return await getMetricasMensaisByMentorado(mentoradoId);
+  metricas: mentoradoProcedure
+    .query(async ({ ctx }) => {
+      return await getMetricasMensaisByMentorado(ctx.mentorado.id);
     }),
 
   // Get specific month metrics
-  metricaMes: protectedProcedure
+  metricaMes: mentoradoProcedure
     .input(
       z.object({
-        mentoradoId: z.number().optional(),
         ano: z.number(),
         mes: z.number().min(1).max(12),
       })
     )
     .query(async ({ ctx, input }) => {
-      let mentoradoId = input.mentoradoId;
-
-      if (!mentoradoId) {
-        const mentorado = await getMentoradoByUserId(ctx.user.id);
-        if (!mentorado) {
-          throw new Error("Perfil de mentorado não encontrado");
-        }
-        mentoradoId = mentorado.id;
-      }
-
-      if (ctx.user.role !== "admin") {
-        const mentorado = await getMentoradoByUserId(ctx.user.id);
-        if (!mentorado || mentorado.id !== mentoradoId) {
-          throw new Error("Acesso negado");
-        }
-      }
-
-      return await getMetricaMensal(mentoradoId, input.ano, input.mes);
+      return await getMetricaMensal(ctx.mentorado.id, input.ano, input.mes);
     }),
 
   // Submit/update monthly metrics
-  submitMetricas: protectedProcedure
+  submitMetricas: mentoradoProcedure
     .input(
       z.object({
         ano: z.number(),
@@ -130,15 +79,8 @@ export const mentoradosRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const mentorado = await getMentoradoByUserId(ctx.user.id);
-      if (!mentorado) {
-        throw new Error(
-          "Perfil de mentorado não encontrado. Entre em contato com o administrador."
-        );
-      }
-
       const id = await upsertMetricaMensal({
-        mentoradoId: mentorado.id,
+        mentoradoId: ctx.mentorado.id,
         ...input,
       });
 
@@ -146,37 +88,19 @@ export const mentoradosRouter = router({
     }),
 
   // Get feedback for specific month
-  feedback: protectedProcedure
+  feedback: mentoradoProcedure
     .input(
       z.object({
-        mentoradoId: z.number().optional(),
         ano: z.number(),
         mes: z.number().min(1).max(12),
       })
     )
     .query(async ({ ctx, input }) => {
-      let mentoradoId = input.mentoradoId;
-
-      if (!mentoradoId) {
-        const mentorado = await getMentoradoByUserId(ctx.user.id);
-        if (!mentorado) {
-          return null;
-        }
-        mentoradoId = mentorado.id;
-      }
-
-      if (ctx.user.role !== "admin") {
-        const mentorado = await getMentoradoByUserId(ctx.user.id);
-        if (!mentorado || mentorado.id !== mentoradoId) {
-          throw new Error("Acesso negado");
-        }
-      }
-
-      return await getFeedback(mentoradoId, input.ano, input.mes);
+      return await getFeedback(ctx.mentorado.id, input.ano, input.mes);
     }),
 
   // Admin: Submit feedback for a mentorado
-  submitFeedback: protectedProcedure
+  submitFeedback: adminProcedure
     .input(
       z.object({
         mentoradoId: z.number(),
@@ -187,17 +111,13 @@ export const mentoradosRouter = router({
         sugestaoMentor: z.string(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        throw new Error("Apenas administradores podem enviar feedbacks");
-      }
-
+    .mutation(async ({ input }) => {
       const id = await upsertFeedback(input);
       return { id };
     }),
 
   // Update mentorado profile (admin only)
-  update: protectedProcedure
+  update: adminProcedure
     .input(
       z.object({
         id: z.number(),
@@ -213,11 +133,7 @@ export const mentoradosRouter = router({
         ativo: z.enum(["sim", "nao"]).optional(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        throw new Error("Acesso negado");
-      }
-
+    .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -238,13 +154,9 @@ export const mentoradosRouter = router({
     }),
 
   // Delete mentorado (admin only)
-  delete: protectedProcedure
+  delete: adminProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        throw new Error("Acesso negado");
-      }
-
+    .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -254,7 +166,7 @@ export const mentoradosRouter = router({
     }),
 
   // Create new mentorado (admin only) - enhanced version
-  createNew: protectedProcedure
+  createNew: adminProcedure
     .input(
       z.object({
         nomeCompleto: z.string(),
@@ -268,11 +180,7 @@ export const mentoradosRouter = router({
         metaStories: z.number().default(60),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        throw new Error("Acesso negado");
-      }
-
+    .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -289,13 +197,13 @@ export const mentoradosRouter = router({
           metaPosts: input.metaPosts,
           metaStories: input.metaStories,
         })
-        .returning({ id: mentorados.id }); // MUDANÇA: returning() para Postgres
+        .returning({ id: mentorados.id });
 
       return { id: result[0].id };
     }),
 
   // Get comparative stats for dashboard
-  comparativeStats: protectedProcedure
+  comparativeStats: mentoradoProcedure
     .input(
       z.object({
         ano: z.number(),
@@ -306,15 +214,7 @@ export const mentoradosRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      // Get current user's mentorado profile
-      let userMentorado = await getMentoradoByUserId(ctx.user.id);
-      if (!userMentorado && ctx.user.email) {
-        userMentorado = await getMentoradoByEmail(ctx.user.email);
-      }
-
-      if (!userMentorado) {
-        throw new Error("Perfil de mentorado não encontrado");
-      }
+      const userMentorado = ctx.mentorado;
 
       // Get all mentorados from the same turma
       const turmaResult = await db
@@ -371,7 +271,7 @@ export const mentoradosRouter = router({
 
       // Get user's metrics
       const userMetricData = validMetrics.find(
-        m => m.mentoradoId === userMentorado!.id
+        m => m.mentoradoId === userMentorado.id
       );
       const userMetrics = userMetricData?.metric || null;
 
@@ -414,18 +314,14 @@ export const mentoradosRouter = router({
     }),
 
   // Link email to mentorado (admin only)
-  linkEmail: protectedProcedure
+  linkEmail: adminProcedure
     .input(
       z.object({
         mentoradoId: z.number(),
         email: z.string().email(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.user.role !== "admin") {
-        throw new Error("Acesso negado");
-      }
-
+    .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 

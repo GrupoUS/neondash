@@ -145,7 +145,8 @@ export async function upsertUserFromClerk(
           imageUrl: values.imageUrl,
           loginMethod: values.loginMethod,
           lastSignedIn: values.lastSignedIn,
-          // Don't override role on update (preserve admin status)
+          // Force admin role if they are in the admin list, otherwise keep existing
+          ...(isAdmin ? { role: "admin" } : {}),
         },
       });
 

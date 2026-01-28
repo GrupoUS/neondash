@@ -38,7 +38,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: Users },
     { href: "/assistente", label: "Assistente IA", icon: Bot },
     { href: "/crm/leads", label: "CRM Leads", icon: Briefcase },
-    { href: "/metricas", label: "Métricas", icon: BarChart3 },
     // Consolidated into /admin/mentorados
     // { href: "/admin", label: "Administração", icon: Shield, adminOnly: true },
     // {

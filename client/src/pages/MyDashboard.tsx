@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import { NotificationsView } from "@/components/dashboard/NotificationsView";
+import { SubmitMetricsSheet } from "@/components/dashboard/SubmitMetricsSheet";
+import { ComparativoView } from "@/components/dashboard/ComparativoView";
 
 export default function MyDashboard() {
   const isMobile = useIsMobile();
@@ -131,6 +133,8 @@ export default function MyDashboard() {
                 </SelectContent>
               </Select>
             )}
+
+            {!isAdmin && <SubmitMetricsSheet />}
           </div>
         </div>
 
@@ -209,6 +213,13 @@ export default function MyDashboard() {
                 </div>
               </NeonCard>
             </div>
+        </div>
+
+        {/* Comparativo Section */}
+        <div className="grid grid-cols-1">
+           <NeonCard className="p-6 bg-white/95 dark:bg-black/40 border-white/5">
+              <ComparativoView />
+           </NeonCard>
         </div>
 
         {/* CRM Summary & Notifications Split */}

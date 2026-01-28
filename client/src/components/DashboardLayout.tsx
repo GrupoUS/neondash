@@ -36,13 +36,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { href: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: Users },
-    { href: "/comparativo", label: "Comparativo", icon: BarChart3 },
     { href: "/conquistas", label: "Conquistas", icon: Trophy },
     { href: "/ranking", label: "Ranking", icon: Medal },
     { href: "/notificacoes", label: "Notificações", icon: Bell },
     { href: "/assistente", label: "Assistente IA", icon: Bot },
     { href: "/crm/leads", label: "CRM Leads", icon: Briefcase },
-    { href: "/enviar-metricas", label: "Enviar Métricas", icon: TrendingUp },
     { href: "/admin", label: "Administração", icon: Shield, adminOnly: true },
     {
       href: "/admin/vincular",

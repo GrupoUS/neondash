@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import { FiltersPanel } from "@/components/crm/FiltersPanel";
 import { LeadsTable } from "@/components/crm/LeadsTable";
 import { PipelineKanban } from "@/components/crm/PipelineKanban";
@@ -37,7 +38,8 @@ export function LeadsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <DashboardLayout>
+      <div className="flex h-[calc(100vh-4rem)] overflow-hidden relative">
       <div className={`p-6 flex-1 flex flex-col transition-all duration-300 ${filtersOpen ? "mr-0" : ""}`}>
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -130,6 +132,7 @@ export function LeadsPage() {
               <PipelineKanban 
                 filters={filters} 
                 onLeadClick={handleLeadClick} 
+                onCreateOpen={() => setCreateDialogOpen(true)}
               />
             </div>
           )}
@@ -153,6 +156,7 @@ export function LeadsPage() {
         isOpen={!!selectedLeadId}
         onClose={() => setSelectedLeadId(null)}
       />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

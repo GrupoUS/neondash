@@ -4,11 +4,12 @@ import { NeonCRM } from "@/components/dashboard/NeonCRM";
 import { TaskBoard } from "@/components/dashboard/TaskBoard";
 import { ClassList } from "@/components/dashboard/ClassList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { AlertCircle, TrendingUp } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NeonCard } from "@/components/ui/neon-card";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+// import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Select,
@@ -205,9 +206,9 @@ export default function MyDashboard() {
                   Você está no caminho certo! Continue assim.
                 </p>
               </div>
-              <SidebarTrigger className="w-full mt-4">
+              <Button className="w-full mt-4 bg-white/5 hover:bg-white/10 text-white border-0">
                 Ver Detalhes
-              </SidebarTrigger>
+              </Button>
             </NeonCard>
           </div>
         </div>

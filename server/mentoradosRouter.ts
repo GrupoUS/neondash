@@ -22,8 +22,8 @@ import {
 
 export const mentoradosRouter = router({
   // Get current user's mentorado profile
-  me: mentoradoProcedure.query(async ({ ctx }) => {
-    return ctx.mentorado;
+  me: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.mentorado || null;
   }),
 
   // Get specific mentorado by ID (admin only or self?)

@@ -14,7 +14,7 @@ export function TaskBoard({ mentoradoId }: { mentoradoId?: number }) {
   const [newTask, setNewTask] = useState("");
   const utils = trpc.useContext();
   
-  const { data: tasks, isLoading } = trpc.tasks.list.useQuery({ mentoradoId });
+  const { data: tasks, isLoading } = trpc.tasks.list.useQuery({ mentoradoId }, { enabled: !!mentoradoId });
   
   const createTask = trpc.tasks.create.useMutation({
     onSuccess: () => {

@@ -4,7 +4,7 @@ import { NeonCard } from "@/components/ui/neon-card";
 import { Users, DollarSign, Activity, TrendingUp } from "lucide-react";
 
 export function NeonCRM({ mentoradoId }: { mentoradoId?: number }) {
-  const { data: stats, isLoading } = trpc.leads.stats.useQuery({ mentoradoId });
+  const { data: stats, isLoading } = trpc.leads.stats.useQuery({ mentoradoId }, { enabled: !!mentoradoId });
 
   if (isLoading) {
     return <div className="animate-pulse h-32 bg-slate-800 rounded-xl" />;

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export function ClassList({ mentoradoId }: { mentoradoId?: number }) {
   const utils = trpc.useContext();
-  const { data: classes, isLoading } = trpc.classes.list.useQuery({ mentoradoId });
+  const { data: classes, isLoading } = trpc.classes.list.useQuery({ mentoradoId }, { enabled: !!mentoradoId });
   
   const markWatched = trpc.classes.markWatched.useMutation({
     onSuccess: () => utils.classes.list.invalidate(),

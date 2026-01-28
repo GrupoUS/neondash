@@ -23,6 +23,8 @@ const DashboardComparativo = lazy(() => import("./pages/DashboardComparativo"));
 const Conquistas = lazy(() => import("./pages/Conquistas"));
 const RankingMensal = lazy(() => import("./pages/RankingMensal"));
 const Notificacoes = lazy(() => import("./pages/Notificacoes"));
+const MoltbotPage = lazy(() => import("./pages/MoltbotPage"));
+const LeadsPage = lazy(() => import("./pages/crm/LeadsPage").then(module => ({ default: module.LeadsPage })));
 
 // Loading fallback for lazy components
 function PageLoader() {
@@ -53,6 +55,8 @@ function Router() {
       <Route path="/estrutura" component={Estrutura} />
       <Route path="/escala" component={Escala} />
       <Route path="/primeiro-acesso" component={PrimeiroAcesso} />
+      <Route path="/assistente" component={MoltbotPage} />
+      <Route path="/crm/leads" component={LeadsPage} />
 
       {/* 404 Pages */}
       <Route path="/404" component={NotFound} />

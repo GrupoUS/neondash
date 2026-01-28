@@ -13,6 +13,8 @@ import {
   Trophy,
   Medal,
   Bell,
+  Bot,
+  Briefcase,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -40,6 +42,8 @@ export default function DashboardLayout({
     { href: "/conquistas", label: "Conquistas", icon: Trophy },
     { href: "/ranking", label: "Ranking", icon: Medal },
     { href: "/notificacoes", label: "Notificações", icon: Bell },
+    { href: "/assistente", label: "Assistente IA", icon: Bot },
+    { href: "/crm/leads", label: "CRM Leads", icon: Briefcase },
     { href: "/enviar-metricas", label: "Enviar Métricas", icon: TrendingUp },
     { href: "/admin", label: "Administração", icon: Shield, adminOnly: true },
     {

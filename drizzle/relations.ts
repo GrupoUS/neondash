@@ -9,6 +9,8 @@ import {
   rankingMensal,
   metasProgressivas,
   notificacoes,
+  leads,
+  interacoes,
 } from "./schema";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -37,6 +39,8 @@ export const mentoradosRelations = relations(mentorados, ({ one, many }) => ({
   rankings: many(rankingMensal),
   metasProgressivas: many(metasProgressivas),
   notificacoes: many(notificacoes),
+  leads: many(leads),
+  interacoes: many(interacoes),
 }));
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -125,3 +129,31 @@ export const notificacoesRelations = relations(notificacoes, ({ one }) => ({
     references: [mentorados.id],
   }),
 }));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEADS RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const leadsRelations = relations(leads, ({ one, many }) => ({
+  mentorado: one(mentorados, {
+    fields: [leads.mentoradoId],
+    references: [mentorados.id],
+  }),
+  interacoes: many(interacoes),
+}));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTERACOES RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const interacoesRelations = relations(interacoes, ({ one }) => ({
+  lead: one(leads, {
+    fields: [interacoes.leadId],
+    references: [leads.id],
+  }),
+  mentorado: one(mentorados, {
+    fields: [interacoes.mentoradoId],
+    references: [mentorados.id],
+  }),
+}));
+

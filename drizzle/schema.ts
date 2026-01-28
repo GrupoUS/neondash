@@ -38,6 +38,39 @@ export const tipoNotificacaoEnum = pgEnum("tipo_notificacao", [
   "ranking",
 ]);
 export const simNaoEnum = pgEnum("sim_nao", ["sim", "nao"]);
+export const channelTypeEnum = pgEnum("channel_type", [
+  "webchat",
+  "whatsapp",
+  "telegram",
+  "slack",
+]);
+
+export const origemLeadEnum = pgEnum("origem_lead", [
+  "instagram",
+  "whatsapp",
+  "google",
+  "indicacao",
+  "site",
+  "outro",
+]);
+
+export const statusLeadEnum = pgEnum("status_lead", [
+  "novo",
+  "em_contato",
+  "reuniao_agendada",
+  "proposta_enviada",
+  "negociacao",
+  "fechado_ganho",
+  "perdido",
+]);
+
+export const tipoInteracaoEnum = pgEnum("tipo_interacao", [
+  "ligacao",
+  "email",
+  "whatsapp",
+  "reuniao",
+  "nota",
+]);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLES
@@ -316,3 +349,121 @@ export const notificacoes = pgTable(
 
 export type Notificacao = typeof notificacoes.$inferSelect;
 export type InsertNotificacao = typeof notificacoes.$inferInsert;
+
+/**
+ * Moltbot Sessions - Chat sessions for AI assistant
+ */
+export const moltbotSessions = pgTable(
+  "moltbot_sessions",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channelType: channelTypeEnum("channel_type").notNull(),
+    sessionId: varchar("session_id", { length: 128 }).notNull(),
+    isActive: simNaoEnum("is_active").default("sim").notNull(),
+    config: text("config"), // JSON stringified config
+    lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  table => [
+    index("moltbot_sessions_user_idx").on(table.userId),
+    index("moltbot_sessions_active_idx").on(table.isActive),
+    uniqueIndex("moltbot_sessions_user_channel_idx").on(
+      table.userId,
+      table.channelType
+    ),
+  ]
+);
+
+export type MoltbotSession = typeof moltbotSessions.$inferSelect;
+export type InsertMoltbotSession = typeof moltbotSessions.$inferInsert;
+
+/**
+ * Moltbot Messages - Chat message history
+ */
+export const moltbotMessages = pgTable(
+  "moltbot_messages",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: integer("session_id")
+      .notNull()
+      .references(() => moltbotSessions.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 20 }).notNull(), // "user" | "assistant"
+    content: text("content").notNull(),
+    metadata: text("metadata"), // JSON stringified metadata
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  table => [
+    index("moltbot_messages_session_idx").on(table.sessionId),
+    index("moltbot_messages_created_idx").on(table.createdAt),
+  ]
+);
+
+export type MoltbotMessage = typeof moltbotMessages.$inferSelect;
+export type InsertMoltbotMessage = typeof moltbotMessages.$inferInsert;
+
+/**
+ * Leads - CRM Leads
+ */
+export const leads = pgTable(
+  "leads",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: text("nome").notNull(),
+    email: text("email").notNull(),
+    telefone: text("telefone"),
+    empresa: text("empresa"),
+    origem: origemLeadEnum("origem").notNull(),
+    status: statusLeadEnum("status").notNull().default("novo"),
+    valorEstimado: integer("valor_estimado"), // em centavos
+    tags: text("tags").array(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  table => [
+    index("leads_mentorado_idx").on(table.mentoradoId),
+    index("leads_status_idx").on(table.status),
+    index("leads_origem_idx").on(table.origem),
+    index("leads_mentorado_status_idx").on(table.mentoradoId, table.status),
+    index("leads_created_idx").on(table.createdAt),
+  ]
+);
+
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = typeof leads.$inferInsert;
+
+/**
+ * Interacoes - CRM Interactions
+ */
+export const interacoes = pgTable(
+  "interacoes",
+  {
+    id: serial("id").primaryKey(),
+    leadId: integer("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    tipo: tipoInteracaoEnum("tipo").notNull(),
+    notas: text("notas"),
+    duracao: integer("duracao"), // minutos, para ligações
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  table => [
+    index("interacoes_lead_idx").on(table.leadId),
+    index("interacoes_mentorado_idx").on(table.mentoradoId),
+    index("interacoes_created_idx").on(table.createdAt),
+    index("interacoes_lead_created_idx").on(table.leadId, table.createdAt),
+  ]
+);
+
+export type Interacao = typeof interacoes.$inferSelect;
+export type InsertInteracao = typeof interacoes.$inferInsert;
+

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { IconMenu2, IconX } from "@tabler/icons-react";
+import { Link } from "wouter";
 
 interface Links {
   label: string;
@@ -163,17 +164,11 @@ export const SidebarLink = ({
   className?: string;
 }) => {
   const { open, animate } = useSidebar();
-  return (
-    <a
-      href={link.href}
-      className={cn(
-        "flex items-center justify-start gap-2  group/sidebar py-2",
-        className
-      )}
-      {...props}
-    >
-      {link.icon}
+  const isExternal = link.href.startsWith("http") || link.href.startsWith("mailto");
 
+  const content = (
+    <>
+      {link.icon}
       <motion.span
         animate={{
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
@@ -183,6 +178,35 @@ export const SidebarLink = ({
       >
         {link.label}
       </motion.span>
-    </a>
+    </>
+  );
+
+  const commonClasses = cn(
+    "flex items-center justify-start gap-2  group/sidebar py-2",
+    className
+  );
+
+  if (isExternal) {
+    return (
+      <a
+        href={link.href}
+        className={commonClasses}
+        target="_blank"
+        rel="noopener noreferrer"
+        {...props}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link
+      href={link.href}
+      className={commonClasses}
+      {...props}
+    >
+      {content}
+    </Link>
   );
 };

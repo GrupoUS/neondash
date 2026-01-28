@@ -74,7 +74,7 @@ export function TaskBoard() {
             <Button 
               type="submit" 
               size="icon" 
-              disabled={createTask.isLoading}
+              disabled={createTask.isPending}
               className="bg-neon-blue hover:bg-neon-blue/80 text-black"
             >
               <Plus className="w-4 h-4" />

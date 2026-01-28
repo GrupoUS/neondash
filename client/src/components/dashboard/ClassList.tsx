@@ -66,7 +66,7 @@ export function ClassList() {
                       {item.type}
                     </span>
                     <span className="text-xs text-slate-500 font-mono">
-                      {new Date(item.date).toLocaleDateString('pt-BR')}
+                      {item.date ? new Date(item.date).toLocaleDateString('pt-BR') : 'Data a definir'}
                     </span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-200 mb-1">{item.title}</h3>
@@ -88,7 +88,7 @@ export function ClassList() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  disabled={item.watched || markWatched.isLoading}
+                  disabled={item.watched || markWatched.isPending}
                   onClick={() => markWatched.mutate({ classId: item.id })}
                   className={cn(
                     "flex-shrink-0 h-8 self-center",

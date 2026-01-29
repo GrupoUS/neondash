@@ -11,12 +11,21 @@ import { Plus, LayoutGrid, List, Filter as FilterIcon } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { useSearch } from "wouter";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ShieldAlert } from "lucide-react";
+
 export function LeadsPage() {
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search);
+  const mentoradoIdParam = searchParams.get("mentoradoId");
+  const mentoradoId = mentoradoIdParam ? parseInt(mentoradoIdParam) : undefined;
+
   const [view, setView] = useState<"table" | "kanban">("table");
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
-  
+
   const [filters, setFilters] = useState({
     busca: "",
     status: "all",
@@ -29,7 +38,10 @@ export function LeadsPage() {
 
   const [page, setPage] = useState(1);
   const { data: stats } = trpc.leads.stats.useQuery(
-    { periodo: filters.periodo as "7d" | "30d" | "90d" },
+    {
+      periodo: filters.periodo as "7d" | "30d" | "90d",
+      mentoradoId,
+    },
     { staleTime: 30000 }
   );
 
@@ -75,11 +87,24 @@ export function LeadsPage() {
                 <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Novo Lead
-            </Button>
+            {/* Hide create button if looking as admin or maybe distinct style? User asked for view only mostly */}
+            {!mentoradoId && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Novo Lead
+              </Button>
+            )}
           </div>
         </div>
+
+        {mentoradoId && (
+            <Alert className="mb-6 bg-amber-50 border-amber-200">
+              <ShieldAlert className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">Modo de Visualização Administrativa</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Você está visualizando o CRM de um mentorado (ID: {mentoradoId}). Apenas leitura para avaliação.
+              </AlertDescription>
+            </Alert>
+        )}
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -120,19 +145,21 @@ export function LeadsPage() {
         <div className="flex-1 overflow-hidden rounded-lg bg-background border flex flex-col relative">
           {view === "table" ? (
             <div className="p-4 flex-1 overflow-auto">
-              <LeadsTable 
-                filters={filters} 
-                page={page} 
-                onPageChange={setPage} 
-                onLeadClick={handleLeadClick} 
+              <LeadsTable
+                filters={filters}
+                page={page}
+                onPageChange={setPage}
+                onLeadClick={handleLeadClick}
+                mentoradoId={mentoradoId}
               />
             </div>
           ) : (
             <div className="p-4 flex-1 overflow-auto bg-muted/10">
-              <PipelineKanban 
-                filters={filters} 
-                onLeadClick={handleLeadClick} 
+              <PipelineKanban
+                filters={filters}
+                onLeadClick={handleLeadClick}
                 onCreateOpen={() => setCreateDialogOpen(true)}
+                mentoradoId={mentoradoId}
               />
             </div>
           )}

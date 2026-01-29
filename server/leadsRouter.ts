@@ -6,7 +6,7 @@ import { leads, interacoes } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
 
 export const leadsRouter = router({
-  list: mentoradoProcedure
+  list: protectedProcedure
     .input(
       z.object({
         busca: z.string().optional(),
@@ -17,12 +17,26 @@ export const leadsRouter = router({
         tags: z.array(z.string()).optional(),
         page: z.number().default(1),
         limit: z.number().default(20),
+        mentoradoId: z.number().optional(),
       })
     )
     .query(async ({ ctx, input }) => {
       const db = getDb();
-      
-      const filters = [eq(leads.mentoradoId, ctx.mentorado.id)];
+
+      let targetMentoradoId = ctx.mentorado?.id;
+
+      if (input.mentoradoId) {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+        targetMentoradoId = input.mentoradoId;
+      }
+
+      if (!targetMentoradoId) {
+         throw new TRPCError({ code: "FORBIDDEN", message: "Perfil de mentorado necessário" });
+      }
+
+      const filters = [eq(leads.mentoradoId, targetMentoradoId)];
 
       if (input.busca) {
         const search = `%${input.busca}%`;
@@ -65,7 +79,7 @@ export const leadsRouter = router({
         .select({ count: sql<number>`count(*)` })
         .from(leads)
         .where(whereClause);
-      
+
       const total = Number(countResult?.count || 0);
 
       const items = await db
@@ -84,11 +98,11 @@ export const leadsRouter = router({
       };
     }),
 
-  getById: mentoradoProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
       const db = getDb();
-      
+
       const lead = await db.query.leads.findFirst({
         where: eq(leads.id, input.id),
         with: {
@@ -103,7 +117,10 @@ export const leadsRouter = router({
       }
 
       // Check strict ownership
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+      const isAdmin = ctx.user.role === "admin";
+
+      if (!isOwner && !isAdmin) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -319,13 +336,13 @@ export const leadsRouter = router({
     }),
 
   stats: protectedProcedure
-    .input(z.object({ 
+    .input(z.object({
       periodo: z.enum(["7d", "30d", "90d"]).optional(),
-      mentoradoId: z.number().optional() 
+      mentoradoId: z.number().optional()
     }))
     .query(async ({ ctx, input }) => {
       const db = getDb();
-      
+
       let targetMentoradoId = ctx.mentorado?.id;
       if (input.mentoradoId) {
         if (ctx.user?.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });

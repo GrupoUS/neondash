@@ -28,13 +28,15 @@ interface LeadsTableProps {
   page: number;
   onPageChange: (page: number) => void;
   onLeadClick: (leadId: number) => void;
+  mentoradoId?: number;
 }
 
-export function LeadsTable({ filters, page, onPageChange, onLeadClick }: LeadsTableProps) {
+export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentoradoId }: LeadsTableProps) {
   const { data, isLoading } = trpc.leads.list.useQuery({
     ...filters,
     page,
     limit: 10,
+    mentoradoId,
   });
 
   const getStatusColor = (status: string) => {
@@ -102,8 +104,8 @@ export function LeadsTable({ filters, page, onPageChange, onLeadClick }: LeadsTa
           </TableHeader>
           <TableBody>
             {data.leads.map((lead) => (
-              <TableRow 
-                key={lead.id} 
+              <TableRow
+                key={lead.id}
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => onLeadClick(lead.id)}
               >
@@ -141,9 +143,9 @@ export function LeadsTable({ filters, page, onPageChange, onLeadClick }: LeadsTa
                     : "-"}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {formatDistanceToNow(new Date(lead.updatedAt), { 
-                    addSuffix: true, 
-                    locale: ptBR 
+                  {formatDistanceToNow(new Date(lead.updatedAt), {
+                    addSuffix: true,
+                    locale: ptBR
                   })}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>

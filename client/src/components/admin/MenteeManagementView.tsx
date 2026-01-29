@@ -31,7 +31,9 @@ import {
   Users,
   UserCheck,
   UserX,
+  LayoutDashboard,
 } from "lucide-react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 
 type Turma = "neon_estrutura" | "neon_escala";
@@ -478,6 +480,16 @@ export function MenteeManagementView() {
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
+                    <Link href={`/leads?mentoradoId=${mentorado.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-600 hover:text-neon-blue"
+                        title="Visualizar CRM"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                      </Button>
+                    </Link>
                     <Button
                       variant="ghost"
                       size="sm"

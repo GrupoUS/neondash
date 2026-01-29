@@ -45,7 +45,7 @@ export async function createContext(
       .from(mentorados)
       .where(eq(mentorados.userId, user.id))
       .limit(1);
-    
+
     mentorado = existingMentorado[0] ?? null;
 
     // Auto-link: If no mentorado found by userId but user has email, try to find by email
@@ -63,8 +63,27 @@ export async function createContext(
           .update(mentorados)
           .set({ userId: user.id })
           .where(eq(mentorados.id, mentoradoByEmail[0].id));
-        
+
         mentorado = { ...mentoradoByEmail[0], userId: user.id };
+      } else {
+        // [NEW] Auto-create mentorado if not found
+        console.log(`[Context] Auto-creating mentorado for user ${user.id} (${user.email})`);
+
+        const [newMentorado] = await db.insert(mentorados).values({
+          userId: user.id,
+          nomeCompleto: user.name || "Novo Usuário",
+          email: user.email,
+          fotoUrl: user.imageUrl,
+          turma: "neon_estrutura", // Default value
+          ativo: "sim",
+          metaFaturamento: 16000,
+          metaLeads: 50,
+          metaProcedimentos: 10,
+          metaPosts: 12,
+          metaStories: 60
+        }).returning();
+
+        mentorado = newMentorado;
       }
     }
   }

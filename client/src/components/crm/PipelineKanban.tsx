@@ -21,6 +21,7 @@ interface PipelineKanbanProps {
   filters: any;
   onLeadClick: (leadId: number) => void;
   onCreateOpen: () => void;
+  mentoradoId?: number;
 }
 
 // Columns matching the image and updated schema
@@ -33,11 +34,12 @@ const COLUMNS = [
   { id: "fechado", title: "Fechado", color: "bg-green-500" },
 ];
 
-export function PipelineKanban({ filters, onLeadClick, onCreateOpen }: PipelineKanbanProps) {
+export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId }: PipelineKanbanProps) {
   const { data, isLoading, refetch } = trpc.leads.list.useQuery({
     ...filters,
     status: undefined, // Kanban shows all statuses
-    limit: 100, 
+    limit: 100,
+    mentoradoId,
   });
 
   const updateStatus = trpc.leads.updateStatus.useMutation({
@@ -49,10 +51,10 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen }: PipelineK
   const leadsByStatus = useMemo(() => {
     const groups: Record<string, any[]> = {};
     COLUMNS.forEach(col => groups[col.id] = []);
-    
-    // Also handle 'perdido' or others not in columns if needed, 
+
+    // Also handle 'perdido' or others not in columns if needed,
     // but for now we focus on the visible columns.
-    
+
     if (data?.leads) {
       data.leads.forEach(lead => {
         // Map old statuses if necessary (e.g. em_contato -> primeiro_contato if we didn't migrate data)
@@ -93,10 +95,10 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen }: PipelineK
     // Our schema now has new values, so we use them directly.
 
     if (lead && lead.status !== newStatus) {
-      updateStatus.mutate({ 
-        id: leadId, 
+      updateStatus.mutate({
+        id: leadId,
         // @ts-expect-error Validated by UI columns
-        status: newStatus 
+        status: newStatus
       });
     }
   };
@@ -128,7 +130,7 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen }: PipelineK
           />
         ))}
       </div>
-      
+
       {createPortal(
         <DragOverlay>
           {activeLead && (
@@ -145,7 +147,7 @@ function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen }: an
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
       className={`min-w-[280px] w-[280px] flex flex-col h-full transition-colors rounded-xl ${
         isOver ? "bg-accent/20" : ""
@@ -160,7 +162,7 @@ function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen }: an
           </div>
           <span className="text-xs font-semibold text-muted-foreground">{leads.length}</span>
         </div>
-        
+
         {/* Separator line style from image */}
         <div className={`h-[1px] w-full bg-gradient-to-r from-transparent via-${color.replace('bg-', '')} to-transparent opacity-20`} />
 
@@ -180,10 +182,10 @@ function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen }: an
              </div>
           ) : (
             leads.map((lead: any) => (
-              <DraggableLeadCard 
-                key={lead.id} 
-                lead={lead} 
-                onClick={() => onLeadClick(lead.id)} 
+              <DraggableLeadCard
+                key={lead.id}
+                lead={lead}
+                onClick={() => onLeadClick(lead.id)}
               />
             ))
           )}
@@ -211,7 +213,7 @@ function DraggableLeadCard({ lead, onClick }: any) {
 
 function LeadCard({ lead, onClick, isOverlay }: any) {
   return (
-    <Card 
+    <Card
       onClick={onClick}
       className={`
         cursor-grab active:cursor-grabbing border-none shadow-sm hover:shadow-md transition-all bg-card/50 hover:bg-card
@@ -241,7 +243,7 @@ function LeadCard({ lead, onClick, isOverlay }: any) {
                )}
              </div>
           </div>
-          
+
           <div className="flex gap-1 text-muted-foreground">
             <Button size="icon" variant="ghost" className="h-6 w-6 hover:text-primary">
               <Phone className="h-3.5 w-3.5" />
@@ -253,8 +255,8 @@ function LeadCard({ lead, onClick, isOverlay }: any) {
         </div>
 
         {/* Footer: Whatsapp Button */}
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full h-7 text-xs border-green-900/30 text-green-500 hover:text-green-400 hover:bg-green-950/30 hover:border-green-800"
           onClick={(e) => {
             e.stopPropagation();

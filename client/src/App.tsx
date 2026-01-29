@@ -17,6 +17,7 @@ const MyDashboard = lazy(() => import("./pages/MyDashboard"));
 const GestaoMentorados = lazy(() => import("./pages/GestaoMentorados"));
 const MoltbotPage = lazy(() => import("./pages/MoltbotPage"));
 const LeadsPage = lazy(() => import("./pages/crm/LeadsPage").then(module => ({ default: module.LeadsPage })));
+const MentorshipStart = lazy(() => import("./pages/MentorshipStart"));
 
 
 // Loading fallback for lazy components
@@ -33,6 +34,7 @@ function Router() {
     <Switch>
       {/* Public Landing Page */}
       <Route path="/" component={LandingPage} />
+      <Route path="/comece-aqui" component={MentorshipStart} />
 
       {/* Dashboard Routes (protected by DashboardLayout) */}
       <Route path="/dashboard" component={Home} />

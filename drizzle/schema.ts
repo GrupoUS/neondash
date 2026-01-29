@@ -537,3 +537,78 @@ export const classProgress = pgTable(
 
 export type ClassProgress = typeof classProgress.$inferSelect;
 export type InsertClassProgress = typeof classProgress.$inferInsert;
+
+/**
+ * Playbook Modules - Phases/Modules of the mentorship
+ */
+export const playbookModules = pgTable(
+  "playbook_modules",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    order: integer("order").notNull().default(0),
+    turma: turmaEnum("turma"), // Optional: specific to a track
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  table => [
+    index("playbook_modules_order_idx").on(table.order),
+    index("playbook_modules_turma_idx").on(table.turma),
+  ]
+);
+
+export type PlaybookModule = typeof playbookModules.$inferSelect;
+export type InsertPlaybookModule = typeof playbookModules.$inferInsert;
+
+/**
+ * Playbook Items - Specific actionable items within a module
+ */
+export const playbookItems = pgTable(
+  "playbook_items",
+  {
+    id: serial("id").primaryKey(),
+    moduleId: integer("module_id")
+      .notNull()
+      .references(() => playbookModules.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    type: text("type").default("task"), // "task" | "video" | "link"
+    contentUrl: text("content_url"), // For videos or links
+    isOptional: simNaoEnum("is_optional").default("nao").notNull(),
+    order: integer("order").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  table => [
+    index("playbook_items_module_idx").on(table.moduleId),
+    index("playbook_items_order_idx").on(table.order),
+  ]
+);
+
+export type PlaybookItem = typeof playbookItems.$inferSelect;
+export type InsertPlaybookItem = typeof playbookItems.$inferInsert;
+
+/**
+ * Mentorado Playbook Progress - Tracking item completion
+ */
+export const playbookProgress = pgTable(
+  "playbook_progress",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    itemId: integer("item_id")
+      .notNull()
+      .references(() => playbookItems.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("completed"),
+    completedAt: timestamp("completed_at").defaultNow().notNull(),
+    notes: text("notes"),
+  },
+  table => [
+    uniqueIndex("playbook_progress_unique_idx").on(table.mentoradoId, table.itemId),
+    index("playbook_progress_mentorado_idx").on(table.mentoradoId),
+  ]
+);
+
+export type PlaybookProgress = typeof playbookProgress.$inferSelect;
+export type InsertPlaybookProgress = typeof playbookProgress.$inferInsert;

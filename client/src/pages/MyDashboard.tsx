@@ -23,6 +23,7 @@ import { NotificationsView } from "@/components/dashboard/NotificationsView";
 import { SubmitMetricsForm } from "@/components/dashboard/SubmitMetricsForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComparativoView } from "@/components/dashboard/ComparativoView";
+import { PlaybookView } from "@/components/dashboard/PlaybookView";
 
 export default function MyDashboard() {
   const isMobile = useIsMobile();
@@ -149,6 +150,9 @@ export default function MyDashboard() {
             </TabsTrigger>
             <TabsTrigger value="lancar-metricas" className="data-[state=active]:bg-neon-gold/20 data-[state=active]:text-neon-gold">
                Lançar Métricas
+            </TabsTrigger>
+            <TabsTrigger value="jornada" className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
+               Playbook
             </TabsTrigger>
           </TabsList>
 
@@ -277,6 +281,14 @@ export default function MyDashboard() {
                  <SubmitMetricsForm className="bg-transparent" />
                </NeonCard>
             </div>
+          </TabsContent>
+
+          <TabsContent value="jornada" className="animate-in slide-in-from-bottom-4 duration-300">
+             <div className="grid grid-cols-1">
+                <NeonCard className="p-6 bg-black/40 border-white/5">
+                   <PlaybookView turma={currentMentorado?.turma} />
+                </NeonCard>
+             </div>
           </TabsContent>
         </Tabs>
       </div>

@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { ProfileCard } from "@/components/profile-card";
 
 type Turma = "neon_estrutura" | "neon_escala";
 
@@ -419,92 +420,63 @@ export function MenteeManagementView() {
       </div>
 
       {/* Mentorados List */}
-      <Card className="border-none shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg">Lista de Mentorados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-slate-500">
-              Carregando...
-            </div>
-          ) : filteredMentorados?.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              Nenhum mentorado encontrado
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredMentorados?.map((mentorado: any) => (
-                <div
-                  key={mentorado.id}
-                  className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={mentorado.fotoUrl || undefined} />
-                      <AvatarFallback className="bg-neon-blue/10 text-neon-blue font-medium">
-                        {getInitials(mentorado.nomeCompleto)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {mentorado.nomeCompleto}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge
-                          variant="outline"
-                          className={
-                            mentorado.turma === "neon_estrutura"
-                              ? "border-amber-300 bg-amber-50 text-amber-700"
-                              : "border-purple-300 bg-purple-50 text-purple-700"
-                          }
-                        >
-                          {mentorado.turma === "neon_estrutura"
-                            ? "Estrutura"
-                            : "Escala"}
-                        </Badge>
-                        {mentorado.email && (
-                          <span className="text-xs text-slate-500">
-                            {mentorado.email}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(mentorado)}
-                      className="text-slate-600 hover:text-neon-blue"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Link href={`/leads?mentoradoId=${mentorado.id}`}>
-                      <Button
-                        variant="ghost"
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Lista de Mentorados</h2>
+
+        {isLoading ? (
+          <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-lg">
+            Carregando...
+          </div>
+        ) : filteredMentorados?.length === 0 ? (
+          <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-lg">
+            Nenhum mentorado encontrado
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredMentorados?.map((mentorado: any) => (
+              <ProfileCard
+                key={mentorado.id}
+                name={mentorado.nomeCompleto}
+                role="Mentorado"
+                email={mentorado.email || undefined}
+                imageUrl={mentorado.fotoUrl || undefined}
+                turma={mentorado.turma}
+                badges={[]} // Could add active/inactive here if needed
+                stats={[
+                  { label: "Faturamento", value: `R$ ${(mentorado.metaFaturamento || 0).toLocaleString('pt-BR')}` },
+                  { label: "Leads", value: mentorado.metaLeads || 0 },
+                  { label: "Posts", value: mentorado.metaPosts || 0 },
+                ]}
+                footer={
+                  <div className="flex gap-2 w-full mt-2">
+                     <Button
+                        variant="outline"
                         size="sm"
-                        className="text-slate-600 hover:text-neon-blue"
-                        title="Visualizar CRM"
-                      >
-                        <LayoutDashboard className="w-4 h-4" />
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openDeleteDialog(mentorado)}
-                      className="text-slate-600 hover:text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                        className="flex-1 text-xs h-8"
+                        onClick={() => openEditDialog(mentorado)}
+                     >
+                       <Pencil className="w-3 h-3 mr-1.5" /> Editar
+                     </Button>
+                     <Link href={`/leads?mentoradoId=${mentorado.id}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full text-xs h-8">
+                          <LayoutDashboard className="w-3 h-3 mr-1.5" /> CRM
+                        </Button>
+                     </Link>
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => openDeleteDialog(mentorado)}
+                     >
+                        <Trash2 className="w-4 h-4" />
+                     </Button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                }
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>

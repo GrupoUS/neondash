@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle2, TrendingUp, Users, Shield, Star, BookOpen, Smartphone, Zap, Calendar } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -94,6 +95,9 @@ export default function LandingPage() {
           <a href="#methodology" className="hover:text-neon-blue-dark transition-colors">
             Como usar
           </a>
+          <Link href="/comece-aqui" className="hover:text-neon-blue-dark transition-colors">
+            Comece Aqui
+          </Link>
           <ClerkSignInButton mode="modal">
             <Button variant="ghost" className="text-neon-blue-dark hover:bg-neon-blue/5 hover:text-neon-blue">
               Login

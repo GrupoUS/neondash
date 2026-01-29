@@ -25,10 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComparativoView } from "@/components/dashboard/ComparativoView";
 import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
 import { PlaybookView } from "@/components/dashboard/PlaybookView";
-
-import { NotionRenderer } from "@/components/notion/NotionRenderer";
-
-const NOTION_PAGE_ID = "2f64d8c5-8988-8187-8f52-dfee621aab1e";
+import { AtividadesContent } from "@/components/dashboard/AtividadesContent";
 
 
 export default function MyDashboard() {
@@ -165,7 +162,7 @@ export default function MyDashboard() {
                Playbook
             </TabsTrigger>
             <TabsTrigger value="atividades" className="data-[state=active]:bg-pink-500/20 data-[state=active]:text-pink-400">
-               Atividades (Notion)
+               Atividades
             </TabsTrigger>
           </TabsList>
 
@@ -316,18 +313,8 @@ export default function MyDashboard() {
 
           <TabsContent value="atividades" className="animate-in slide-in-from-bottom-4 duration-300">
              <div className="grid grid-cols-1">
-                <NeonCard className="p-6 bg-black/40 border-white/5 min-h-[600px]">
-                   <div className="mb-6 flex items-center justify-between">
-                     <div>
-                       <h2 className="text-xl font-bold text-white mb-1">Atividades & Conteúdo</h2>
-                       <p className="text-gray-400 text-sm">Sincronizado diretamente do Notion em tempo real.</p>
-                     </div>
-                     <span className="text-xs bg-white/10 px-2 py-1 rounded text-gray-400 flex items-center gap-1">
-                       <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                       Live Sync
-                     </span>
-                   </div>
-                   <NotionRenderer blockId={NOTION_PAGE_ID} />
+                <NeonCard className="p-6 bg-black/40 border-white/5">
+                   <AtividadesContent />
                 </NeonCard>
              </div>
           </TabsContent>

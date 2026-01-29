@@ -8,13 +8,12 @@ import { tasksRouter } from "./routers/tasks";
 import { classesRouter } from "./routers/classes";
 import { playbookRouter } from "./routers/playbook";
 import { notionRouter } from "./notionRouter";
+import { authRouter } from "./routers/auth";
 
 
 export const appRouter = router({
   system: systemRouter,
-  auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
-  }),
+  auth: authRouter,
   mentorados: mentoradosRouter,
   gamificacao: gamificacaoRouter,
   moltbot: moltbotRouter,

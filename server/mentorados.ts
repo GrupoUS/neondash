@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   mentorados,
@@ -61,6 +61,17 @@ export async function getMetricasMensaisByMentorado(mentoradoId: number) {
     .from(metricasMensais)
     .where(eq(metricasMensais.mentoradoId, mentoradoId))
     .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes));
+}
+
+export async function getMetricasEvolution(mentoradoId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return await db
+    .select()
+    .from(metricasMensais)
+    .where(eq(metricasMensais.mentoradoId, mentoradoId))
+    .orderBy(asc(metricasMensais.ano), asc(metricasMensais.mes));
 }
 
 export async function getMetricaMensal(

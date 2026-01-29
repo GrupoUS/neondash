@@ -23,7 +23,9 @@ import { NotificationsView } from "@/components/dashboard/NotificationsView";
 import { SubmitMetricsForm } from "@/components/dashboard/SubmitMetricsForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComparativoView } from "@/components/dashboard/ComparativoView";
+import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
 import { PlaybookView } from "@/components/dashboard/PlaybookView";
+
 import { NotionRenderer } from "@/components/notion/NotionRenderer";
 
 const NOTION_PAGE_ID = "2f64d8c5-8988-8187-8f52-dfee621aab1e";
@@ -149,7 +151,11 @@ export default function MyDashboard() {
             <TabsTrigger value="visao-geral" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple-light">
                Visão Geral
             </TabsTrigger>
+            <TabsTrigger value="evolucao" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">
+               Evolução
+            </TabsTrigger>
             <TabsTrigger value="comparativo" className="data-[state=active]:bg-neon-blue/20 data-[state=active]:text-neon-blue-light">
+
                Comparativo da Turma
             </TabsTrigger>
             <TabsTrigger value="lancar-metricas" className="data-[state=active]:bg-neon-gold/20 data-[state=active]:text-neon-gold">
@@ -269,7 +275,16 @@ export default function MyDashboard() {
              </div>
           </TabsContent>
 
+          <TabsContent value="evolucao" className="animate-in slide-in-from-right-4 duration-300">
+             <div className="grid grid-cols-1">
+                <NeonCard className="p-6 bg-white/95 dark:bg-black/40 border-white/5">
+                   <EvolucaoView />
+                </NeonCard>
+             </div>
+          </TabsContent>
+
           <TabsContent value="comparativo" className="animate-in slide-in-from-right-4 duration-300">
+
              <div className="grid grid-cols-1">
                 <NeonCard className="p-6 bg-white/95 dark:bg-black/40 border-white/5">
                    <ComparativoView />

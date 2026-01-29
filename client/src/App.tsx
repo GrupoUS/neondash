@@ -7,8 +7,10 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Eagerly loaded (landing + lightweight pages)
+// Eagerly loaded (landing + lightweight pages)
 import LandingPage from "./pages/LandingPage";
 import PrimeiroAcesso from "./pages/PrimeiroAcesso";
+import { AuthSync } from "./components/auth/AuthSync";
 
 // Lazy loaded (heavy pages with charts/complex UI)
 const Home = lazy(() => import("./pages/Home"));
@@ -67,6 +69,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
+          <AuthSync />
 {/* Header removed - handled by Layout/Sidebar */}
           <Suspense fallback={<PageLoader />}>
             <Router />

@@ -18,7 +18,11 @@ import {
   upsertMetricaMensal,
   getFeedback,
   upsertFeedback,
+  getMetricasEvolution,
 } from "./mentorados";
+
+
+
 
 export const mentoradosRouter = router({
   // Get current user's mentorado profile
@@ -67,6 +71,13 @@ export const mentoradosRouter = router({
     .query(async ({ ctx }) => {
       return await getMetricasMensaisByMentorado(ctx.mentorado.id);
     }),
+
+  // Get metrics history sorted ASC for charts
+  evolution: mentoradoProcedure
+    .query(async ({ ctx }) => {
+      return await getMetricasEvolution(ctx.mentorado.id);
+    }),
+
 
   // Get specific month metrics
   metricaMes: mentoradoProcedure

@@ -27,9 +27,10 @@ interface LeadDetailModalProps {
   leadId: number | null;
   isOpen: boolean;
   onClose: () => void;
+  isReadOnly?: boolean;
 }
 
-export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProps) {
+export function LeadDetailModal({ leadId, isOpen, onClose, isReadOnly = false }: LeadDetailModalProps) {
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
   const [interactionType, setInteractionType] = useState<any>("nota");
 
@@ -70,7 +71,7 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0">
           {isLoading ? (
             <div className="p-10 flex justify-center">Carregando...</div>
@@ -90,14 +91,16 @@ export function LeadDetailModal({ leadId, isOpen, onClose }: LeadDetailModalProp
                       <span>{data.lead.email}</span>
                     </DialogDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => {/* Edit */}}>
-                      <Edit2 className="h-4 w-4 mr-2" /> Editar
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-red-500">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {!isReadOnly && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => {/* Edit */}}>
+                        <Edit2 className="h-4 w-4 mr-2" /> Editar
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-red-500">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </DialogHeader>
 

@@ -114,6 +114,11 @@
   --chart-3: var(--color-neon-blue-medium);
   --chart-4: #d2d0c7; /* Neon Gray */
   --chart-5: #1a1a1a; /* Black Accent */
+
+  /* Animation Tokens */
+  --animation-duration-fast: 0.3s;
+  --animation-duration-normal: 0.5s;
+  --animation-duration-slow: 0.8s;
 }
 
 /* Dark Mode - Maintained for fallback, but aligned with new identity */

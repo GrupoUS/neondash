@@ -32,6 +32,7 @@ interface PipelineKanbanProps {
   onLeadClick: (leadId: number) => void;
   onCreateOpen: () => void;
   mentoradoId?: number;
+  isReadOnly?: boolean;
 }
 
 // Columns matching the image and updated schema
@@ -42,9 +43,10 @@ const COLUMNS = [
   { id: "proposta", title: "Proposta", color: "bg-orange-600" },
   { id: "negociacao", title: "Negociação", color: "bg-pink-500" },
   { id: "fechado", title: "Fechado", color: "bg-green-500" },
+  { id: "perdido", title: "Perdido", color: "bg-red-500" },
 ];
 
-export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId }: PipelineKanbanProps) {
+export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId, isReadOnly = false }: PipelineKanbanProps) {
   const { data, isLoading, refetch } = trpc.leads.list.useQuery({
     ...filters,
     status: undefined, // Kanban shows all statuses
@@ -108,13 +110,8 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
     const groups: Record<string, any[]> = {};
     COLUMNS.forEach(col => groups[col.id] = []);
 
-    // Also handle 'perdido' or others not in columns if needed,
-    // but for now we focus on the visible columns.
-
     if (data?.leads) {
       data.leads.forEach(lead => {
-        // Map old statuses if necessary (e.g. em_contato -> primeiro_contato if we didn't migrate data)
-        // But assuming schema update is authoritative:
         if (groups[lead.status]) {
           groups[lead.status].push(lead);
         } else if ((lead.status as string) === "em_contato" && groups["primeiro_contato"]) {
@@ -123,6 +120,9 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
           groups["proposta"].push(lead);
         } else if ((lead.status as string) === "fechado_ganho" && groups["fechado"]) {
           groups["fechado"].push(lead);
+        } else if ((lead.status as string) === "fechado_perdido" && groups["perdido"]) {
+            // Mapping closed lost to perdido if appropriate, or keeping as separate logic
+            if (groups["perdido"]) groups["perdido"].push(lead);
         }
       });
     }
@@ -134,11 +134,14 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
   }, [data, activeId]);
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (isReadOnly) return;
     setActiveId(event.active.id as number);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null);
+    if (isReadOnly) return;
+
     const { active, over } = event;
 
     if (!over) return;
@@ -146,9 +149,6 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
     const leadId = active.id as number;
     let newStatus = over.id as string;
     const lead = data?.leads.find(l => l.id === leadId);
-
-    // Map back to schema if needed or use new values directly
-    // Our schema now has new values, so we use them directly.
 
     if (lead && lead.status !== newStatus) {
       updateStatus.mutate({
@@ -173,20 +173,22 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
 
   return (
     <div className="flex flex-col h-[calc(100vh-220px)]">
-      <div className="flex justify-end px-2 mb-2">
-         <Button 
-            variant={selectMode ? "secondary" : "outline"} 
-            size="sm" 
-            onClick={() => {
-                setSelectMode(!selectMode);
-                setSelectedIds([]);
-            }}
-            className="gap-2"
-         >
-            <CheckSquare className="h-4 w-4" />
-            {selectMode ? "Cancelar Seleção" : "Selecionar Leads"}
-         </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex justify-end px-2 mb-2">
+           <Button 
+              variant={selectMode ? "secondary" : "outline"} 
+              size="sm" 
+              onClick={() => {
+                  setSelectMode(!selectMode);
+                  setSelectedIds([]);
+              }}
+              className="gap-2"
+           >
+              <CheckSquare className="h-4 w-4" />
+              {selectMode ? "Cancelar Seleção" : "Selecionar Leads"}
+           </Button>
+        </div>
+      )}
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-4 h-[calc(100vh-220px)] items-start px-1">
         {COLUMNS.map((col) => (
@@ -201,6 +203,7 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
             selectMode={selectMode}
             selectedIds={selectedIds}
             onSelect={handleSelectOne}
+            isReadOnly={isReadOnly}
           />
         ))}
       </div>
@@ -215,7 +218,7 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
       )}
     </DndContext>
     
-    {selectedIds.length > 0 && (
+    {selectedIds.length > 0 && !isReadOnly && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-popover border shadow-2xl rounded-xl p-2 flex items-center gap-2 animate-in slide-in-from-bottom-5 fade-in z-50">
             <div className="bg-primary/10 text-primary px-3 py-1.5 rounded-md text-sm font-medium mr-2">
                 {selectedIds.length} selecionados
@@ -255,7 +258,7 @@ export function PipelineKanban({ filters, onLeadClick, onCreateOpen, mentoradoId
   );
 }
 
-function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen, selectMode, selectedIds, onSelect }: any) {
+function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen, selectMode, selectedIds, onSelect, isReadOnly }: any) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -279,7 +282,7 @@ function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen, sele
         <div className={`h-[1px] w-full bg-gradient-to-r from-transparent via-${color.replace('bg-', '')} to-transparent opacity-20`} />
 
         {/* Novo Column Special Button */}
-        {id === "novo" && (
+        {id === "novo" && !isReadOnly && (
            <Button variant="outline" className="w-full border-dashed border-muted-foreground/30 hover:border-primary/50 text-muted-foreground hover:text-primary" onClick={onCreateOpen}>
              <Plus className="h-4 w-4 mr-2" /> Novo Lead
            </Button>
@@ -301,6 +304,7 @@ function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen, sele
                 selectMode={selectMode}
                 selected={selectedIds.includes(lead.id)}
                 onSelect={(checked: boolean) => onSelect(checked, lead.id)}
+                isReadOnly={isReadOnly}
               />
             ))
           )}
@@ -310,10 +314,10 @@ function KanbanColumn({ id, title, color, leads, onLeadClick, onCreateOpen, sele
   );
 }
 
-function DraggableLeadCard({ lead, onClick, selectMode, selected, onSelect }: any) {
+function DraggableLeadCard({ lead, onClick, selectMode, selected, onSelect, isReadOnly }: any) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: lead.id,
-    disabled: selectMode, // Disable drag when selecting
+    disabled: selectMode || isReadOnly,
   });
 
   const style = transform ? {

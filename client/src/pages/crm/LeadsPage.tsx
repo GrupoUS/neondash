@@ -7,19 +7,39 @@ import { LeadDetailModal } from "@/components/crm/LeadDetailModal";
 import { CreateLeadDialog } from "@/components/crm/CreateLeadDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, LayoutGrid, List, Filter as FilterIcon } from "lucide-react";
+import { Plus, LayoutGrid, List, Filter as FilterIcon, ShieldAlert } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { AdminMentoradoSelector } from "@/components/admin/AdminMentoradoSelector";
+import { useUser } from "@clerk/clerk-react";
 import { Card, CardContent } from "@/components/ui/card";
-
-import { useSearch } from "wouter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ShieldAlert } from "lucide-react";
+import { useSearch } from "wouter";
+import { motion } from "framer-motion";
+
+const staggerContainer = {
+  initial: { opacity: 0 },
+  animate: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
 
 export function LeadsPage() {
+  const { user } = useUser();
+  const isAdmin = user?.publicMetadata?.role === "admin";
+  
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const mentoradoIdParam = searchParams.get("mentoradoId");
-  const mentoradoId = mentoradoIdParam ? parseInt(mentoradoIdParam) : undefined;
+  
+  // Local state for admin selection if not in URL, or sync with URL
+  const [adminSelectedMentoradoId, setAdminSelectedMentoradoId] = useState<number | undefined>(
+    mentoradoIdParam ? parseInt(mentoradoIdParam) : undefined
+  );
+
+  const viewMentoradoId = adminSelectedMentoradoId;
 
   const [view, setView] = useState<"table" | "kanban">("table");
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -39,8 +59,8 @@ export function LeadsPage() {
   const [page, setPage] = useState(1);
   const { data: stats } = trpc.leads.stats.useQuery(
     {
-      periodo: filters.periodo as "7d" | "30d" | "90d",
-      mentoradoId,
+      periodo: filters.periodo === "all" ? undefined : (filters.periodo as "7d" | "30d" | "90d"),
+      mentoradoId: viewMentoradoId,
     },
     { staleTime: 30000 }
   );
@@ -49,16 +69,39 @@ export function LeadsPage() {
     setSelectedLeadId(leadId);
   };
 
+  const handleAdminSelect = (id: number | undefined) => {
+    setAdminSelectedMentoradoId(id);
+    // Optional: update URL
+  };
+
+  const isReadOnly = !!viewMentoradoId;
+
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-4rem)] overflow-hidden relative">
+      <motion.div 
+        className="flex h-[calc(100vh-4rem)] overflow-hidden relative"
+        initial="initial"
+        animate="animate"
+        variants={staggerContainer}
+      >
       <div className={`p-6 flex-1 flex flex-col transition-all duration-300 ${filtersOpen ? "mr-0" : ""}`}>
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-            <p className="text-muted-foreground">
-              Gerencie seus leads e acompanhe o funil de vendas.
-            </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
+              <p className="text-muted-foreground">
+                Gerencie seus leads e acompanhe o funil de vendas.
+              </p>
+            </div>
+             {isAdmin && (
+                <div className="ml-4 border-l pl-4">
+                    <p className="text-xs text-muted-foreground font-semibold mb-1 uppercase tracking-wider">Visualização Admin</p>
+                    <AdminMentoradoSelector 
+                        selectedMentoradoId={viewMentoradoId} 
+                        onSelect={handleAdminSelect} 
+                    />
+                </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -87,21 +130,20 @@ export function LeadsPage() {
                 <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
-            {/* Hide create button if looking as admin or maybe distinct style? User asked for view only mostly */}
-            {!mentoradoId && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" /> Novo Lead
-              </Button>
+            {!isReadOnly && (
+                <Button onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" /> Novo Lead
+                </Button>
             )}
           </div>
         </div>
 
-        {mentoradoId && (
+        {viewMentoradoId && (
             <Alert className="mb-6 bg-amber-50 border-amber-200">
               <ShieldAlert className="h-4 w-4 text-amber-600" />
               <AlertTitle className="text-amber-800">Modo de Visualização Administrativa</AlertTitle>
               <AlertDescription className="text-amber-700">
-                Você está visualizando o CRM de um mentorado (ID: {mentoradoId}). Apenas leitura para avaliação.
+                Você está visualizando o CRM de um mentorado (ID: {viewMentoradoId}). Ações de edição estão desabilitadas.
               </AlertDescription>
             </Alert>
         )}
@@ -136,8 +178,8 @@ export function LeadsPage() {
           </Card>
           <Card>
             <CardContent className="p-4 flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Novos (30d)</span>
-              <span className="text-2xl font-bold">{stats?.totalAtivos || 0}</span> {/* Placeholder */}
+              <span className="text-sm font-medium text-muted-foreground">Tempo Médio (Dias)</span>
+              <span className="text-2xl font-bold">{stats?.tempoMedioFechamento || 0}</span>
             </CardContent>
           </Card>
         </div>
@@ -150,7 +192,8 @@ export function LeadsPage() {
                 page={page}
                 onPageChange={setPage}
                 onLeadClick={handleLeadClick}
-                mentoradoId={mentoradoId}
+                mentoradoId={viewMentoradoId}
+                isReadOnly={isReadOnly}
               />
             </div>
           ) : (
@@ -159,7 +202,8 @@ export function LeadsPage() {
                 filters={filters}
                 onLeadClick={handleLeadClick}
                 onCreateOpen={() => setCreateDialogOpen(true)}
-                mentoradoId={mentoradoId}
+                mentoradoId={viewMentoradoId}
+                isReadOnly={isReadOnly}
               />
             </div>
           )}
@@ -178,12 +222,13 @@ export function LeadsPage() {
         onClose={() => setCreateDialogOpen(false)}
       />
 
-      <LeadDetailModal
-        leadId={selectedLeadId}
-        isOpen={!!selectedLeadId}
-        onClose={() => setSelectedLeadId(null)}
-      />
-      </div>
+        <LeadDetailModal
+            leadId={selectedLeadId}
+            isOpen={!!selectedLeadId}
+            onClose={() => setSelectedLeadId(null)}
+            isReadOnly={isReadOnly}
+        />
+      </motion.div>
     </DashboardLayout>
   );
 }

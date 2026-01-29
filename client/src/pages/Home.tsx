@@ -19,6 +19,9 @@ import { useState } from "react";
 import { RankingView } from "@/components/dashboard/RankingView";
 import { AchievementsView } from "@/components/dashboard/AchievementsView";
 import { TurmaView } from "@/components/dashboard/TurmaView";
+import { motion } from "motion/react";
+import { AnimatedList } from "@/components/ui/animated-list";
+import { slideUp, staggerContainer, fadeIn } from "@/lib/animation-variants";
 
 export default function Home() {
   // Admin dashboard - no auth check needed for now
@@ -78,7 +81,12 @@ export default function Home() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <motion.div 
+        className="space-y-6"
+        initial="initial"
+        animate="animate"
+        variants={staggerContainer}
+      >
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
@@ -131,9 +139,14 @@ export default function Home() {
           </TabsList>
 
           {/* OVERVIEW TAB */}
-          <TabsContent value="overview" className="space-y-8 mt-0">
+          <TabsContent value="overview" className="space-y-8 mt-0" asChild>
+            <motion.div variants={fadeIn} initial="initial" animate="animate" exit="exit">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+              variants={staggerContainer}
+            >
+              <motion.div variants={slideUp}>
               <Card className="border-none shadow-sm bg-white overflow-hidden relative group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                   <DollarSign className="w-16 h-16 text-neon-gold" />
@@ -157,6 +170,9 @@ export default function Home() {
                   </p>
                 </CardContent>
               </Card>
+              </motion.div>
+
+              <motion.div variants={slideUp}>
 
               <Card className="border-none shadow-sm bg-white overflow-hidden relative group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -181,6 +197,9 @@ export default function Home() {
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
+
+              <motion.div variants={slideUp}>
 
               <Card className="border-none shadow-sm bg-white overflow-hidden relative group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -200,7 +219,8 @@ export default function Home() {
                   </p>
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
+            </motion.div>
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -259,10 +279,12 @@ export default function Home() {
                   <CardTitle>Top Performers (Score)</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {topPerformers.map((performer, index) => (
+                  <AnimatedList
+                    items={topPerformers}
+                    className="space-y-4"
+                    staggerDelay={0.1}
+                    renderItem={(performer, index) => (
                       <div
-                        key={index}
                         className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors"
                       >
                         <div className="flex items-center gap-3">
@@ -293,11 +315,13 @@ export default function Home() {
                           {performer.score}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    )}
+                    keyExtractor={(item) => item.nome}
+                  />
                 </CardContent>
               </Card>
             </div>
+          </motion.div>
           </TabsContent>
 
           {/* RANKING TAB */}
@@ -323,7 +347,7 @@ export default function Home() {
             <TurmaView type="escala" />
           </TabsContent>
         </Tabs>
-      </div>
+      </motion.div>
     </DashboardLayout>
   );
 }

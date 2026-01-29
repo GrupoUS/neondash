@@ -33,9 +33,10 @@ interface LeadsTableProps {
   onPageChange: (page: number) => void;
   onLeadClick: (leadId: number) => void;
   mentoradoId?: number;
+  isReadOnly?: boolean;
 }
 
-export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentoradoId }: LeadsTableProps) {
+export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentoradoId, isReadOnly = false }: LeadsTableProps) {
   const { data, isLoading } = trpc.leads.list.useQuery({
     ...filters,
     page,
@@ -144,12 +145,14 @@ export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentorado
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox 
-                    checked={data?.leads.length > 0 && selectedIds.length === data?.leads.length}
-                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                />
-              </TableHead>
+              {!isReadOnly && (
+                <TableHead className="w-[50px]">
+                  <Checkbox 
+                      checked={data?.leads.length > 0 && selectedIds.length === data?.leads.length}
+                      onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                  />
+                </TableHead>
+              )}
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Telefone</TableHead>
@@ -157,7 +160,7 @@ export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentorado
               <TableHead>Status</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Atualizado</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -167,12 +170,14 @@ export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentorado
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => onLeadClick(lead.id)}
               >
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox 
-                        checked={selectedIds.includes(lead.id)}
-                        onCheckedChange={(checked) => handleSelectOne(!!checked, lead.id)}
-                    />
-                </TableCell>
+                {!isReadOnly && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox 
+                          checked={selectedIds.includes(lead.id)}
+                          onCheckedChange={(checked) => handleSelectOne(!!checked, lead.id)}
+                      />
+                    </TableCell>
+                )}
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
@@ -212,29 +217,31 @@ export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentorado
                     locale: ptBR
                   })}
                 </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => onLeadClick(lead.id)}>
-                        Ver detalhes
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigator.clipboard.writeText(lead.email)}>
-                        Copiar email
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600">
-                        Deletar lead
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                {!isReadOnly && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => onLeadClick(lead.id)}>
+                              Ver detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(lead.email)}>
+                              Copiar email
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600">
+                              Deletar lead
+                          </DropdownMenuItem>
+                          </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -263,7 +270,7 @@ export function LeadsTable({ filters, page, onPageChange, onLeadClick, mentorado
         </Button>
       </div>
 
-      {selectedIds.length > 0 && (
+      {selectedIds.length > 0 && !isReadOnly && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-popover border shadow-2xl rounded-xl p-2 flex items-center gap-2 animate-in slide-in-from-bottom-5 fade-in z-50">
             <div className="bg-primary/10 text-primary px-3 py-1.5 rounded-md text-sm font-medium mr-2">
                 {selectedIds.length} selecionados

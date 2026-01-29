@@ -7,6 +7,9 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { SignInButton as ClerkSignInButton } from "@clerk/clerk-react";
 import { NeonCard, NeonCardContent, NeonCardHeader, NeonCardTitle } from "@/components/ui/neon-card";
+import { motion } from "motion/react";
+import { AnimatedAccordion, AnimatedAccordionContent, AnimatedAccordionItem, AnimatedAccordionTrigger } from "@/components/ui/animated-accordion";
+import { slideUp, staggerContainer, fadeIn } from "@/lib/animation-variants";
 
 export default function LandingPage() {
   const { isAuthenticated, loading, user } = useAuth();
@@ -114,26 +117,43 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 md:pt-48 md:pb-24 px-4 relative z-10 flex flex-col items-center text-center">
-        <div className="max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-neon-gold/30 shadow-sm mb-4 hover:border-neon-gold/60 transition-colors cursor-default">
+        <motion.div 
+          className="max-w-5xl space-y-8"
+          initial="initial"
+          animate="animate"
+          variants={staggerContainer}
+        >
+          <motion.div 
+            variants={fadeIn}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-neon-gold/30 shadow-sm mb-4 hover:border-neon-gold/60 transition-colors cursor-default"
+          >
             <span className="w-2 h-2 rounded-full bg-neon-gold animate-pulse shadow-[0_0_8px_rgba(172,148,105,0.5)]" />
             <span className="text-xs font-bold text-neon-blue-medium tracking-wide uppercase">
               Bem-vindo ao Grupo de Elite
             </span>
-          </div>
+          </motion.div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-neon-blue-dark leading-[1.1]">
+          <motion.h1 
+            variants={slideUp}
+            className="text-5xl md:text-7xl font-bold tracking-tight text-neon-blue-dark leading-[1.1]"
+          >
             Hello, NEON! <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-neon-blue-dark via-neon-blue to-neon-gold pb-2">
               Comece sua Jornada Aqui.
             </span>
-          </h1>
+          </motion.h1>
 
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <motion.p 
+            variants={slideUp}
+            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+          >
             Você agora faz parte do meu grupo de elite. Esta plataforma é o seu centro de comando para escalar sua clínica com previsibilidade e lucro.
-          </p>
+          </motion.p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+          <motion.div 
+            variants={slideUp}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6"
+          >
             <ClerkSignInButton mode="modal">
               <Button
                 size="lg"
@@ -143,8 +163,8 @@ export default function LandingPage() {
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </ClerkSignInButton>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Purpose Section: "Para que serve este Notion/Portal?" */}
@@ -162,39 +182,49 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <NeonCard variant="default" className="group h-full">
-              <NeonCardHeader>
-                <div className="w-14 h-14 rounded-2xl bg-neon-blue/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <BookOpen className="w-7 h-7 text-neon-blue" />
-                </div>
-                <NeonCardTitle className="text-xl">Caderno de Atividades Digital</NeonCardTitle>
-              </NeonCardHeader>
-              <NeonCardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Seu espaço dedicado para anotações e atividades ao longo da jornada.
-                  Com ferramentas integradas para você <strong>responder e executar</strong> tudo que for ensinado,
-                  sem perder nada em cadernos físicos ou notas soltas.
-                </p>
-              </NeonCardContent>
-            </NeonCard>
+          <motion.div 
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto"
+          >
+            <motion.div variants={slideUp} className="h-full">
+              <NeonCard variant="default" className="group h-full">
+                <NeonCardHeader>
+                  <div className="w-14 h-14 rounded-2xl bg-neon-blue/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <BookOpen className="w-7 h-7 text-neon-blue" />
+                  </div>
+                  <NeonCardTitle className="text-xl">Caderno de Atividades Digital</NeonCardTitle>
+                </NeonCardHeader>
+                <NeonCardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Seu espaço dedicado para anotações e atividades ao longo da jornada.
+                    Com ferramentas integradas para você <strong>responder e executar</strong> tudo que for ensinado,
+                    sem perder nada em cadernos físicos ou notas soltas.
+                  </p>
+                </NeonCardContent>
+              </NeonCard>
+            </motion.div>
 
-            <NeonCard variant="default" className="group h-full">
-              <NeonCardHeader>
-                <div className="w-14 h-14 rounded-2xl bg-neon-gold/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <TrendingUp className="w-7 h-7 text-neon-gold" />
-                </div>
-                <NeonCardTitle className="text-xl">Gestão Completa (360º)</NeonCardTitle>
-              </NeonCardHeader>
-              <NeonCardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Gerencie sua clínica de ponta a ponta:
-                  <strong> Administrativo, Conteúdo, CRM, Análise de Dados e Planejamento. </strong>
-                  Tenha controle total sobre os números que realmente movem o ponteiro do seu negócio.
-                </p>
-              </NeonCardContent>
-            </NeonCard>
-          </div>
+            <motion.div variants={slideUp} className="h-full">
+              <NeonCard variant="default" className="group h-full">
+                <NeonCardHeader>
+                  <div className="w-14 h-14 rounded-2xl bg-neon-gold/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <TrendingUp className="w-7 h-7 text-neon-gold" />
+                  </div>
+                  <NeonCardTitle className="text-xl">Gestão Completa (360º)</NeonCardTitle>
+                </NeonCardHeader>
+                <NeonCardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Gerencie sua clínica de ponta a ponta:
+                    <strong> Administrativo, Conteúdo, CRM, Análise de Dados e Planejamento. </strong>
+                    Tenha controle total sobre os números que realmente movem o ponteiro do seu negócio.
+                  </p>
+                </NeonCardContent>
+              </NeonCard>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -382,47 +412,43 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="space-y-4">
-            <details className="group bg-neon-gray/20 rounded-xl border border-neon-border/50 overflow-hidden">
-              <summary className="flex items-center justify-between p-6 cursor-pointer font-medium text-neon-blue-dark hover:bg-neon-gray/30 transition-colors">
+          <AnimatedAccordion type="single" collapsible className="space-y-4">
+            <AnimatedAccordionItem value="item-1" className="bg-neon-gray/20 rounded-xl border border-neon-border/50 px-6">
+              <AnimatedAccordionTrigger className="text-neon-blue-dark hover:no-underline">
                 Para que serve este Portal?
-                <CheckCircle2 className="w-5 h-5 text-neon-gold group-open:rotate-180 transition-transform" />
-              </summary>
-              <div className="px-6 pb-6 text-muted-foreground">
+              </AnimatedAccordionTrigger>
+              <AnimatedAccordionContent className="text-muted-foreground">
                 É seu centro de comando. Aqui você encontra ferramentas, registra métricas, acompanha seu progresso e acessa materiais de apoio complementar às aulas.
-              </div>
-            </details>
+              </AnimatedAccordionContent>
+            </AnimatedAccordionItem>
 
-            <details className="group bg-neon-gray/20 rounded-xl border border-neon-border/50 overflow-hidden">
-              <summary className="flex items-center justify-between p-6 cursor-pointer font-medium text-neon-blue-dark hover:bg-neon-gray/30 transition-colors">
+            <AnimatedAccordionItem value="item-2" className="bg-neon-gray/20 rounded-xl border border-neon-border/50 px-6">
+              <AnimatedAccordionTrigger className="text-neon-blue-dark hover:no-underline">
                 Como usar este sistema?
-                <CheckCircle2 className="w-5 h-5 text-neon-gold group-open:rotate-180 transition-transform" />
-              </summary>
-              <div className="px-6 pb-6 text-muted-foreground">
+              </AnimatedAccordionTrigger>
+              <AnimatedAccordionContent className="text-muted-foreground">
                 Acesse diariamente. Mantenha suas métricas atualizadas na aba de Dashboard. Use o Caderno Digital para suas anotações de aula.
-              </div>
-            </details>
+              </AnimatedAccordionContent>
+            </AnimatedAccordionItem>
 
-            <details className="group bg-neon-gray/20 rounded-xl border border-neon-border/50 overflow-hidden">
-              <summary className="flex items-center justify-between p-6 cursor-pointer font-medium text-neon-blue-dark hover:bg-neon-gray/30 transition-colors">
+            <AnimatedAccordionItem value="item-3" className="bg-neon-gray/20 rounded-xl border border-neon-border/50 px-6">
+              <AnimatedAccordionTrigger className="text-neon-blue-dark hover:no-underline">
                 Onde estão as aulas gravadas?
-                <CheckCircle2 className="w-5 h-5 text-neon-gold group-open:rotate-180 transition-transform" />
-              </summary>
-              <div className="px-6 pb-6 text-muted-foreground">
+              </AnimatedAccordionTrigger>
+              <AnimatedAccordionContent className="text-muted-foreground">
                 As aulas estão hospedadas na nossa área de membros oficial. Este portal é focado na <strong>GESTÃO e EXECUÇÃO</strong> do aprendizado.
-              </div>
-            </details>
+              </AnimatedAccordionContent>
+            </AnimatedAccordionItem>
 
-            <details className="group bg-neon-gray/20 rounded-xl border border-neon-border/50 overflow-hidden">
-              <summary className="flex items-center justify-between p-6 cursor-pointer font-medium text-neon-blue-dark hover:bg-neon-gray/30 transition-colors">
-                Posso acessar pelo celular?
-                <CheckCircle2 className="w-5 h-5 text-neon-gold group-open:rotate-180 transition-transform" />
-              </summary>
-              <div className="px-6 pb-6 text-muted-foreground">
+            <AnimatedAccordionItem value="item-4" className="bg-neon-gray/20 rounded-xl border border-neon-border/50 px-6">
+              <AnimatedAccordionTrigger className="text-neon-blue-dark hover:no-underline">
+                 Posso acessar pelo celular?
+              </AnimatedAccordionTrigger>
+              <AnimatedAccordionContent className="text-muted-foreground">
                 Sim! A plataforma é 100% responsiva. Acesse de qualquer dispositivo com internet.
-              </div>
-            </details>
-          </div>
+              </AnimatedAccordionContent>
+            </AnimatedAccordionItem>
+          </AnimatedAccordion>
         </div>
       </section>
 

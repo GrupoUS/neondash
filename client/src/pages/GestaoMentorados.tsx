@@ -3,13 +3,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminOverview } from "@/components/admin/AdminOverview";
 import { MenteeManagementView } from "@/components/admin/MenteeManagementView";
 import { LinkEmailsView } from "@/components/admin/LinkEmailsView";
+import { motion } from "motion/react";
+import { slideUp, staggerContainer, fadeIn } from "@/lib/animation-variants";
 
 export default function GestaoMentorados() {
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <motion.div 
+        className="space-y-6"
+        initial="initial"
+        animate="animate"
+        variants={staggerContainer}
+      >
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <motion.div 
+          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+          variants={slideUp}
+        >
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
               Área Administrativa
@@ -18,7 +28,7 @@ export default function GestaoMentorados() {
               Gerenciamento completo de mentorados, acessos e métricas do sistema
             </p>
           </div>
-        </div>
+        </motion.div>
 
         <Tabs defaultValue="management" className="w-full space-y-6">
           <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-[600px] bg-slate-100 p-1">
@@ -42,19 +52,25 @@ export default function GestaoMentorados() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-4 animate-in fade-in-50 duration-300">
-             <AdminOverview />
+          <TabsContent value="overview" className="space-y-4" asChild>
+             <motion.div variants={fadeIn}>
+                <AdminOverview />
+             </motion.div>
           </TabsContent>
 
-          <TabsContent value="management" className="space-y-4 animate-in fade-in-50 duration-300">
-            <MenteeManagementView />
+          <TabsContent value="management" className="space-y-4" asChild>
+            <motion.div variants={fadeIn}>
+              <MenteeManagementView />
+            </motion.div>
           </TabsContent>
 
-          <TabsContent value="access" className="space-y-4 animate-in fade-in-50 duration-300">
-            <LinkEmailsView />
+          <TabsContent value="access" className="space-y-4" asChild>
+            <motion.div variants={fadeIn}>
+              <LinkEmailsView />
+            </motion.div>
           </TabsContent>
         </Tabs>
-      </div>
+      </motion.div>
     </DashboardLayout>
   );
 }

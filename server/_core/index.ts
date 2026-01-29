@@ -10,6 +10,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { moltbotService } from "../services/moltbotService";
+import { handleClerkWebhook } from "../webhooks/clerk";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -117,6 +118,19 @@ async function startServer() {
   // Express Middleware
   // ─────────────────────────────────────────────────────────────────────────
   
+  // ─────────────────────────────────────────────────────────────────────────
+  // Webhooks (Must be before global body parser)
+  // ─────────────────────────────────────────────────────────────────────────
+  app.post(
+    "/api/webhooks/clerk",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      // Pass raw body buffer to the handler
+      (req as any).rawBody = req.body;
+      await handleClerkWebhook(req, res);
+    }
+  );
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));

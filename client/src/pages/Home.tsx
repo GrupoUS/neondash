@@ -1,7 +1,11 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { analiseData } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  FloatingDockTabs,
+  FloatingDockTabsList,
+  FloatingDockTabsContent,
+} from "@/components/ui/floating-dock-tabs";
 import {
   BarChart,
   Bar,
@@ -12,7 +16,17 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Users, TrendingUp, DollarSign, Award } from "lucide-react";
+import {
+  Users,
+  TrendingUp,
+  DollarSign,
+  Award,
+  LayoutDashboard,
+  BarChart3,
+  Trophy,
+  Building2,
+  Rocket,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import { useState } from "react";
@@ -105,42 +119,43 @@ export default function Home() {
           />
         </div>
 
-        <Tabs defaultValue="overview" className="w-full space-y-6">
-          <TabsList className="bg-muted p-1 rounded-xl flex flex-wrap h-auto">
-            <TabsTrigger
-              value="overview"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-neon-blue data-[state=active]:shadow-sm flex-1 min-w-[100px]"
-            >
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger
-              value="ranking"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-neon-blue data-[state=active]:shadow-sm flex-1 min-w-[100px]"
-            >
-              Ranking
-            </TabsTrigger>
-            <TabsTrigger
-              value="conquistas"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-neon-blue data-[state=active]:shadow-sm flex-1 min-w-[100px]"
-            >
-              Conquistas
-            </TabsTrigger>
-            <TabsTrigger
-              value="estrutura"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-neon-blue data-[state=active]:shadow-sm flex-1 min-w-[100px]"
-            >
-              Neon Estrutura
-            </TabsTrigger>
-            <TabsTrigger
-              value="escala"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:text-neon-blue data-[state=active]:shadow-sm flex-1 min-w-[100px]"
-            >
-              Neon Escala
-            </TabsTrigger>
-          </TabsList>
+        <FloatingDockTabs defaultValue="overview" className="w-full space-y-6">
+          <FloatingDockTabsList
+            tabs={[
+              {
+                value: "overview",
+                label: "Visão Geral",
+                icon: <LayoutDashboard className="h-5 w-5 text-blue-400" />,
+              },
+              {
+                value: "ranking",
+                label: "Ranking",
+                icon: <BarChart3 className="h-5 w-5 text-green-400" />,
+              },
+              {
+                value: "conquistas",
+                label: "Conquistas",
+                icon: <Trophy className="h-5 w-5 text-yellow-400" />,
+              },
+              {
+                value: "estrutura",
+                label: "Neon Estrutura",
+                icon: <Building2 className="h-5 w-5 text-purple-400" />,
+              },
+              {
+                value: "escala",
+                label: "Neon Escala",
+                icon: <Rocket className="h-5 w-5 text-cyan-400" />,
+              },
+            ]}
+          />
 
           {/* OVERVIEW TAB */}
-          <TabsContent value="overview" className="space-y-8 mt-0" asChild>
+          <FloatingDockTabsContent
+            value="overview"
+            className="space-y-8 mt-0"
+            asChild
+          >
             <motion.div
               variants={fadeIn}
               initial="initial"
@@ -334,31 +349,31 @@ export default function Home() {
                 </Card>
               </div>
             </motion.div>
-          </TabsContent>
+          </FloatingDockTabsContent>
 
           {/* RANKING TAB */}
-          <TabsContent value="ranking" className="mt-0">
+          <FloatingDockTabsContent value="ranking" className="mt-0">
             <RankingView
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
             />
-          </TabsContent>
+          </FloatingDockTabsContent>
 
           {/* ACHIEVEMENTS TAB */}
-          <TabsContent value="conquistas" className="mt-0">
+          <FloatingDockTabsContent value="conquistas" className="mt-0">
             <AchievementsView />
-          </TabsContent>
+          </FloatingDockTabsContent>
 
           {/* ESTRUTURA TAB */}
-          <TabsContent value="estrutura" className="mt-0">
+          <FloatingDockTabsContent value="estrutura" className="mt-0">
             <TurmaView type="estrutura" />
-          </TabsContent>
+          </FloatingDockTabsContent>
 
           {/* ESCALA TAB */}
-          <TabsContent value="escala" className="mt-0">
+          <FloatingDockTabsContent value="escala" className="mt-0">
             <TurmaView type="escala" />
-          </TabsContent>
-        </Tabs>
+          </FloatingDockTabsContent>
+        </FloatingDockTabs>
       </motion.div>
     </DashboardLayout>
   );

@@ -5,7 +5,17 @@ import { TaskBoard } from "@/components/dashboard/TaskBoard";
 import { ClassList } from "@/components/dashboard/ClassList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, TrendingUp } from "lucide-react";
+import {
+  AlertCircle,
+  TrendingUp,
+  LayoutDashboard,
+  Stethoscope,
+  TrendingUp as TrendingUpIcon,
+  Users,
+  Target,
+  BookOpen,
+  CheckSquare,
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NeonCard } from "@/components/ui/neon-card";
@@ -16,11 +26,10 @@ import { useState } from "react";
 import { NotificationsView } from "@/components/dashboard/NotificationsView";
 import { SubmitMetricsForm } from "@/components/dashboard/SubmitMetricsForm";
 import {
-  AnimatedTabs,
-  AnimatedTabsList,
-  AnimatedTabsTrigger,
-} from "@/components/ui/animated-tabs";
-import { TabsContent } from "@/components/ui/tabs";
+  FloatingDockTabs,
+  FloatingDockTabsList,
+  FloatingDockTabsContent,
+} from "@/components/ui/floating-dock-tabs";
 import { ComparativoView } from "@/components/dashboard/ComparativoView";
 import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
 import { PlaybookView } from "@/components/dashboard/PlaybookView";
@@ -165,53 +174,51 @@ export default function MyDashboard() {
           </div>
         </div>
 
-        <AnimatedTabs defaultValue="visao-geral" className="w-full space-y-6">
-          <AnimatedTabsList className="bg-black/40 border border-white/5 p-1 flex-wrap h-auto min-h-[44px] gap-1">
-            <AnimatedTabsTrigger
-              value="visao-geral"
-              className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple-light"
-            >
-              Visão Geral
-            </AnimatedTabsTrigger>
-            <AnimatedTabsTrigger
-              value="diagnostico"
-              className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400"
-            >
-              Diagnóstico
-            </AnimatedTabsTrigger>
-            <AnimatedTabsTrigger
-              value="evolucao"
-              className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400"
-            >
-              Evolução
-            </AnimatedTabsTrigger>
-            <AnimatedTabsTrigger
-              value="comparativo"
-              className="data-[state=active]:bg-neon-blue/20 data-[state=active]:text-neon-blue-light"
-            >
-              Comparativo da Turma
-            </AnimatedTabsTrigger>
-            <AnimatedTabsTrigger
-              value="lancar-metricas"
-              className="data-[state=active]:bg-neon-gold/20 data-[state=active]:text-neon-gold"
-            >
-              Lançar Métricas
-            </AnimatedTabsTrigger>
-            <AnimatedTabsTrigger
-              value="jornada"
-              className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400"
-            >
-              Playbook
-            </AnimatedTabsTrigger>
-            <AnimatedTabsTrigger
-              value="atividades"
-              className="data-[state=active]:bg-pink-500/20 data-[state=active]:text-pink-400"
-            >
-              Atividades
-            </AnimatedTabsTrigger>
-          </AnimatedTabsList>
+        <FloatingDockTabs
+          defaultValue="visao-geral"
+          className="w-full space-y-6"
+        >
+          <FloatingDockTabsList
+            tabs={[
+              {
+                value: "visao-geral",
+                label: "Visão Geral",
+                icon: <LayoutDashboard className="h-5 w-5 text-white/80" />,
+              },
+              {
+                value: "diagnostico",
+                label: "Diagnóstico",
+                icon: <Stethoscope className="h-5 w-5 text-purple-400" />,
+              },
+              {
+                value: "evolucao",
+                label: "Evolução",
+                icon: <TrendingUpIcon className="h-5 w-5 text-blue-400" />,
+              },
+              {
+                value: "comparativo",
+                label: "Comparativo",
+                icon: <Users className="h-5 w-5 text-cyan-400" />,
+              },
+              {
+                value: "lancar-metricas",
+                label: "Lançar Métricas",
+                icon: <Target className="h-5 w-5 text-yellow-400" />,
+              },
+              {
+                value: "jornada",
+                label: "Playbook",
+                icon: <BookOpen className="h-5 w-5 text-green-400" />,
+              },
+              {
+                value: "atividades",
+                label: "Atividades",
+                icon: <CheckSquare className="h-5 w-5 text-pink-400" />,
+              },
+            ]}
+          />
 
-          <TabsContent
+          <FloatingDockTabsContent
             value="visao-geral"
             className="space-y-6 animate-in slide-in-from-left-4 duration-300"
           >
@@ -331,9 +338,9 @@ export default function MyDashboard() {
                 <ClassList mentoradoId={targetMentoradoId} />
               </section>
             </div>
-          </TabsContent>
+          </FloatingDockTabsContent>
 
-          <TabsContent
+          <FloatingDockTabsContent
             value="evolucao"
             className="animate-in slide-in-from-right-4 duration-300"
           >
@@ -342,9 +349,9 @@ export default function MyDashboard() {
                 <EvolucaoView mentoradoId={targetMentoradoId} />
               </NeonCard>
             </div>
-          </TabsContent>
+          </FloatingDockTabsContent>
 
-          <TabsContent
+          <FloatingDockTabsContent
             value="comparativo"
             className="animate-in slide-in-from-right-4 duration-300"
           >
@@ -353,9 +360,9 @@ export default function MyDashboard() {
                 <ComparativoView />
               </NeonCard>
             </div>
-          </TabsContent>
+          </FloatingDockTabsContent>
 
-          <TabsContent
+          <FloatingDockTabsContent
             value="diagnostico"
             className="animate-in slide-in-from-right-4 duration-300"
           >
@@ -366,9 +373,9 @@ export default function MyDashboard() {
                 <DiagnosticoForm />
               )}
             </div>
-          </TabsContent>
+          </FloatingDockTabsContent>
 
-          <TabsContent
+          <FloatingDockTabsContent
             value="lancar-metricas"
             className="animate-in zoom-in-95 duration-300"
           >
@@ -386,9 +393,9 @@ export default function MyDashboard() {
                 <SubmitMetricsForm className="bg-transparent" />
               </NeonCard>
             </div>
-          </TabsContent>
+          </FloatingDockTabsContent>
 
-          <TabsContent
+          <FloatingDockTabsContent
             value="jornada"
             className="animate-in slide-in-from-bottom-4 duration-300"
           >
@@ -397,9 +404,9 @@ export default function MyDashboard() {
                 <PlaybookView turma={currentMentorado?.turma} />
               </NeonCard>
             </div>
-          </TabsContent>
+          </FloatingDockTabsContent>
 
-          <TabsContent
+          <FloatingDockTabsContent
             value="atividades"
             className="animate-in slide-in-from-bottom-4 duration-300"
           >
@@ -408,8 +415,8 @@ export default function MyDashboard() {
                 <AtividadesContent />
               </NeonCard>
             </div>
-          </TabsContent>
-        </AnimatedTabs>
+          </FloatingDockTabsContent>
+        </FloatingDockTabs>
       </div>
     </DashboardLayout>
   );

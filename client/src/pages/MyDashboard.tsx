@@ -8,13 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
   TrendingUp,
-  LayoutDashboard,
-  Stethoscope,
-  TrendingUp as TrendingUpIcon,
-  Users,
-  Target,
-  BookOpen,
-  CheckSquare,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -183,37 +176,30 @@ export default function MyDashboard() {
               {
                 value: "visao-geral",
                 label: "Visão Geral",
-                icon: <LayoutDashboard className="h-5 w-5 text-white/80" />,
               },
               {
                 value: "diagnostico",
                 label: "Diagnóstico",
-                icon: <Stethoscope className="h-5 w-5 text-purple-400" />,
               },
               {
                 value: "evolucao",
                 label: "Evolução",
-                icon: <TrendingUpIcon className="h-5 w-5 text-blue-400" />,
               },
               {
                 value: "comparativo",
-                label: "Comparativo",
-                icon: <Users className="h-5 w-5 text-cyan-400" />,
+                label: "Comparativo da Turma",
               },
               {
                 value: "lancar-metricas",
                 label: "Lançar Métricas",
-                icon: <Target className="h-5 w-5 text-yellow-400" />,
               },
               {
                 value: "jornada",
                 label: "Playbook",
-                icon: <BookOpen className="h-5 w-5 text-green-400" />,
               },
               {
                 value: "atividades",
                 label: "Atividades",
-                icon: <CheckSquare className="h-5 w-5 text-pink-400" />,
               },
             ]}
           />

@@ -17,15 +17,10 @@ import {
   Cell,
 } from "recharts";
 import {
-  Users,
   TrendingUp,
   DollarSign,
   Award,
-  LayoutDashboard,
   BarChart3,
-  Trophy,
-  Building2,
-  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MonthYearFilter from "@/components/MonthYearFilter";

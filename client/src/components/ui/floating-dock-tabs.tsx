@@ -20,7 +20,6 @@ const FloatingDockTabsContext = createContext<{
 export interface FloatingDockTabItem {
   value: string;
   label: string;
-  icon: React.ReactNode;
 }
 
 interface FloatingDockTabsProps {
@@ -51,7 +50,6 @@ function useDockItemAnimation(
 
   const widthSync = useTransform(distance, [-150, 0, 150], [48, 72, 48]);
   const heightSync = useTransform(distance, [-150, 0, 150], [48, 72, 48]);
-  const iconScale = useTransform(distance, [-150, 0, 150], [1, 1.3, 1]);
 
   const width = useSpring(widthSync, {
     mass: 0.1,
@@ -70,7 +68,6 @@ function useDockItemAnimation(
     setIsHovered,
     width,
     height,
-    iconScale,
   };
 }
 
@@ -86,26 +83,11 @@ function DockTabItem({
   isActive: boolean;
   onClick: () => void;
 }) {
-  const { ref, isHovered, setIsHovered, width, height, iconScale } =
+  const { ref, isHovered, setIsHovered, width, height } =
     useDockItemAnimation(mouseX);
 
   return (
     <div className="relative">
-      {/* Tooltip */}
-      {isHovered && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap z-50"
-        >
-          <div className="bg-black/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 shadow-xl">
-            {tab.label}
-          </div>
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black/80" />
-        </motion.div>
-      )}
-
       <motion.button
         ref={ref}
         onClick={onClick}
@@ -114,32 +96,34 @@ function DockTabItem({
         style={{ width, height }}
         className={cn(
           "relative flex items-center justify-center rounded-2xl transition-colors duration-200",
+          "px-4 py-2 font-medium whitespace-nowrap",
+          "ring-0 outline-none focus-visible:ring-0",
           "hover:bg-white/10",
           isActive
-            ? "bg-white/15 ring-2 ring-neon-purple/50 shadow-[0_0_20px_rgba(139,92,246,0.3)]"
-            : "bg-white/5"
+            ? "bg-neon-petroleo/20 dark:bg-neon-blue-light/20"
+            : "bg-transparent"
         )}
       >
         {/* Active indicator background */}
         {isActive && (
           <motion.div
             layoutId="activeDockTab"
-            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-neon-purple/20 to-transparent"
+            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-neon-petroleo/30 to-neon-petroleo-light/20 dark:from-neon-blue-light/30 dark:to-neon-gold-bright/10 border border-neon-petroleo/30 dark:border-neon-blue-light/30"
             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
           />
         )}
 
-        {/* Icon with scale effect */}
-        <motion.div style={{ scale: iconScale }} className="relative z-10">
-          {tab.icon}
-        </motion.div>
+        {/* Label text */}
+        <span className="relative z-10 text-sm text-slate-700 dark:text-slate-200">
+          {tab.label}
+        </span>
 
         {/* Active dot */}
         {isActive && (
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-neon-purple"
+            className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-neon-petroleo dark:bg-neon-gold-bright"
           />
         )}
       </motion.button>
@@ -219,8 +203,8 @@ const FloatingDockTabsList = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "relative flex items-center justify-center gap-2 px-4 py-3 rounded-2xl backdrop-blur-md",
-        "bg-black/40 border border-white/10",
+        "relative flex items-center justify-center gap-2 px-4 py-3 rounded-2xl backdrop-blur-md overflow-hidden",
+        "bg-white/50 dark:bg-black/40 border border-slate-200/20 dark:border-slate-700/30",
         className
       )}
       onMouseMove={e => mouseX.set(e.clientX)}
@@ -231,7 +215,7 @@ const FloatingDockTabsList = React.forwardRef<
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 rounded-full bg-black/40 hover:bg-black/60"
+          className="h-8 w-8 shrink-0 rounded-full bg-white/60 dark:bg-black/40 hover:bg-white/80 dark:hover:bg-black/60 ring-0 outline-none focus-visible:ring-0"
           onClick={() => scroll("left")}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -264,7 +248,7 @@ const FloatingDockTabsList = React.forwardRef<
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 rounded-full bg-black/40 hover:bg-black/60"
+          className="h-8 w-8 shrink-0 rounded-full bg-white/60 dark:bg-black/40 hover:bg-white/80 dark:hover:bg-black/60 ring-0 outline-none focus-visible:ring-0"
           onClick={() => scroll("right")}
         >
           <ChevronRight className="h-4 w-4" />

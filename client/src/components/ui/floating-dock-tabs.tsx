@@ -83,8 +83,7 @@ function DockTabItem({
   isActive: boolean;
   onClick: () => void;
 }) {
-  const { ref, isHovered, setIsHovered, width, height } =
-    useDockItemAnimation(mouseX);
+  const { ref, setIsHovered, width, height } = useDockItemAnimation(mouseX);
 
   return (
     <div className="relative">
@@ -96,36 +95,31 @@ function DockTabItem({
         style={{ width, height }}
         className={cn(
           "relative flex items-center justify-center rounded-2xl transition-colors duration-200",
-          "px-4 py-2 font-medium whitespace-nowrap",
-          "ring-0 outline-none focus-visible:ring-0",
-          "hover:bg-white/10",
-          isActive
-            ? "bg-neon-petroleo/20 dark:bg-neon-blue-light/20"
-            : "bg-transparent"
+          "px-6 py-3 font-medium whitespace-nowrap",
+          "ring-0 outline-none focus-visible:ring-0 focus:outline-none focus:ring-0",
+          "hover:bg-white/10 dark:hover:bg-white/5"
         )}
       >
         {/* Active indicator background */}
         {isActive && (
           <motion.div
             layoutId="activeDockTab"
-            className="absolute inset-0 rounded-2xl bg-gradient-to-br from-neon-petroleo/30 to-neon-petroleo-light/20 dark:from-neon-blue-light/30 dark:to-neon-gold-bright/10 border border-neon-petroleo/30 dark:border-neon-blue-light/30"
+            className="absolute inset-0 rounded-2xl bg-neon-petroleo dark:bg-neon-gold-bright shadow-inner"
             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
           />
         )}
 
         {/* Label text */}
-        <span className="relative z-10 text-sm text-slate-700 dark:text-slate-200">
+        <span
+          className={cn(
+            "relative z-10 text-sm font-medium whitespace-nowrap",
+            isActive
+              ? "text-white dark:text-black"
+              : "text-slate-700 dark:text-slate-200"
+          )}
+        >
           {tab.label}
         </span>
-
-        {/* Active dot */}
-        {isActive && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-neon-petroleo dark:bg-neon-gold-bright"
-          />
-        )}
       </motion.button>
     </div>
   );
@@ -204,7 +198,7 @@ const FloatingDockTabsList = React.forwardRef<
       ref={ref}
       className={cn(
         "relative flex items-center justify-center gap-2 px-4 py-3 rounded-2xl backdrop-blur-md overflow-hidden",
-        "bg-white/50 dark:bg-black/40 border border-slate-200/20 dark:border-slate-700/30",
+        "bg-white/50 dark:bg-black/40 border border-slate-200/20 dark:border-slate-700/30 shadow-sm",
         className
       )}
       onMouseMove={e => mouseX.set(e.clientX)}
@@ -215,7 +209,7 @@ const FloatingDockTabsList = React.forwardRef<
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 rounded-full bg-white/60 dark:bg-black/40 hover:bg-white/80 dark:hover:bg-black/60 ring-0 outline-none focus-visible:ring-0"
+          className="h-8 w-8 shrink-0 rounded-full bg-white/60 dark:bg-black/40 hover:bg-white/80 dark:hover:bg-black/60 ring-0 outline-none focus-visible:ring-0 focus:outline-none focus:ring-0"
           onClick={() => scroll("left")}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -248,7 +242,7 @@ const FloatingDockTabsList = React.forwardRef<
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 rounded-full bg-white/60 dark:bg-black/40 hover:bg-white/80 dark:hover:bg-black/60 ring-0 outline-none focus-visible:ring-0"
+          className="h-8 w-8 shrink-0 rounded-full bg-white/60 dark:bg-black/40 hover:bg-white/80 dark:hover:bg-black/60 ring-0 outline-none focus-visible:ring-0 focus:outline-none focus:ring-0"
           onClick={() => scroll("right")}
         >
           <ChevronRight className="h-4 w-4" />

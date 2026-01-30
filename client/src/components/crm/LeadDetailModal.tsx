@@ -18,6 +18,16 @@ import {
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
 import { AddInteractionDialog } from "./AddInteractionDialog";
+import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { useEffect } from "react";
 
 interface LeadDetailModalProps {
   leadId: number | null;
@@ -29,11 +39,54 @@ interface LeadDetailModalProps {
 export function LeadDetailModal({ leadId, isOpen, onClose, isReadOnly = false }: LeadDetailModalProps) {
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
   const [interactionType, setInteractionType] = useState<any>("nota");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+
+  const utils = trpc.useUtils();
 
   const { data, isLoading, refetch } = trpc.leads.getById.useQuery(
     { id: leadId! },
     { enabled: !!leadId }
   );
+
+  useEffect(() => {
+    if (data?.lead && !isEditing) {
+      setEditData({
+        nome: data.lead.nome,
+        email: data.lead.email,
+        telefone: data.lead.telefone || "",
+        empresa: data.lead.empresa || "",
+        valorEstimado: (data.lead.valorEstimado || 0) / 100,
+        origem: data.lead.origem || "outro",
+        status: data.lead.status || "novo",
+        tags: data.lead.tags || [],
+      });
+    }
+  }, [data, isEditing]);
+
+  const updateMutation = trpc.leads.update.useMutation({
+    onSuccess: () => {
+      toast.success("Lead atualizado com sucesso");
+      setIsEditing(false);
+      utils.leads.getById.invalidate({ id: leadId! });
+      utils.leads.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error("Erro ao atualizar lead: " + error.message);
+    }
+  });
+
+  const handleSave = () => {
+    if (!editData.nome || !editData.email) {
+      toast.error("Nome e Email são obrigatórios");
+      return;
+    }
+    updateMutation.mutate({
+      id: leadId!,
+      ...editData,
+      valorEstimado: Math.round(editData.valorEstimado * 100),
+    });
+  };
 
   const handleQuickAction = (type: string) => {
     setInteractionType(type);
@@ -68,7 +121,7 @@ export function LeadDetailModal({ leadId, isOpen, onClose, isReadOnly = false }:
   return (
     <>
       <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent side="right" className="w-[100%] sm:w-[540px] md:w-[600px] p-0 gap-0 sm:max-w-[600px]">
+        <SheetContent side="right" className="w-[100%] sm:w-[540px] md:w-[600px] p-0 gap-0 sm:max-w-[600px] bg-card border-l border-border/40 shadow-2xl">
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -76,31 +129,91 @@ export function LeadDetailModal({ leadId, isOpen, onClose, isReadOnly = false }:
           ) : data ? (
             <>
               {/* Header Fixado */}
-              <div className="p-6 pb-4 border-b bg-background/50 backdrop-blur-sm z-10">
+              <div className="p-6 pb-4 border-b bg-background z-10">
                 <SheetHeader className="space-y-4">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <SheetTitle className="text-2xl font-bold tracking-tight">{data.lead.nome}</SheetTitle>
-                        <Badge variant="outline" className={getStatusColor(data.lead.status)}>
-                          {data.lead.status ? data.lead.status.replace(/_/g, " ") : "Novo"}
+                        {isEditing ? (
+                          <Input 
+                            value={editData.nome}
+                            onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
+                            className="text-2xl font-bold tracking-tight h-auto py-1 px-2 -ml-2 bg-transparent border-primary/20 focus:border-primary"
+                          />
+                        ) : (
+                          <SheetTitle className="text-2xl font-bold tracking-tight">{data.lead.nome}</SheetTitle>
+                        )}
+                        <Badge variant="outline" className={getStatusColor(isEditing ? editData.status : data.lead.status)}>
+                          {isEditing ? (
+                            <Select 
+                              value={editData.status} 
+                              onValueChange={(val) => setEditData({ ...editData, status: val })}
+                            >
+                              <SelectTrigger className="h-6 border-none p-0 bg-transparent focus:ring-0">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="novo">Novo</SelectItem>
+                                <SelectItem value="primeiro_contato">Contato</SelectItem>
+                                <SelectItem value="qualificado">Qualificado</SelectItem>
+                                <SelectItem value="proposta">Proposta</SelectItem>
+                                <SelectItem value="negociacao">Negociação</SelectItem>
+                                <SelectItem value="fechado">Fechado</SelectItem>
+                                <SelectItem value="perdido">Perdido</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            data.lead.status ? data.lead.status.replace(/_/g, " ") : "Novo"
+                          )}
                         </Badge>
                       </div>
                       <SheetDescription className="text-base flex items-center gap-2">
-                         {data.lead.empresa && <span className="font-medium text-foreground/80">{data.lead.empresa}</span>}
-                         {data.lead.empresa && <span className="text-muted-foreground">•</span>}
-                         <span>{data.lead.email}</span>
+                         {isEditing ? (
+                           <>
+                            <Input 
+                              value={editData.empresa}
+                              onChange={(e) => setEditData({ ...editData, empresa: e.target.value })}
+                              placeholder="Empresa"
+                              className="h-8 py-0 px-2 bg-transparent border-muted-foreground/20"
+                            />
+                            <Input 
+                              value={editData.email}
+                              onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                              placeholder="Email"
+                              className="h-8 py-0 px-2 bg-transparent border-muted-foreground/20"
+                            />
+                           </>
+                         ) : (
+                           <>
+                            {data.lead.empresa && <span className="font-medium text-foreground/80">{data.lead.empresa}</span>}
+                            {data.lead.empresa && <span className="text-muted-foreground">•</span>}
+                            <span>{data.lead.email}</span>
+                           </>
+                         )}
                       </SheetDescription>
                     </div>
                     
                     {!isReadOnly && (
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => {/* Edit */}}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <div className="flex gap-2">
+                          {isEditing ? (
+                            <>
+                              <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
+                                Cancelar
+                              </Button>
+                              <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
+                                {updateMutation.isPending ? "Salvando..." : "Salvar"}
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                     )}
                   </div>
@@ -149,36 +262,82 @@ export function LeadDetailModal({ leadId, isOpen, onClose, isReadOnly = false }:
                           <div className="grid grid-cols-2 gap-x-12 gap-y-6">
                               <div className="space-y-1">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Valor Estimado</Label>
-                                  <div className="text-xl font-medium tracking-tight">
-                                      {data.lead.valorEstimado 
-                                          ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(data.lead.valorEstimado / 100)
-                                          : <span className="text-muted-foreground text-base">Não definido</span>}
-                                  </div>
+                                  {isEditing ? (
+                                    <Input 
+                                      type="number"
+                                      value={editData.valorEstimado}
+                                      onChange={(e) => setEditData({ ...editData, valorEstimado: parseFloat(e.target.value) })}
+                                      className="bg-transparent border-muted-foreground/20"
+                                    />
+                                  ) : (
+                                    <div className="text-xl font-medium tracking-tight">
+                                        {data.lead.valorEstimado 
+                                            ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(data.lead.valorEstimado / 100)
+                                            : <span className="text-muted-foreground text-base">Não definido</span>}
+                                    </div>
+                                  )}
                               </div>
                               <div className="space-y-1">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Origem</Label>
-                                  <div className="capitalize font-medium">{data.lead.origem || "-"}</div>
+                                  {isEditing ? (
+                                    <Select 
+                                      value={editData.origem} 
+                                      onValueChange={(val) => setEditData({ ...editData, origem: val })}
+                                    >
+                                      <SelectTrigger className="bg-transparent border-muted-foreground/20">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                                        <SelectItem value="instagram">Instagram</SelectItem>
+                                        <SelectItem value="google">Google</SelectItem>
+                                        <SelectItem value="indicacao">Indicação</SelectItem>
+                                        <SelectItem value="site">Site</SelectItem>
+                                        <SelectItem value="outro">Outro</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <div className="capitalize font-medium">{data.lead.origem || "-"}</div>
+                                  )}
                               </div>
                               <div className="space-y-1 col-span-2">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Telefone</Label>
-                                  <div className="flex items-center gap-2 font-medium">
-                                      {data.lead.telefone ? (
-                                        <>
-                                           <Phone className="h-4 w-4 text-muted-foreground" />
-                                           <span>{data.lead.telefone}</span>
-                                        </>
-                                      ) : "-"}
-                                  </div>
+                                  {isEditing ? (
+                                    <Input 
+                                      value={editData.telefone}
+                                      onChange={(e) => setEditData({ ...editData, telefone: e.target.value })}
+                                      placeholder="(00) 00000-0000"
+                                      className="bg-transparent border-muted-foreground/20"
+                                    />
+                                  ) : (
+                                    <div className="flex items-center gap-2 font-medium">
+                                        {data.lead.telefone ? (
+                                          <>
+                                             <Phone className="h-4 w-4 text-muted-foreground" />
+                                             <span>{data.lead.telefone}</span>
+                                          </>
+                                        ) : "-"}
+                                    </div>
+                                  )}
                               </div>
                               <div className="space-y-3 col-span-2">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Tags</Label>
-                                  <div className="flex flex-wrap gap-2">
-                                      {data.lead.tags?.length ? data.lead.tags.map(tag => (
-                                          <Badge key={tag} variant="secondary" className="px-2 py-0.5 text-xs font-normal border-transparent bg-secondary/50 hover:bg-secondary">
-                                            {tag}
-                                          </Badge>
-                                      )) : <span className="text-sm text-muted-foreground italic">Sem tags</span>}
-                                  </div>
+                                  {isEditing ? (
+                                    <Input 
+                                      value={editData.tags.join(", ")}
+                                      onChange={(e) => setEditData({ ...editData, tags: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+                                      placeholder="tag1, tag2..."
+                                      className="bg-transparent border-muted-foreground/20"
+                                    />
+                                  ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {data.lead.tags?.length ? data.lead.tags.map(tag => (
+                                            <Badge key={tag} variant="secondary" className="px-2 py-0.5 text-xs font-normal border-transparent bg-secondary/50 hover:bg-secondary">
+                                              {tag}
+                                            </Badge>
+                                        )) : <span className="text-sm text-muted-foreground italic">Sem tags</span>}
+                                    </div>
+                                  )}
                               </div>
                           </div>
                       </TabsContent>

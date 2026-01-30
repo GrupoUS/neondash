@@ -68,8 +68,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div
       className={cn(
-        "flex flex-col md:flex-row bg-muted/40 dark:bg-muted/40 w-full flex-1 mx-auto border border-border overflow-hidden",
-        "h-screen" 
+        "flex flex-col md:flex-row bg-background w-full flex-1 mx-auto border-none overflow-hidden",
+        "h-screen"
       )}
     >
       <Sidebar open={open} setOpen={setOpen}>

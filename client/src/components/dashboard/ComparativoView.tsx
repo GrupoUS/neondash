@@ -359,32 +359,38 @@ export function ComparativoView() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={comparisonData} layout="vertical" margin={{ left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={true} vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={true} vertical={false} />
                     <XAxis type="number" tick={{ fontSize: 10 }} hide />
                     <YAxis
                       dataKey="metric"
                       type="category"
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       width={80}
                       axisLine={false}
                       tickLine={false}
                     />
                     <Tooltip
                       cursor={{ fill: 'transparent' }}
-                      contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
+                      contentStyle={{ 
+                        borderRadius: '8px', 
+                        fontSize: '12px',
+                        backgroundColor: "hsl(var(--card))",
+                        borderColor: "hsl(var(--border))",
+                        color: "hsl(var(--foreground))"
+                      }}
                     />
                     <Legend iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
                     <Bar
                       dataKey="voce"
                       name="Você"
-                      fill="#1e3a5f"
+                      fill="var(--color-neon-blue)"
                       radius={[0, 4, 4, 0]}
                       barSize={12}
                     />
                     <Bar
                       dataKey="turma"
                       name="Média"
-                      fill="#c9a227"
+                      fill="var(--color-neon-gold)"
                       radius={[0, 4, 4, 0]}
                       barSize={12}
                     />
@@ -400,10 +406,10 @@ export function ComparativoView() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
                   <RadarChart data={radarData} outerRadius={80}>
-                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarGrid stroke="hsl(var(--border))" />
                     <PolarAngleAxis
                       dataKey="subject"
-                      tick={{ fontSize: 10 }}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                     />
                     <PolarRadiusAxis
                       angle={30}
@@ -414,15 +420,15 @@ export function ComparativoView() {
                     <Radar
                       name="Você"
                       dataKey="voce"
-                      stroke="#1e3a5f"
-                      fill="#1e3a5f"
+                      stroke="var(--color-neon-blue)"
+                      fill="var(--color-neon-blue)"
                       fillOpacity={0.4}
                     />
                     <Radar
                       name="Média"
                       dataKey="turma"
-                      stroke="#c9a227"
-                      fill="#c9a227"
+                      stroke="var(--color-neon-gold)"
+                      fill="var(--color-neon-gold)"
                       fillOpacity={0.2}
                     />
                     <Legend iconSize={8} wrapperStyle={{ fontSize: '11px' }} />

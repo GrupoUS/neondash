@@ -67,13 +67,13 @@ export function EvolutionChart({ mentoradoId }: EvolutionChartProps) {
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis
               dataKey="name"
-              stroke="#888888"
+              stroke="hsl(var(--muted-foreground))"
               fontSize={12}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
-              stroke="#888888"
+              stroke="hsl(var(--muted-foreground))"
               fontSize={12}
               tickLine={false}
               axisLine={false}
@@ -92,7 +92,7 @@ export function EvolutionChart({ mentoradoId }: EvolutionChartProps) {
             <Line
               type="monotone"
               dataKey="Faturamento"
-              stroke="#2563eb" // Blue-600
+              stroke="var(--color-neon-blue)"
               strokeWidth={2}
               dot={{ r: 4 }}
               activeDot={{ r: 8 }}
@@ -100,7 +100,7 @@ export function EvolutionChart({ mentoradoId }: EvolutionChartProps) {
             <Line
               type="monotone"
               dataKey="Lucro"
-              stroke="#16a34a" // Green-600
+              stroke="var(--color-neon-gold)"
               strokeWidth={2}
               dot={{ r: 4 }}
               activeDot={{ r: 8 }}

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
@@ -16,16 +17,20 @@ import {
   Briefcase,
   LogOut,
   Building2,
-  Rocket
+  Rocket,
+  Moon,
+  Sun
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useTheme } from "@/_core/hooks/useTheme";
 import { Link, useLocation, Redirect } from "wouter";
 import { UserButton } from "@clerk/clerk-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
 
@@ -95,7 +100,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <div className="flex flex-col gap-2">
-             <div className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50 transition-colors">
+            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50 transition-colors">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={toggleTheme}
+                className="h-7 w-7 flex-shrink-0"
+                aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}
+              >
+                {theme === "light" ? (
+                  <Moon className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                ) : (
+                  <Sun className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                )}
+              </Button>
+              {open && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-sm text-neutral-700 dark:text-neutral-200 whitespace-pre cursor-pointer"
+                  onClick={toggleTheme}
+                >
+                  {theme === "light" ? "Modo Escuro" : "Modo Claro"}
+                </motion.span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50 transition-colors">
                 <div className="h-7 w-7 flex-shrink-0 flex items-center justify-center">
                    <UserButton afterSignOutUrl="/" />
                 </div>

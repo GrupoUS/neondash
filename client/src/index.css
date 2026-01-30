@@ -84,7 +84,7 @@
   --secondary: 210 40% 96.1%; /* Slate 100 */
   --secondary-foreground: 222 47% 11%;
 
-  --muted: 210 40% 96.1%;
+  --muted: 214 32% 91%; /* Slate 200 - Increased contrast for light mode */
   --muted-foreground: 215 16% 47%; /* Slate 500 - slightly darker for readability */
 
   --accent: 210 40% 96.1%;

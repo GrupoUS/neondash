@@ -32,17 +32,17 @@ export default function MentoradoCard({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-neon-green";
-    if (score >= 60) return "text-blue-500";
-    if (score >= 40) return "text-yellow-500";
-    return "text-neon-pink";
+    if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
+    if (score >= 60) return "text-blue-600 dark:text-blue-400";
+    if (score >= 40) return "text-amber-600 dark:text-amber-400";
+    return "text-red-600 dark:text-red-400";
   };
 
   const getProgressColor = (percent: number) => {
-    if (percent >= 100) return "bg-neon-green";
+    if (percent >= 100) return "bg-emerald-500";
     if (percent >= 70) return "bg-blue-500";
-    if (percent >= 40) return "bg-yellow-500";
-    return "bg-neon-pink";
+    if (percent >= 40) return "bg-amber-500";
+    return "bg-red-500";
   };
 
   return (
@@ -62,12 +62,12 @@ export default function MentoradoCard({
                 className={cn(
                   "text-[10px] font-medium px-2 py-0.5",
                   data.classificacao === "Excelente"
-                    ? "bg-neon-green/10 text-neon-green-dark"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
                     : data.classificacao === "Bom"
-                      ? "bg-blue-50 text-blue-600"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200 dark:border-blue-800"
                       : data.classificacao === "Regular"
-                        ? "bg-yellow-50 text-yellow-600"
-                        : "bg-red-50 text-red-600"
+                        ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+                        : "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400 border-red-200 dark:border-red-800"
                 )}
               >
                 {data.classificacao}

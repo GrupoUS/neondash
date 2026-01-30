@@ -21,44 +21,44 @@ export function NeonCRM({ mentoradoId }: { mentoradoId?: number }) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <NeonCard className="p-4 border-neon-blue/20 bg-slate-950/50">
+        <NeonCard className="p-4 border-neon-blue/20 bg-card hover:border-neon-blue/50 transition-colors">
           <div className="flex flex-col">
-            <span className="text-xs text-slate-400 font-mono uppercase">Leads Ativos</span>
+            <span className="text-xs text-muted-foreground font-mono uppercase">Leads Ativos</span>
             <div className="flex items-center gap-2 mt-1">
               <Users className="w-4 h-4 text-neon-blue" />
-              <span className="text-2xl font-bold text-white">{stats?.totalAtivos || 0}</span>
+              <span className="text-2xl font-bold text-foreground">{stats?.totalAtivos || 0}</span>
             </div>
           </div>
         </NeonCard>
 
-        <NeonCard className="p-4 border-neon-gold/20 bg-slate-950/50">
+        <NeonCard className="p-4 border-neon-gold/20 bg-card hover:border-neon-gold/50 transition-colors">
           <div className="flex flex-col">
-            <span className="text-xs text-slate-400 font-mono uppercase">Pipeline (R$)</span>
+            <span className="text-xs text-muted-foreground font-mono uppercase">Pipeline (R$)</span>
             <div className="flex items-center gap-2 mt-1">
               <DollarSign className="w-4 h-4 text-neon-gold" />
-              <span className="text-2xl font-bold text-white">
+              <span className="text-2xl font-bold text-foreground">
                 {stats?.valorPipeline?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00'}
               </span>
             </div>
           </div>
         </NeonCard>
 
-        <NeonCard className="p-4 border-purple-500/20 bg-slate-950/50">
+        <NeonCard className="p-4 border-purple-500/20 bg-card hover:border-purple-500/50 transition-colors">
           <div className="flex flex-col">
-            <span className="text-xs text-slate-400 font-mono uppercase">Conversão</span>
+            <span className="text-xs text-muted-foreground font-mono uppercase">Conversão</span>
             <div className="flex items-center gap-2 mt-1">
               <TrendingUp className="w-4 h-4 text-purple-500" />
-              <span className="text-2xl font-bold text-white">{stats?.taxaConversao?.toFixed(1) || 0}%</span>
+              <span className="text-2xl font-bold text-foreground">{stats?.taxaConversao?.toFixed(1) || 0}%</span>
             </div>
           </div>
         </NeonCard>
 
-        <NeonCard className="p-4 border-emerald-500/20 bg-slate-950/50">
+        <NeonCard className="p-4 border-emerald-500/20 bg-card hover:border-emerald-500/50 transition-colors">
           <div className="flex flex-col">
-            <span className="text-xs text-slate-400 font-mono uppercase">Tempo Médio</span>
+            <span className="text-xs text-muted-foreground font-mono uppercase">Tempo Médio</span>
             <div className="flex items-center gap-2 mt-1">
               <Activity className="w-4 h-4 text-emerald-500" />
-              <span className="text-2xl font-bold text-white">{stats?.tempoMedioFechamento || 0}d</span>
+              <span className="text-2xl font-bold text-foreground">{stats?.tempoMedioFechamento || 0}d</span>
             </div>
           </div>
         </NeonCard>

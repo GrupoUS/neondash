@@ -122,10 +122,10 @@ Cada arquivo de plano contém:
 
 O projeto segue o **Design System Master** definido em [`DESIGN_SYSTEM_MASTER.md`](./DESIGN_SYSTEM_MASTER.md), que inclui:
 
-*   **Paleta de Cores:** Ouro (`#F59E0B`), Roxo (`#8B5CF6`), Azul Claro (`#0ea5e9`), Azul Petróleo (`#0d4f5a`), Fundo Escuro (`#0F172A`), Texto Claro (`#F8FAFC`).
-*   **Tipografia:** Plus Jakarta Sans (Heading e Body).
-*   **Efeitos:** Minimal glow, transições suaves, foco visível.
-*   **Acessibilidade:** Contraste WCAG AAA para elementos críticos.
+- **Paleta de Cores:** Ouro (`#F59E0B`), Roxo (`#8B5CF6`), Azul Claro (`#0ea5e9`), Azul Petróleo (`#0d4f5a`), Fundo Escuro (`#0F172A`), Texto Claro (`#F8FAFC`).
+- **Tipografia:** Plus Jakarta Sans (Heading e Body).
+- **Efeitos:** Minimal glow, transições suaves, foco visível.
+- **Acessibilidade:** Contraste WCAG AAA para elementos críticos.
 
 ---
 

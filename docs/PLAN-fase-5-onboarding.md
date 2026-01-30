@@ -30,7 +30,9 @@
 
 ```markdown
 # ROLE: Fullstack Engineer
+
 # CONTEXT: Projeto NeonDash (React + tRPC + Drizzle)
+
 # TASK: Criar página e fluxo de Onboarding
 
 1.  Crie o arquivo `client/src/pages/Onboarding.tsx`.

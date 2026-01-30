@@ -5,10 +5,7 @@ import { TaskBoard } from "@/components/dashboard/TaskBoard";
 import { ClassList } from "@/components/dashboard/ClassList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  AlertCircle,
-  TrendingUp,
-} from "lucide-react";
+import { AlertCircle, TrendingUp } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NeonCard } from "@/components/ui/neon-card";

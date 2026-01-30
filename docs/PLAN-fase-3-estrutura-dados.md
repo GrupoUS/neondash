@@ -29,7 +29,9 @@ As tarefas de criação dos módulos base (GPU-9 e GPU-10) podem ser feitas em p
 
 ```markdown
 # ROLE: Fullstack Developer
+
 # CONTEXT: Projeto NeonDash (React + TypeScript)
+
 # TASK: Popular Módulo 1 com Atividades do Neon Estrutura
 
 1.  Abra o arquivo `client/src/data/atividades-data.ts`.
@@ -57,7 +59,9 @@ As tarefas de criação dos módulos base (GPU-9 e GPU-10) podem ser feitas em p
 
 ```markdown
 # ROLE: Fullstack Developer
+
 # CONTEXT: Projeto NeonDash (React + TypeScript)
+
 # TASK: Popular Módulo 2 com Atividades do Neon Escala
 
 1.  Abra o arquivo `client/src/data/atividades-data.ts`.

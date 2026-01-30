@@ -29,7 +29,9 @@
 
 ```markdown
 # ROLE: Frontend UX Engineer
+
 # CONTEXT: Projeto NeonDash (React + Tailwind)
+
 # TASK: Refatorar o TaskBoard com filtros e busca
 
 1.  Abra o arquivo `client/src/components/dashboard/TaskBoard.tsx`.
@@ -59,7 +61,9 @@
 
 ```markdown
 # ROLE: Backend & Integration Specialist
+
 # CONTEXT: Projeto NeonDash (Node.js + React + Google API)
+
 # TASK: Integrar Google Calendar com fluxo OAuth2
 
 1.  Instale a dependência `googleapis` no servidor.

@@ -29,7 +29,9 @@
 
 ```markdown
 # ROLE: Senior Frontend Engineer
+
 # CONTEXT: Projeto NeonDash (React + Tailwind + shadcn/ui)
+
 # TASK: Implementar novo design de abas (Tabs) com animação
 
 1.  Leia o arquivo `client/src/components/ui/tabs.tsx`.
@@ -58,7 +60,9 @@
 
 ```markdown
 # ROLE: Senior UI/UX Developer
+
 # CONTEXT: Projeto NeonDash (React + Framer Motion)
+
 # TASK: Implementar Floating Dock para seleção de mentorado
 
 1.  Crie um novo arquivo `client/src/components/ui/floating-dock.tsx`.

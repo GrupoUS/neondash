@@ -28,7 +28,9 @@ Todas as tarefas desta fase são independentes e podem ser executadas em paralel
 
 ```markdown
 # ROLE: UI Developer
+
 # CONTEXT: Projeto NeonDash (React + Tailwind CSS)
+
 # TASK: Atualizar cores de texto do modo claro para Azul Petróleo
 
 1.  Abra o arquivo `client/src/index.css`.
@@ -55,7 +57,9 @@ Todas as tarefas desta fase são independentes e podem ser executadas em paralel
 
 ```markdown
 # ROLE: UI Engineer
+
 # CONTEXT: Projeto NeonDash (React + Tailwind CSS)
+
 # TASK: Otimizar contraste e cores do modo escuro
 
 1.  Abra o arquivo `client/src/index.css`.
@@ -81,7 +85,9 @@ Todas as tarefas desta fase são independentes e podem ser executadas em paralel
 
 ```markdown
 # ROLE: Frontend Developer
+
 # CONTEXT: Projeto NeonDash (React)
+
 # TASK: Remover indicador "Sistema Online" do MyDashboard
 
 1.  Abra o arquivo `client/src/pages/MyDashboard.tsx`.

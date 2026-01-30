@@ -16,13 +16,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import {
-  TrendingUp,
-  DollarSign,
-  Award,
-  BarChart3,
-  Users,
-} from "lucide-react";
+import { TrendingUp, DollarSign, Award, BarChart3, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import { useState } from "react";

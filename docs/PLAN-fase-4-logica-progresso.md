@@ -30,7 +30,9 @@
 
 ```markdown
 # ROLE: Fullstack Developer
+
 # CONTEXT: Projeto NeonDash (React + tRPC + Drizzle)
+
 # TASK: Sincronizar progresso de atividades com o backend
 
 1.  No backend (verifique `server/routers/atividades.ts`), implemente uma query tRPC `getProgress` que conte o total de `steps` de atividades e quantos estão marcados como concluídos para o usuário logado.

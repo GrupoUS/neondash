@@ -26,6 +26,8 @@ import { ComparativoView } from "@/components/dashboard/ComparativoView";
 import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
 import { PlaybookView } from "@/components/dashboard/PlaybookView";
 import { AtividadesContent } from "@/components/dashboard/AtividadesContent";
+import { DiagnosticoForm } from "@/components/dashboard/DiagnosticoForm";
+import { AdminDiagnosticoView } from "@/components/admin/AdminDiagnosticoView";
 
 
 export default function MyDashboard() {
@@ -147,6 +149,9 @@ export default function MyDashboard() {
           <TabsList className="bg-black/40 border border-white/5 p-1">
             <TabsTrigger value="visao-geral" className="data-[state=active]:bg-neon-purple/20 data-[state=active]:text-neon-purple-light">
                Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="diagnostico" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
+               Diagnóstico
             </TabsTrigger>
             <TabsTrigger value="evolucao" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400">
                Evolução
@@ -286,6 +291,16 @@ export default function MyDashboard() {
                 <NeonCard className="p-6 bg-white/95 dark:bg-black/40 border-white/5">
                    <ComparativoView />
                 </NeonCard>
+             </div>
+          </TabsContent>
+
+          <TabsContent value="diagnostico" className="animate-in slide-in-from-right-4 duration-300">
+             <div className="grid grid-cols-1 max-w-4xl mx-auto w-full">
+                {isAdmin ? (
+                   <AdminDiagnosticoView mentoradoId={targetMentoradoId!} />
+                ) : (
+                   <DiagnosticoForm />
+                )}
              </div>
           </TabsContent>
 

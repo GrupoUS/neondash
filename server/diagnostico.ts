@@ -32,6 +32,16 @@ export const diagnosticoRouter = router({
     return diagnostico || null;
   }),
 
+  getByMentoradoId: protectedProcedure
+    .input(z.object({ mentoradoId: z.number() }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const diagnostico = await db.query.diagnosticos.findFirst({
+        where: eq(diagnosticos.mentoradoId, input.mentoradoId),
+      });
+      return diagnostico || null;
+    }),
+
   upsert: protectedProcedure
     .input(
       z.object({

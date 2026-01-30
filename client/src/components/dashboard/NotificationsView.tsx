@@ -73,8 +73,8 @@ export function NotificationsView() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-slate-900">Notificações</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="text-lg font-bold text-foreground">Notificações</h3>
+          <p className="text-sm text-muted-foreground">
             {naoLidas > 0
               ? `${naoLidas} não lida(s)`
               : "Tudo atualizado"}
@@ -100,10 +100,10 @@ export function NotificationsView() {
           <Loader2 className="w-6 h-6 animate-spin text-neon-green" />
         </div>
       ) : !notificacoes || notificacoes.length === 0 ? (
-        <Card className="border-none shadow-sm bg-slate-50">
+        <Card className="border-none shadow-sm bg-card">
           <CardContent className="py-8 text-center">
-            <BellOff className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-            <p className="text-sm text-slate-500">
+            <BellOff className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">
               Nenhuma notificação nova.
             </p>
           </CardContent>
@@ -121,7 +121,7 @@ export function NotificationsView() {
                 key={notif.id}
                 className={cn(
                   "border-none shadow-sm transition-all cursor-pointer hover:shadow-md",
-                  isUnread ? "bg-white border-l-4 border-l-neon-green" : "bg-slate-50 opacity-75"
+                  isUnread ? "bg-card border-l-4 border-l-neon-green" : "bg-muted/30 opacity-75"
                 )}
                 onClick={() => isUnread && handleMarkRead(notif.id)}
               >
@@ -141,7 +141,7 @@ export function NotificationsView() {
                         <h4
                           className={cn(
                             "font-semibold text-sm",
-                            isUnread ? "text-slate-900" : "text-slate-600"
+                            isUnread ? "text-foreground" : "text-muted-foreground"
                           )}
                         >
                           {notif.titulo}
@@ -156,7 +156,7 @@ export function NotificationsView() {
                       <p
                         className={cn(
                           "text-xs leading-relaxed",
-                          isUnread ? "text-slate-700" : "text-slate-500"
+                          isUnread ? "text-foreground/90" : "text-muted-foreground"
                         )}
                       >
                         {notif.mensagem}

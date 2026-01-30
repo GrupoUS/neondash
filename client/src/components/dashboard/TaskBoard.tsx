@@ -54,7 +54,7 @@ export function TaskBoard({ mentoradoId }: { mentoradoId?: number }) {
         </h2>
       </div>
 
-      <NeonCard className="flex-1 flex flex-col overflow-hidden bg-slate-950/80 border-slate-800">
+      <NeonCard className="flex-1 flex flex-col overflow-hidden bg-card border-border">
         <Tabs defaultValue="todo" className="flex-1 flex flex-col p-4 w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted border border-border" >
             <TabsTrigger value="todo" className="data-[state=active]:bg-neon-blue/20 data-[state=active]:text-neon-blue font-mono">
@@ -129,7 +129,7 @@ export function TaskBoard({ mentoradoId }: { mentoradoId?: number }) {
                 {doneTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-card/50 border border-border/50"
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50"
                   >
                     <div className="flex items-center gap-3 opacity-60">
                       <Checkbox

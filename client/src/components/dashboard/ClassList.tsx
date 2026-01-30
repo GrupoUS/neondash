@@ -34,7 +34,7 @@ export function ClassList({ mentoradoId }: { mentoradoId?: number }) {
         </span>
       </div>
 
-      <NeonCard className="flex-1 flex flex-col overflow-hidden bg-slate-950/80 border-slate-800 p-4">
+      <NeonCard className="flex-1 flex flex-col overflow-hidden bg-card border-border p-4">
         {/* Progress Bar */}
         <div className="w-full h-1 bg-muted rounded-full mb-6 overflow-hidden">
           <div 
@@ -51,7 +51,7 @@ export function ClassList({ mentoradoId }: { mentoradoId?: number }) {
                 className={cn(
                   "flex items-start justify-between p-4 rounded-lg border transition-all duration-300",
                   item.watched 
-                    ? "bg-slate-950/30 border-slate-800/50 opacity-60" 
+                    ? "bg-muted/30 border-border/50 opacity-60" 
                     : "bg-card border-border hover:border-primary/50"
                 )}
               >
@@ -69,8 +69,8 @@ export function ClassList({ mentoradoId }: { mentoradoId?: number }) {
                       {item.date ? new Date(item.date).toLocaleDateString('pt-BR') : 'Data a definir'}
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold text-slate-200 mb-1">{item.title}</h3>
-                  <p className="text-xs text-slate-400 line-clamp-2">{item.description}</p>
+                  <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                   
                   {item.url && !item.watched && (
                     <a 

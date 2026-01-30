@@ -21,6 +21,7 @@ import {
   DollarSign,
   Award,
   BarChart3,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MonthYearFilter from "@/components/MonthYearFilter";
@@ -120,27 +121,22 @@ export default function Home() {
               {
                 value: "overview",
                 label: "Visão Geral",
-                icon: <LayoutDashboard className="h-5 w-5 text-blue-400" />,
               },
               {
                 value: "ranking",
                 label: "Ranking",
-                icon: <BarChart3 className="h-5 w-5 text-green-400" />,
               },
               {
                 value: "conquistas",
                 label: "Conquistas",
-                icon: <Trophy className="h-5 w-5 text-yellow-400" />,
               },
               {
                 value: "estrutura",
                 label: "Neon Estrutura",
-                icon: <Building2 className="h-5 w-5 text-purple-400" />,
               },
               {
                 value: "escala",
                 label: "Neon Escala",
-                icon: <Rocket className="h-5 w-5 text-cyan-400" />,
               },
             ]}
           />

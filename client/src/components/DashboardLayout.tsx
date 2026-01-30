@@ -68,7 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div
       className={cn(
-        "flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 w-full flex-1 mx-auto border border-neutral-200 dark:border-neutral-700 overflow-hidden",
+        "flex flex-col md:flex-row bg-muted/40 dark:bg-muted/40 w-full flex-1 mx-auto border border-border overflow-hidden",
         "h-screen" 
       )}
     >
@@ -86,21 +86,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     icon: (
                       <item.icon
                         className={cn(
-                          "h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200",
-                          location === item.href && "text-neon-gold"
+                          "h-5 w-5 flex-shrink-0 text-muted-foreground",
+                          location === item.href && "text-primary"
                         )}
                       />
                     ),
                   }}
                   className={cn(
-                    location === item.href && "bg-neutral-200/50 dark:bg-neutral-700/50 rounded-md"
+                    location === item.href && "bg-secondary rounded-md"
                   )}
                 />
               ))}
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50 transition-colors">
+            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary transition-colors">
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -109,23 +109,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}
               >
                 {theme === "light" ? (
-                  <Moon className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                  <Moon className="h-4 w-4 text-muted-foreground" />
                 ) : (
-                  <Sun className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                  <Sun className="h-4 w-4 text-muted-foreground" />
                 )}
               </Button>
               {open && (
                 <motion.span
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-sm text-neutral-700 dark:text-neutral-200 whitespace-pre cursor-pointer"
+                  className="text-sm text-muted-foreground whitespace-pre cursor-pointer"
                   onClick={toggleTheme}
                 >
                   {theme === "light" ? "Modo Escuro" : "Modo Claro"}
                 </motion.span>
               )}
             </div>
-            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50 transition-colors">
+            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary transition-colors">
                 <div className="h-7 w-7 flex-shrink-0 flex items-center justify-center">
                    <UserButton afterSignOutUrl="/" />
                 </div>
@@ -133,16 +133,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                      <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-sm text-neutral-700 dark:text-neutral-200 whitespace-pre overflow-hidden text-ellipsis"
+                        className="text-sm text-muted-foreground whitespace-pre overflow-hidden text-ellipsis"
                      >
                         {user.name || "Minha Conta"}
                      </motion.div>
                  )}
-             </div>
+            </div>
           </div>
         </SidebarBody>
       </Sidebar>
-      <main className="flex-1 overflow-y-auto w-full p-2 md:p-10 border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 rounded-tl-2xl">
+      <main className="flex-1 overflow-y-auto w-full p-2 md:p-10 border-l border-border bg-background rounded-tl-2xl">
           {children}
       </main>
     </div>

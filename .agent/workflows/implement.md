@@ -1,128 +1,287 @@
 ---
-description: Execute approved plan from /research via @apex-dev with parallel background task orchestration
+description: Execute approved plan from /plan workflow. Reads PLAN-{slug}.md and executes Atomic Tasks with validation gates.
 ---
 
-# /implement | /implementar
+# /implement - Execute Approved Plan
 
-## Ultra-Think Protocol
+Execute the approved implementation plan from `docs/PLAN-{slug}.md`.
 
-```yaml
-ultra_think_protocol:
-  thinking_budget: "extended"
-  pre_execution_thinking:
-    - "Analyze implementation_plan.md and task.md"
-    - "Identify parallelization opportunities for independent tasks"
-    - "Validate all preconditions and specialist requirements"
-  inter_atomic_thinking:
-    - "Verify task.md updates and task_boundary status"
-    - "Adjust strategy based on incremental validation results"
-  post_execution_thinking:
-    - "Critically validate against implementation_plan.md goals"
-    - "Generate walkthrough.md as proof of work"
-```
+---
 
-Execute approved implementation plan from `implementation_plan.md` and `task.md`.
+## 🔴 CRITICAL RULES
+
+1. **PLAN REQUIRED**: Must have approved `docs/PLAN-{slug}.md` from `/plan` workflow
+2. **SKILL ACTIVATION**: Read `.agent/skills/planning/SKILL.md` for R.P.I.V Phase 2
+3. **ATOMIC EXECUTION**: Execute one AT-XXX task at a time with validation
+4. **VALIDATION GATES**: Run validation command after each task before proceeding
+5. **ROLLBACK READY**: On failure, execute rollback steps from plan
+
+---
 
 ## Trigger
 
-- User approves research plan: "aprovar plano", "approve", "proceed"
-- Direct command: `/implement`
+- User approves plan: "approve", "proceed", "implement", "go ahead"
+- Direct command: `/implement` or `/implement PLAN-{slug}`
 
 ---
 
 ## Input Contract
 
-Required inputs for a correct `/implement` run:
-
 ```yaml
 input_contract:
-  source: "implementation_plan.md and task.md from brain directory"
-  expected_task_format:
-    status_markers: "[ ] (pending), [/] (in progress), [x] (completed)"
-    phases: "1-5 based on Antigravity documentation"
-  compatibility_note: |
-    These artifacts are created by @apex-researcher via research.md workflow.
+  source: "docs/PLAN-{slug}.md from /plan workflow"
+
+  required_sections:
+    - "## Atomic Tasks" # AT-XXX with validation + rollback
+    - "## Validation Gates" # Final verification commands
+
+  atomic_task_format:
+    id: "AT-XXX"
+    title: "[ACTION] [TARGET]"
+    phase: 1-5
+    dependencies: ["AT-XXX"]
+    parallel_safe: true  # ⚡ marker
+    validation: "[COMMAND]"
+    rollback: "[UNDO STEPS]"
+
+  status_markers:
+    pending: "[ ]"
+    in_progress: "[/]"
+    completed: "[x]"
+    failed: "[!]"
 ```
 
 ---
 
-## Execution Strategy
+## Execution Flow
 
-### Task Flow
-
-```yaml
-task_execution:
-  1_read_context:
-    action: "Read implementation_plan.md and task.md"
-
-  2_sync_ui:
-    action: "task_boundary → Set Mode: EXECUTION, TaskName: from plan"
-
-  3_execute_phases:
-    action: "Execute tasks sequentially or in parallel based on phases 1-5"
-    updates:
-      - "Update task.md status: [/] while working, [x] when done"
-      - "Update task_boundary status for each major step"
-
-  4_validation:
-    action: "VT tasks from phase 5"
-
-  5_completion:
-    action: "Generate walkthrough.md and notify_user"
+```mermaid
+flowchart TD
+    A[/implement] --> B[Load PLAN-{slug}.md]
+    B --> C[Parse Atomic Tasks]
+    C --> D{Has pending AT-XXX?}
+    D -->|Yes| E[Execute AT-XXX]
+    E --> F[Run Validation Command]
+    F --> G{Passed?}
+    G -->|Yes| H[Mark [x] + Update task_boundary]
+    G -->|No| I[Run Rollback Steps]
+    I --> J[Sequential Thinking: Analyze]
+    J --> K{Recoverable?}
+    K -->|Yes| E
+    K -->|No| L[Mark [!] + notify_user]
+    H --> D
+    D -->|No| M[Run Final Validation Gates]
+    M --> N[Generate walkthrough.md]
+    N --> O[notify_user: Complete]
 ```
 
 ---
 
 ## Step 1: Initialize Execution
 
-1. Load `implementation_plan.md` and `task.md`.
-2. Map stakeholders and specialists:
-   | Specialist | Scope |
-   |------------|-------|
-   | @database-specialist | Convex schemas, queries, mutations |
-   | @apex-ui-ux-designer | React components, shadcn/ui, CSS |
-   | @code-reviewer | Security, LGPD compliance |
+```yaml
+initialization:
+  1_load_plan:
+    action: "Read docs/PLAN-{slug}.md"
+    extract:
+      - complexity_level
+      - atomic_tasks (AT-XXX list)
+      - validation_gates
+      - assumptions_to_validate
+
+  2_create_task_md:
+    action: "Create task.md in brain directory"
+    format: |
+      # Implementation: {plan_title}
+
+      ## Progress
+      - [ ] AT-001: {title}
+      - [ ] AT-002: {title}
+      ...
+
+      ## Validation Gates
+      - [ ] VG-001: bun run build
+      - [ ] VG-002: bun run check
+      - [ ] VG-003: bun test
+
+  3_set_task_boundary:
+    action: "task_boundary(Mode: EXECUTION, TaskName: from plan)"
+```
 
 ---
 
-## Step 2: Phase-Based Execution (1-5)
+## Step 2: Execute Atomic Tasks
 
-### Phase 1: Setup & Scaffolding
+### Execution Pattern
 
-- Checkpoint: `bun install`
-- Activities: Directories, config, initial schemas.
+```yaml
+for_each_atomic_task:
+  1_pre_check:
+    - Verify dependencies completed
+    - Check if parallel_safe for concurrent execution
 
-### Phase 2: Core Logic & Backend
+  2_execute:
+    - Set task_boundary status: "Executing AT-XXX: {title}"
+    - Perform the action (create/modify files)
+    - Mark [/] in task.md
 
-- Checkpoint: `bunx convex dev` (verified types)
-- Activities: Mutations, actions, database indexes.
+  3_validate:
+    - Run validation command from AT-XXX
+    - If passed: Mark [x] in task.md
+    - If failed: Execute rollback, mark [!]
 
-### Phase 3: Frontend Components
+  4_parallel_optimization:
+    - Group tasks marked ⚡ PARALLEL-SAFE
+    - Execute independent tasks concurrently
+    - Wait at dependency barriers
+```
 
-- Checkpoint: `bun run build` (no lint errors)
-- Activities: UI development, hooks integration.
+### Phase-Based Execution
 
-### Phase 4: Integration & Routes
-
-- Checkpoint: `tanstack router generate`
-- Activities: Page assembling, auth guards.
-
-### Phase 5: Verification & Polish
-
-- Checkpoint: `bun test`
-- Activities: VT tasks, screenshots, walkthrough.
+| Phase | Focus                    | Checkpoint Command         |
+| ----- | ------------------------ | -------------------------- |
+| 1     | Setup & Scaffolding      | `bun install`              |
+| 2     | Core Logic & Backend     | `bun run check`            |
+| 3     | Frontend Components      | `bun run build`            |
+| 4     | Integration & Routes     | `bun run check`            |
+| 5     | Verification & Polish    | `bun test`                 |
 
 ---
 
-## Step 3: Failure Handling & Rollback
+## Step 3: Validation Gates
 
-- **On Error**: Use `sequential-thinking` to analyze root cause.
-- **Rollback**: If a task fails verification, revert filesystem changes and update `task.md` with the error reason.
-- **Audit**: Log failures to `walkthrough.md`.
+After all AT-XXX tasks complete:
+
+```yaml
+validation_gates:
+  VG-001:
+    command: "bun run build"
+    expected: "Exit 0, no errors"
+
+  VG-002:
+    command: "bun run check"
+    expected: "No TypeScript errors"
+
+  VG-003:
+    command: "bun test"
+    expected: "All tests passing"
+
+  VG-004:
+    action: "Manual verification of assumptions from plan"
+```
 
 ---
 
-## Referências
+## Step 4: Failure Handling
 
-- Princípios: `code-principles.md`
-- Pesquisa: `research.md`
+```yaml
+on_failure:
+  1_pause:
+    action: "Stop execution immediately"
+
+  2_analyze:
+    action: "Use sequential-thinking MCP"
+    thoughts:
+      - "What exactly failed?"
+      - "Why did it fail? (root cause)"
+      - "3 possible fixes"
+      - "Which fix is safest?"
+
+  3_rollback:
+    action: "Execute rollback steps from AT-XXX"
+    update: "Mark [!] with error reason"
+
+  4_decide:
+    recoverable:
+      action: "Apply fix, retry AT-XXX"
+    not_recoverable:
+      action: "notify_user with error details"
+      include:
+        - Failed task ID and title
+        - Error message
+        - Attempted rollback
+        - Suggested next steps
+```
+
+---
+
+## Step 5: Completion
+
+```yaml
+completion:
+  1_final_validation:
+    action: "Run all VG-XXX gates"
+
+  2_generate_walkthrough:
+    action: "Create walkthrough.md in brain directory"
+    content:
+      - Summary of changes
+      - Files created/modified
+      - Validation results
+      - Screenshots if UI changes
+
+  3_notify_user:
+    action: "notify_user with completion summary"
+    message: |
+      ✅ Implementation complete: {plan_title}
+
+      Tasks executed: {completed}/{total}
+      Validation gates: {passed}/{total}
+
+      Changes:
+      - {file_list}
+
+      Next steps:
+      - Review walkthrough.md
+      - Test manually if needed
+```
+
+---
+
+## Quick Reference
+
+```
+EXECUTION LOOP:
+  Load Plan → Parse AT-XXX → Execute → Validate → Repeat
+
+VALIDATION PATTERN:
+  AT-XXX → validation command → pass? → next : rollback
+
+FAILURE PROTOCOL:
+  PAUSE → THINK (sequential-thinking) → ROLLBACK → RETRY or NOTIFY
+
+STATUS MARKERS:
+  [ ] pending  |  [/] in progress  |  [x] done  |  [!] failed
+```
+
+---
+
+## Pre-Completion Checklist
+
+```yaml
+execution:
+  - [ ] All AT-XXX tasks marked [x]?
+  - [ ] No [!] failed tasks remaining?
+  - [ ] Dependencies respected?
+  - [ ] Parallel tasks executed when safe?
+
+validation:
+  - [ ] bun run build passes?
+  - [ ] bun run check passes?
+  - [ ] bun test passes?
+  - [ ] Assumptions validated?
+
+delivery:
+  - [ ] task.md updated with final status?
+  - [ ] walkthrough.md created?
+  - [ ] task_boundary set to VERIFICATION?
+  - [ ] notify_user called with summary?
+```
+
+---
+
+## References
+
+- Planning: `.agent/workflows/plan.md`
+- Skill: `.agent/skills/planning/SKILL.md`
+- Debug: `.agent/workflows/debug.md`

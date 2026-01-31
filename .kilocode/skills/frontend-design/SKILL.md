@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Design thinking and decision-making for web UI. Use when designing components, layouts, color schemes, typography, or creating aesthetic interfaces. Teaches principles, not fixed values.
+description: "Unified frontend design skill covering UI/UX design, Tailwind CSS v4, generative art (p5.js), canvas art (PDF/PNG), image generation (Nano Banana/Gemini), and design system intelligence. Use when designing components, layouts, color schemes, typography, creating visual assets, fixing frontend errors, or building aesthetic interfaces."
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
@@ -15,399 +15,206 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 **Read REQUIRED files always, OPTIONAL only when needed:**
 
-| File                                         | Status          | When to Read                      |
-| -------------------------------------------- | --------------- | --------------------------------- |
-| [ux-psychology.md](ux-psychology.md)         | 🔴 **REQUIRED** | Always read first!                |
-| [color-system.md](color-system.md)           | ⚪ Optional     | Color/palette decisions           |
-| [typography-system.md](typography-system.md) | ⚪ Optional     | Font selection/pairing            |
-| [visual-effects.md](visual-effects.md)       | ⚪ Optional     | Glassmorphism, shadows, gradients |
-| [animation-guide.md](animation-guide.md)     | ⚪ Optional     | Animation needed                  |
-| [motion-graphics.md](motion-graphics.md)     | ⚪ Optional     | Lottie, GSAP, 3D                  |
-| [decision-trees.md](decision-trees.md)       | ⚪ Optional     | Context templates                 |
-
-> 🔴 **ux-psychology.md = ALWAYS READ. Others = only if relevant.**
+| File | Status | When to Read |
+| ---- | ------ | ------------ |
+| [ux-psychology.md](ux-psychology.md) | 🔴 **REQUIRED** | Always read first! |
+| [color-system.md](color-system.md) | ⚪ Optional | Color/palette decisions |
+| [typography-system.md](typography-system.md) | ⚪ Optional | Font selection/pairing |
+| [visual-effects.md](visual-effects.md) | ⚪ Optional | Glassmorphism, shadows, gradients |
+| [animation-guide.md](animation-guide.md) | ⚪ Optional | Animation needed |
+| [motion-graphics.md](motion-graphics.md) | ⚪ Optional | Lottie, GSAP, 3D |
+| [decision-trees.md](decision-trees.md) | ⚪ Optional | Context templates |
+| [tailwind-v4-patterns.md](tailwind-v4-patterns.md) | ⚪ Optional | Tailwind CSS v4, container queries |
+| [algorithmic-art-guide.md](algorithmic-art-guide.md) | ⚪ Optional | p5.js, generative art |
+| [canvas-design-guide.md](canvas-design-guide.md) | ⚪ Optional | PDF/PNG visual art |
+| [design-system-search.md](design-system-search.md) | ⚪ Optional | Search 50+ styles, palettes |
+| [nanobananaskill.md](nanobananaskill.md) | ⚪ Optional | AI image generation |
 
 ---
 
 ## 🔧 Runtime Scripts
 
-**Execute these for audits (don't read, just run):**
-
-| Script                | Purpose                             | Usage                                       |
-| --------------------- | ----------------------------------- | ------------------------------------------- |
-| `scripts/ux_audit.py` | UX Psychology & Accessibility Audit | `python scripts/ux_audit.py <project_path>` |
-
----
-
-## ⚠️ CRITICAL: ASK BEFORE ASSUMING (MANDATORY)
-
-> **STOP! If the user's request is open-ended, DO NOT default to your favorites.**
-
-### When User Prompt is Vague, ASK:
-
-**Color not specified?** Ask:
-
-> "What color palette do you prefer? (blue/green/orange/neutral/other?)"
-
-**Style not specified?** Ask:
-
-> "What style are you going for? (minimal/bold/retro/futuristic/organic?)"
-
-**Layout not specified?** Ask:
-
-> "Do you have a layout preference? (single column/grid/asymmetric/full-width?)"
-
-### ⛔ DEFAULT TENDENCIES TO AVOID (ANTI-SAFE HARBOR):
-
-| AI Default Tendency             | Why It's Bad                | Think Instead                                       |
-| ------------------------------- | --------------------------- | --------------------------------------------------- |
-| **Bento Grids (Modern Cliché)** | Used in every AI design     | Why does this content NEED a grid?                  |
-| **Hero Split (Left/Right)**     | Predictable & Boring        | How about Massive Typography or Vertical Narrative? |
-| **Mesh/Aurora Gradients**       | The "new" lazy background   | What's a radical color pairing?                     |
-| **Glassmorphism**               | AI's idea of "premium"      | How about solid, high-contrast flat?                |
-| **Deep Cyan / Fintech Blue**    | Safe harbor from purple ban | Why not Red, Black, or Neon Green?                  |
-| **"Orchestrate / Empower"**     | AI-generated copywriting    | How would a human say this?                         |
-| Dark background + neon glow     | Overused, "AI look"         | What does the BRAND actually need?                  |
-| **Rounded everything**          | Generic/Safe                | Where can I use sharp, brutalist edges?             |
-
-> 🔴 **"Every 'safe' structure you choose brings you one step closer to a generic template. TAKE RISKS."**
+| Script | Purpose | Usage |
+| ------ | ------- | ----- |
+| `scripts/ux_audit.py` | UX & Accessibility Audit | `python scripts/ux_audit.py <project_path>` |
+| `scripts/accessibility_checker.py` | WCAG Compliance Check | `python scripts/accessibility_checker.py <file>` |
+| `scripts/generate_images.py` | Nano Banana Image Gen | `python scripts/generate_images.py "prompt" "filename"` |
+| `scripts/search.py` | Design System Search | `python scripts/search.py "query" --design-system` |
 
 ---
 
-## 1. Constraint Analysis (ALWAYS FIRST)
+## ⚠️ ASK BEFORE ASSUMING (MANDATORY)
 
-Before any design work, ANSWER THESE or ASK USER:
+**Color not specified?** Ask: "What color palette do you prefer?"
+**Style not specified?** Ask: "What style are you going for?"
+**Layout not specified?** Ask: "Do you have a layout preference?"
 
-| Constraint   | Question              | Why It Matters              |
-| ------------ | --------------------- | --------------------------- |
-| **Timeline** | How much time?        | Determines complexity       |
-| **Content**  | Ready or placeholder? | Affects layout flexibility  |
-| **Brand**    | Existing guidelines?  | May dictate colors/fonts    |
-| **Tech**     | What stack?           | Affects capabilities        |
-| **Audience** | Who exactly?          | Drives all visual decisions |
+### Anti-Patterns to Avoid
 
-### Audience → Design Approach
-
-| Audience        | Think About                         |
-| --------------- | ----------------------------------- |
-| **Gen Z**       | Bold, fast, mobile-first, authentic |
-| **Millennials** | Clean, minimal, value-driven        |
-| **Gen X**       | Familiar, trustworthy, clear        |
-| **Boomers**     | Readable, high contrast, simple     |
-| **B2B**         | Professional, data-focused, trust   |
-| **Luxury**      | Restrained elegance, whitespace     |
+| AI Default Tendency | Think Instead |
+| ------------------- | ------------- |
+| Bento Grids | Why does this content NEED a grid? |
+| Hero Split (Left/Right) | Massive Typography or Vertical Narrative? |
+| Mesh/Aurora Gradients | What's a radical color pairing? |
+| Glassmorphism | Solid, high-contrast flat? |
+| Deep Cyan / Fintech Blue | Red, Black, or Neon Green? |
+| Dark + neon glow | What does the BRAND need? |
+| Purple/violet everything | **PURPLE BAN ✅** |
 
 ---
 
-## 2. UX Psychology Principles
+## 1. Core UX Principles
 
-### Core Laws (Internalize These)
+### Constraint Analysis (ALWAYS FIRST)
 
-| Law                 | Principle                         | Application                               |
-| ------------------- | --------------------------------- | ----------------------------------------- |
-| **Hick's Law**      | More choices = slower decisions   | Limit options, use progressive disclosure |
-| **Fitts' Law**      | Bigger + closer = easier to click | Size CTAs appropriately                   |
-| **Miller's Law**    | ~7 items in working memory        | Chunk content into groups                 |
-| **Von Restorff**    | Different = memorable             | Make CTAs visually distinct               |
-| **Serial Position** | First/last remembered most        | Key info at start/end                     |
+| Constraint | Question | Why It Matters |
+| ---------- | -------- | -------------- |
+| **Timeline** | How much time? | Determines complexity |
+| **Content** | Ready or placeholder? | Affects layout flexibility |
+| **Brand** | Existing guidelines? | May dictate colors/fonts |
+| **Tech** | What stack? | Affects capabilities |
+| **Audience** | Who exactly? | Drives all visual decisions |
 
-### Emotional Design Levels
+### Core Laws
 
-```
-VISCERAL (instant)  → First impression: colors, imagery, overall feel
-BEHAVIORAL (use)    → Using it: speed, feedback, efficiency
-REFLECTIVE (memory) → After: "I like what this says about me"
-```
-
-### Trust Building
-
-- Security indicators on sensitive actions
-- Social proof where relevant
-- Clear contact/support access
-- Consistent, professional design
-- Transparent policies
+| Law | Principle | Application |
+| --- | --------- | ----------- |
+| **Hick's** | More choices = slower decisions | Limit options |
+| **Fitts'** | Bigger + closer = easier to click | Size CTAs appropriately |
+| **Miller's** | ~7 items in working memory | Chunk content |
+| **Von Restorff** | Different = memorable | Make CTAs visually distinct |
 
 ---
 
-## 3. Layout Principles
+## 2. Design Execution
 
-### Golden Ratio (φ = 1.618)
+### Color (60-30-10 Rule)
 
-```
-Use for proportional harmony:
-├── Content : Sidebar = roughly 62% : 38%
-├── Each heading size = previous × 1.618 (for dramatic scale)
-├── Spacing can follow: sm → md → lg (each × 1.618)
-```
+- 60% → Primary/Background
+- 30% → Secondary
+- 10% → Accent (CTAs)
 
-### 8-Point Grid Concept
+### Typography
 
-```
-All spacing and sizing in multiples of 8:
-├── Tight: 4px (half-step for micro)
-├── Small: 8px
-├── Medium: 16px
-├── Large: 24px, 32px
-├── XL: 48px, 64px, 80px
-└── Adjust based on content density
-```
+- Line length: 45-75 characters
+- Line height: 1.4-1.6 for body
+- Size: 16px+ for body on web
 
-### Key Sizing Principles
+### Layout (8-Point Grid)
 
-| Element           | Consideration                        |
-| ----------------- | ------------------------------------ |
-| **Touch targets** | Minimum comfortable tap size         |
-| **Buttons**       | Height based on importance hierarchy |
-| **Inputs**        | Match button height for alignment    |
-| **Cards**         | Consistent padding, breathable       |
-| **Reading width** | 45-75 characters optimal             |
+- Tight: 4px → Small: 8px → Medium: 16px → Large: 24-32px → XL: 48-80px
 
 ---
 
-## 4. Color Principles
+## 3. Visual Asset Generation
 
-### 60-30-10 Rule
-
-```
-60% → Primary/Background (calm, neutral base)
-30% → Secondary (supporting areas)
-10% → Accent (CTAs, highlights, attention)
-```
-
-### Color Psychology (For Decision Making)
-
-| If You Need...     | Consider Hues            | Avoid                 |
-| ------------------ | ------------------------ | --------------------- |
-| Trust, calm        | Blue family              | Aggressive reds       |
-| Growth, nature     | Green family             | Industrial grays      |
-| Energy, urgency    | Orange, red              | Passive blues         |
-| Luxury, creativity | Deep Teal, Gold, Emerald | Cheap-feeling brights |
-| Clean, minimal     | Neutrals                 | Overwhelming color    |
-
-### Selection Process
-
-1. **What's the industry?** (narrows options)
-2. **What's the emotion?** (picks primary)
-3. **Light or dark mode?** (sets foundation)
-4. **ASK USER** if not specified
-
-For detailed color theory: [color-system.md](color-system.md)
-
----
-
-## 5. Typography Principles
-
-### Scale Selection
-
-| Content Type | Scale Ratio | Feel                   |
-| ------------ | ----------- | ---------------------- |
-| Dense UI     | 1.125-1.2   | Compact, efficient     |
-| General web  | 1.25        | Balanced (most common) |
-| Editorial    | 1.333       | Readable, spacious     |
-| Hero/display | 1.5-1.618   | Dramatic impact        |
-
-### Pairing Concept
-
-```
-Contrast + Harmony:
-├── DIFFERENT enough for hierarchy
-├── SIMILAR enough for cohesion
-└── Usually: display + neutral, or serif + sans
-```
-
-### Readability Rules
-
-- **Line length**: 45-75 characters optimal
-- **Line height**: 1.4-1.6 for body text
-- **Contrast**: Check WCAG requirements
-- **Size**: 16px+ for body on web
-
-For detailed typography: [typography-system.md](typography-system.md)
-
----
-
-## 6. Visual Effects Principles
-
-### Glassmorphism (When Appropriate)
-
-```
-Key properties:
-├── Semi-transparent background
-├── Backdrop blur
-├── Subtle border for definition
-└── ⚠️ **WARNING:** Standard blue/white glassmorphism is a modern cliché. Use it radically or not at all.
-```
-
-### Shadow Hierarchy
-
-```
-Elevation concept:
-├── Higher elements = larger shadows
-├── Y-offset > X-offset (light from above)
-├── Multiple layers = more realistic
-└── Dark mode: may need glow instead
-```
-
-### Gradient Usage
-
-```
-Harmonious gradients:
-├── Adjacent colors on wheel (analogous)
-├── OR same hue, different lightness
-├── Avoid harsh complementary pairs
-├── 🚫 **NO Mesh/Aurora Gradients** (floating blobs)
-└── VARY from project to project radically
-```
-
-For complete effects guide: [visual-effects.md](visual-effects.md)
-
----
-
-## 7. Animation Principles
-
-### Timing Concept
-
-```
-Duration based on:
-├── Distance (further = longer)
-├── Size (larger = slower)
-├── Importance (critical = clear)
-└── Context (urgent = fast, luxury = slow)
-```
-
-### Easing Selection
-
-| Action   | Easing      | Why                   |
-| -------- | ----------- | --------------------- |
-| Entering | Ease-out    | Decelerate, settle in |
-| Leaving  | Ease-in     | Accelerate, exit      |
-| Emphasis | Ease-in-out | Smooth, deliberate    |
-| Playful  | Bounce      | Fun, energetic        |
-
-### Performance
-
-- Animate only transform and opacity
-- Respect reduced-motion preference
-- Test on low-end devices
-
-For animation patterns: [animation-guide.md](animation-guide.md), for advanced: [motion-graphics.md](motion-graphics.md)
-
-## Visual Assets: Nano Banana System
-
-When the design requires unique images or placeholders, use the integrated Gemini image generation:
-
-### Local Generation Script
-
-Use the Python generator to create high-fidelity assets using Gemini 3 Pro:
+### Image Generation (Nano Banana)
 
 ```bash
-python .agent/skills/frontend-design/scripts/generate_images.py "Your prompt here" "output_filename"
+python .agent/skills/frontend-design/scripts/generate_images.py "Your prompt" "output_filename"
 ```
 
-- **Reference**: See [nanobananaskill.md](file:///d:/gpus/.agent/skills/frontend-design/nanobananaskill.md) for advanced prompting strategies.
+Models:
+- **gemini-2.5-flash-image**: Speed/bulk placeholders
+- **gemini-3-pro-image-preview**: Hero/marketing assets
+
+### Generative Art (p5.js)
+
+Use templates in `assets/p5-templates/`:
+- `viewer.html` - Interactive artifact template
+- `generator_template.js` - Code patterns
+
+Read [algorithmic-art-guide.md](algorithmic-art-guide.md) for philosophy creation process.
+
+### Canvas Art (PDF/PNG)
+
+Use fonts in `assets/canvas-fonts/` (81 fonts).
+
+Read [canvas-design-guide.md](canvas-design-guide.md) for visual philosophy process.
 
 ---
 
-## 8. "Wow Factor" Checklist
+## 4. Design System Intelligence
 
-### Premium Indicators
+### Search for Recommendations
 
-- [ ] Generous whitespace (luxury = breathing room)
+```bash
+# Full design system
+python .agent/skills/frontend-design/scripts/search.py "saas dashboard" --design-system
+
+# Domain-specific
+python .agent/skills/frontend-design/scripts/search.py "minimalism" --domain style
+python .agent/skills/frontend-design/scripts/search.py "elegant" --domain typography
+python .agent/skills/frontend-design/scripts/search.py "animation" --domain ux
+```
+
+Domains: `style`, `color`, `typography`, `product`, `landing`, `chart`, `ux`, `react`, `web`
+
+Data in `assets/ui-ux-data/` (12 CSVs + 11 stack files).
+
+---
+
+## 5. CSS/Tailwind Patterns
+
+### Tailwind v4 Quick Reference
+
+```css
+@theme {
+  --color-primary: oklch(0.7 0.15 250);
+  --spacing-md: 1rem;
+}
+```
+
+- Container queries: `@sm:`, `@md:`, `@lg:`
+- CSS variables: All tokens as `--*` vars
+- Read [tailwind-v4-patterns.md](tailwind-v4-patterns.md) for full guide
+
+---
+
+## 6. Animation Principles
+
+| Action | Easing | Duration |
+| ------ | ------ | -------- |
+| Entering | Ease-out | 150-300ms |
+| Leaving | Ease-in | 150-300ms |
+| Emphasis | Ease-in-out | 200-400ms |
+
+- Animate only `transform` and `opacity`
+- Respect `prefers-reduced-motion`
+
+---
+
+## 7. "Wow Factor" Checklist
+
+- [ ] Generous whitespace
 - [ ] Subtle depth and dimension
 - [ ] Smooth, purposeful animations
-- [ ] Attention to detail (alignment, consistency)
 - [ ] Cohesive visual rhythm
 - [ ] Custom elements (not all defaults)
 
-### Trust Builders
-
-- [ ] Security cues where appropriate
-- [ ] Social proof / testimonials
-- [ ] Clear value proposition
-- [ ] Professional imagery
-- [ ] Consistent design language
-
-### Emotional Triggers
-
-- [ ] Hero that evokes intended emotion
-- [ ] Human elements (faces, stories)
-- [ ] Progress/achievement indicators
-- [ ] Moments of delight
-
 ---
 
-## 9. Anti-Patterns (What NOT to Do)
-
-### ❌ Lazy Design Indicators
-
-- Default system fonts without consideration
-- Stock imagery that doesn't match
-- Inconsistent spacing
-- Too many competing colors
-- Walls of text without hierarchy
-- Inaccessible contrast
-
-### ❌ AI Tendency Patterns (AVOID!)
-
-- **Same colors every project**
-- **Dark + neon as default**
-- **Purple/violet everything (PURPLE BAN ✅)**
-- **Bento grids for simple landing pages**
-- **Mesh Gradients & Glow Effects**
-- **Same layout structure / Vercel clone**
-- **Not asking user preferences**
-
-### ❌ Dark Patterns (Unethical)
-
-- Hidden costs
-- Fake urgency
-- Forced actions
-- Deceptive UI
-- Confirmshaming
-
----
-
-## 10. Decision Process Summary
+## 8. Decision Process
 
 ```
-For EVERY design task:
-
-1. CONSTRAINTS
-   └── What's the timeline, brand, tech, audience?
-   └── If unclear → ASK
-
-2. CONTENT
-   └── What content exists?
-   └── What's the hierarchy?
-
-3. STYLE DIRECTION
-   └── What's appropriate for context?
-   └── If unclear → ASK (don't default!)
-
-4. EXECUTION
-   └── Apply principles above
-   └── Check against anti-patterns
-
-5. REVIEW
-   └── "Does this serve the user?"
-   └── "Is this different from my defaults?"
-   └── "Would I be proud of this?"
+1. CONSTRAINTS → What's the timeline, brand, tech, audience?
+2. CONTENT → What exists? What's the hierarchy?
+3. STYLE DIRECTION → If unclear → ASK (don't default!)
+4. EXECUTION → Apply principles, check anti-patterns
+5. REVIEW → "Does this serve the user?" "Is this different from my defaults?"
 ```
 
 ---
 
-## Reference Files
+## Assets
 
-For deeper guidance on specific areas:
-
-- [color-system.md](color-system.md) - Color theory and selection process
-- [typography-system.md](typography-system.md) - Font pairing and scale decisions
-- [visual-effects.md](visual-effects.md) - Effects principles and techniques
-- [animation-guide.md](animation-guide.md) - Motion design principles
-- [motion-graphics.md](motion-graphics.md) - Advanced: Lottie, GSAP, SVG, 3D, Particles
-- [decision-trees.md](decision-trees.md) - Context-specific templates
-- [ux-psychology.md](ux-psychology.md) - User psychology deep dive
+| Folder | Contents |
+| ------ | -------- |
+| `assets/canvas-fonts/` | 81 fonts for canvas design |
+| `assets/p5-templates/` | p5.js viewer + generator |
+| `assets/ui-ux-data/` | 12 CSVs + 11 stack guides |
+| `scripts/` | 4 Python automation scripts |
 
 ---
 
-> **Remember:** Design is THINKING, not copying. Every project deserves fresh consideration based on its unique context and users. **Avoid the Modern SaaS Safe Harbor!**
+> **Remember:** Design is THINKING, not copying. Every project deserves fresh consideration. **Avoid the Modern SaaS Safe Harbor!**

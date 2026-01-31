@@ -10,15 +10,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { NeonCard } from "@/components/ui/neon-card";
 // import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AnimatedTooltipSelector } from "@/components/ui/animated-tooltip";
 import { useState } from "react";
 import { NotificationsView } from "@/components/dashboard/NotificationsView";
 import { SubmitMetricsForm } from "@/components/dashboard/SubmitMetricsForm";
 import {
-  FloatingDockTabs,
-  FloatingDockTabsList,
-  FloatingDockTabsContent,
-} from "@/components/ui/floating-dock-tabs";
+  NeonTabs,
+  NeonTabsList,
+  NeonTabsTrigger,
+  NeonTabsContent,
+} from "@/components/ui/neon-tabs";
+import { FloatingDock } from "@/components/ui/floating-dock";
 import { ComparativoView } from "@/components/dashboard/ComparativoView";
 import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
 import { PlaybookView } from "@/components/dashboard/PlaybookView";
@@ -132,69 +133,51 @@ export default function MyDashboard() {
           <div className="flex items-center gap-4">
             {isAdmin && (
               <div className="relative">
-                <AnimatedTooltipSelector
+                <FloatingDock
                   items={
                     allMentorados?.map(m => ({
                       id: m.id.toString(),
-                      name: m.nomeCompleto,
-                      designation: m.turma,
-                      image:
-                        m.fotoUrl ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nomeCompleto)}&background=0f4c75&color=fff`,
+                      title: m.nomeCompleto,
+                      icon: (
+                        <div className="h-full w-full rounded-full overflow-hidden border-2 border-white/10 bg-slate-800 flex items-center justify-center">
+                           {m.fotoUrl ? (
+                             <img
+                                src={m.fotoUrl}
+                                alt={m.nomeCompleto}
+                                className="h-full w-full object-cover"
+                              />
+                           ) : (
+                              <span className="text-xs font-bold text-white">
+                                {m.nomeCompleto.slice(0, 2).toUpperCase()}
+                              </span>
+                           )}
+                        </div>
+                      ),
                       onClick: () => setSelectedMentoradoId(m.id.toString()),
                       isActive: selectedMentoradoId === m.id.toString(),
                     })) || []
                   }
-                  selectedId={selectedMentoradoId}
+                  activeValue={selectedMentoradoId}
                 />
               </div>
             )}
-
-            {/* SubmitMetricsSheet button removed, moved to Tab */}
           </div>
         </div>
 
-        <FloatingDockTabs
-          defaultValue="visao-geral"
-          className="w-full space-y-6"
-        >
-          <FloatingDockTabsList
-            tabs={[
-              {
-                value: "visao-geral",
-                label: "Visão Geral",
-              },
-              {
-                value: "diagnostico",
-                label: "Diagnóstico",
-              },
-              {
-                value: "evolucao",
-                label: "Evolução",
-              },
-              {
-                value: "comparativo",
-                label: "Comparativo da Turma",
-              },
-              {
-                value: "lancar-metricas",
-                label: "Lançar Métricas",
-              },
-              {
-                value: "jornada",
-                label: "Playbook",
-              },
-              {
-                value: "atividades",
-                label: "Atividades",
-              },
-            ]}
-          />
+        <NeonTabs defaultValue="visao-geral" className="w-full">
+          <div className="flex justify-center mb-6">
+            <NeonTabsList>
+              <NeonTabsTrigger value="visao-geral">Visão Geral</NeonTabsTrigger>
+              <NeonTabsTrigger value="diagnostico">Diagnóstico</NeonTabsTrigger>
+              <NeonTabsTrigger value="evolucao">Evolução</NeonTabsTrigger>
+              <NeonTabsTrigger value="comparativo">Comparativo</NeonTabsTrigger>
+              <NeonTabsTrigger value="lancar-metricas">Lançar Métricas</NeonTabsTrigger>
+              <NeonTabsTrigger value="jornada">Playbook</NeonTabsTrigger>
+              <NeonTabsTrigger value="atividades">Atividades</NeonTabsTrigger>
+            </NeonTabsList>
+          </div>
 
-          <FloatingDockTabsContent
-            value="visao-geral"
-            className="space-y-6 animate-in slide-in-from-left-4 duration-300"
-          >
+          <NeonTabsContent value="visao-geral" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Hero Section */}
               <div className="md:col-span-8">
@@ -208,14 +191,19 @@ export default function MyDashboard() {
                           {isLoading ? (
                             <Skeleton className="w-full h-full bg-slate-800" />
                           ) : (
-                            <img
-                              src={
-                                currentMentorado?.fotoUrl ||
-                                `https://ui-avatars.com/api/?name=${currentMentorado?.nomeCompleto}&background=random`
-                              }
-                              alt="Profile"
-                              className="w-full h-full object-cover"
-                            />
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                              {currentMentorado?.fotoUrl ? (
+                                <img
+                                  src={currentMentorado.fotoUrl}
+                                  alt="Profile"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-3xl font-bold text-white/50">
+                                  {currentMentorado?.nomeCompleto?.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                         <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4">
@@ -309,34 +297,25 @@ export default function MyDashboard() {
                 <ClassList mentoradoId={targetMentoradoId} />
               </section>
             </div>
-          </FloatingDockTabsContent>
+          </NeonTabsContent>
 
-          <FloatingDockTabsContent
-            value="evolucao"
-            className="animate-in slide-in-from-right-4 duration-300"
-          >
+          <NeonTabsContent value="evolucao">
             <div className="grid grid-cols-1">
               <NeonCard className="p-6 bg-white/95 dark:bg-black/40 border-white/5">
                 <EvolucaoView mentoradoId={targetMentoradoId} />
               </NeonCard>
             </div>
-          </FloatingDockTabsContent>
+          </NeonTabsContent>
 
-          <FloatingDockTabsContent
-            value="comparativo"
-            className="animate-in slide-in-from-right-4 duration-300"
-          >
+          <NeonTabsContent value="comparativo">
             <div className="grid grid-cols-1">
               <NeonCard className="p-6 bg-white/95 dark:bg-black/40 border-white/5">
                 <ComparativoView />
               </NeonCard>
             </div>
-          </FloatingDockTabsContent>
+          </NeonTabsContent>
 
-          <FloatingDockTabsContent
-            value="diagnostico"
-            className="animate-in slide-in-from-right-4 duration-300"
-          >
+          <NeonTabsContent value="diagnostico">
             <div className="grid grid-cols-1 max-w-4xl mx-auto w-full">
               {isAdmin ? (
                 <DiagnosticoForm mentoradoId={targetMentoradoId} />
@@ -344,12 +323,9 @@ export default function MyDashboard() {
                 <DiagnosticoForm />
               )}
             </div>
-          </FloatingDockTabsContent>
+          </NeonTabsContent>
 
-          <FloatingDockTabsContent
-            value="lancar-metricas"
-            className="animate-in zoom-in-95 duration-300"
-          >
+          <NeonTabsContent value="lancar-metricas">
             <div className="grid grid-cols-1 max-w-2xl mx-auto">
               <NeonCard className="p-6 bg-black/40 border-white/5">
                 <div className="mb-6">
@@ -364,30 +340,24 @@ export default function MyDashboard() {
                 <SubmitMetricsForm className="bg-transparent" />
               </NeonCard>
             </div>
-          </FloatingDockTabsContent>
+          </NeonTabsContent>
 
-          <FloatingDockTabsContent
-            value="jornada"
-            className="animate-in slide-in-from-bottom-4 duration-300"
-          >
+          <NeonTabsContent value="jornada">
             <div className="grid grid-cols-1">
               <NeonCard className="p-6 bg-black/40 border-white/5">
                 <PlaybookView turma={currentMentorado?.turma} />
               </NeonCard>
             </div>
-          </FloatingDockTabsContent>
+          </NeonTabsContent>
 
-          <FloatingDockTabsContent
-            value="atividades"
-            className="animate-in slide-in-from-bottom-4 duration-300"
-          >
+          <NeonTabsContent value="atividades">
             <div className="grid grid-cols-1">
               <NeonCard className="p-6 bg-black/40 border-white/5">
                 <AtividadesContent />
               </NeonCard>
             </div>
-          </FloatingDockTabsContent>
-        </FloatingDockTabs>
+          </NeonTabsContent>
+        </NeonTabs>
       </div>
     </DashboardLayout>
   );

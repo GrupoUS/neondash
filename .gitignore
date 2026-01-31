@@ -16,7 +16,7 @@ build/
 .env.production.local
 
 # IDE and editor files
-.vscode/
+# .vscode/ is kept for workspace TypeScript settings
 .idea/
 *.swp
 *.swo

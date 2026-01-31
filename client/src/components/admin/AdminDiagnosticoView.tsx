@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function AdminDiagnosticoView({ mentoradoId }: { mentoradoId: number }) {
   const { data: diagnostico, isLoading } =
-    trpc.diagnostico.getByMentoradoId.useQuery(
+    trpc.diagnostico.get.useQuery(
       { mentoradoId },
       { enabled: !!mentoradoId }
     );

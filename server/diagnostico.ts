@@ -6,39 +6,39 @@ import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
 
 export const diagnosticoRouter = router({
-  get: protectedProcedure.query(async ({ ctx }) => {
-    const db = getDb();
-
-    // 1. Get user's mentorado record
-    // We can use ctx.mentorado if available, but let's be safe and query via db if needed,
-    // though protectedProcedure ensures ctx.mentorado exists for 'mentoradoProcedure'.
-    // However, this is 'protectedProcedure' which only ensures 'ctx.user'.
-
-    // Let's try to find mentorado for this user
-    const mentorado = await db.query.mentorados.findFirst({
-      where: eq(mentorados.userId, ctx.user.id),
-    });
-
-    if (!mentorado) {
-      return null;
-    }
-
-    // 2. Get diagnostic
-    const diagnostico = await db.query.diagnosticos.findFirst({
-      where: eq(diagnosticos.mentoradoId, mentorado.id),
-    });
-
-    return diagnostico || null;
-  }),
-
-  getByMentoradoId: protectedProcedure
-    .input(z.object({ mentoradoId: z.number() }))
-    .query(async ({ input }) => {
+  get: protectedProcedure
+    .input(z.object({ mentoradoId: z.number().optional() }).optional())
+    .query(async ({ ctx, input }) => {
       const db = getDb();
-      const diagnostico = await db.query.diagnosticos.findFirst({
-        where: eq(diagnosticos.mentoradoId, input.mentoradoId),
-      });
-      return diagnostico || null;
+
+      // Case 1: Admin requesting specific mentorado
+      if (input?.mentoradoId) {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Apenas administradores podem visualizar outros diagnósticos.",
+          });
+        }
+        const diagnostico = await db.query.diagnosticos.findFirst({
+          where: eq(diagnosticos.mentoradoId, input.mentoradoId),
+        });
+        return diagnostico || null;
+      }
+
+      // Case 2: User requesting their own diagnostic (Optimized with JOIN)
+      // SELECT d.* FROM diagnosticos d
+      // JOIN mentorados m ON d.mentorado_id = m.id
+      // WHERE m.user_id = ctx.user.id
+      const result = await db
+        .select({
+          diagnostico: diagnosticos,
+        })
+        .from(diagnosticos)
+        .innerJoin(mentorados, eq(diagnosticos.mentoradoId, mentorados.id))
+        .where(eq(mentorados.userId, ctx.user.id))
+        .limit(1);
+
+      return result[0]?.diagnostico || null;
     }),
 
   upsert: protectedProcedure

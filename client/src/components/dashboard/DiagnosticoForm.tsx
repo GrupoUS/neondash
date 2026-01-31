@@ -39,29 +39,20 @@ type FormValues = z.infer<typeof formSchema>;
 export function DiagnosticoForm({ mentoradoId }: { mentoradoId?: number }) {
   const utils = trpc.useUtils();
 
-  // Conditional Query: if mentoradoId is provided, use getByMentoradoId, else get (me)
-  const { data: diagnosticoMe, isLoading: isLoadingMe } =
-    trpc.diagnostico.get.useQuery(undefined, {
-      enabled: !mentoradoId,
-    });
-
-  const { data: diagnosticoById, isLoading: isLoadingById } =
-    trpc.diagnostico.getByMentoradoId.useQuery(
-      { mentoradoId: mentoradoId! },
-      { enabled: !!mentoradoId }
-    );
-
-  const diagnostico = mentoradoId ? diagnosticoById : diagnosticoMe;
-  const isLoading = mentoradoId ? isLoadingById : isLoadingMe;
+  // Optimized single query
+  const { data: diagnostico, isLoading } = trpc.diagnostico.get.useQuery(
+    { mentoradoId },
+    {
+      // Refetch when mentoradoId changes, or on mount
+      refetchOnWindowFocus: false,
+    }
+  );
 
   const upsertMutation = trpc.diagnostico.upsert.useMutation({
     onSuccess: () => {
       toast.success("Diagnóstico salvo com sucesso!");
       // Invalidate both potential queries to be safe
       utils.diagnostico.get.invalidate();
-      if (mentoradoId) {
-        utils.diagnostico.getByMentoradoId.invalidate({ mentoradoId });
-      }
     },
     onError: error => {
       toast.error(`Erro: ${error.message}`);

@@ -704,6 +704,7 @@ export const diagnosticos = pgTable(
     // 4. Objetivos e Sonhos
     objetivo6Meses: text("objetivo_6_meses"),
     resultadoTransformador: text("resultado_transformador"),
+    organizacao: text("organizacao"),
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

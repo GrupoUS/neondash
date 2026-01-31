@@ -56,6 +56,7 @@ export const diagnosticoRouter = router({
         dificuldadeCrescer: z.string().optional(),
         objetivo6Meses: z.string().optional(),
         resultadoTransformador: z.string().optional(),
+        organizacao: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

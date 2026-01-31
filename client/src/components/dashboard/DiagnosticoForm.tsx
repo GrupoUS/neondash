@@ -31,6 +31,7 @@ const formSchema = z.object({
   dificuldadeCrescer: z.string().optional(),
   objetivo6Meses: z.string().optional(),
   resultadoTransformador: z.string().optional(),
+  organizacao: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -64,6 +65,7 @@ export function DiagnosticoForm() {
       dificuldadeCrescer: "",
       objetivo6Meses: "",
       resultadoTransformador: "",
+      organizacao: "",
     },
   });
 
@@ -82,6 +84,7 @@ export function DiagnosticoForm() {
         dificuldadeCrescer: diagnostico.dificuldadeCrescer || "",
         objetivo6Meses: diagnostico.objetivo6Meses || "",
         resultadoTransformador: diagnostico.resultadoTransformador || "",
+        organizacao: diagnostico.organizacao || "",
       });
     }
   }, [diagnostico, form]);
@@ -328,6 +331,34 @@ export function DiagnosticoForm() {
                       <Textarea
                         placeholder="O que mudaria o jogo?"
                         className="h-24"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Card 5: Primeiros Passos */}
+          <Card className="md:col-span-2 border-neon-pink/20 bg-neon-pink/5">
+            <CardHeader>
+              <CardTitle className="text-neon-pink">
+                5. Primeiros Passos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="organizacao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Organização</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Tirar do papel os fundamentos, sem antecipar estratégias..."
+                        className="h-32"
                         {...field}
                       />
                     </FormControl>

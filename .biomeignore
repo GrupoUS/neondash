@@ -1,0 +1,31 @@
+# Biome ignore file
+# https://biomejs.dev/guides/configure-biome/#ignoring-files
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Cache
+.cache/
+*.tsbuildinfo
+
+# IDE/Editor
+.vscode/
+.idea/
+
+# Agent directories
+.gemini/
+.agent/
+
+# Test coverage
+coverage/
+
+# Environment files
+.env*
+!.env.example
+
+# Logs
+*.log

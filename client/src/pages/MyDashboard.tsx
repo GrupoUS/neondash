@@ -339,7 +339,7 @@ export default function MyDashboard() {
           >
             <div className="grid grid-cols-1 max-w-4xl mx-auto w-full">
               {isAdmin ? (
-                <AdminDiagnosticoView mentoradoId={targetMentoradoId || 0} />
+                <DiagnosticoForm mentoradoId={targetMentoradoId} />
               ) : (
                 <DiagnosticoForm />
               )}

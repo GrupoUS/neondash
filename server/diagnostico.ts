@@ -57,33 +57,51 @@ export const diagnosticoRouter = router({
         objetivo6Meses: z.string().optional(),
         resultadoTransformador: z.string().optional(),
         organizacao: z.string().optional(),
+        mentoradoId: z.number().optional(), // Admin override
       })
     )
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
+      let targetMentoradoId: number;
 
-      // 1. Get user's mentorado record
-      const mentorado = await db.query.mentorados.findFirst({
-        where: eq(mentorados.userId, ctx.user.id),
-      });
-
-      if (!mentorado) {
-        throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message: "Usuário não vinculado a um mentorado.",
+      // 1. Determine Target Mentorado
+      if (input.mentoradoId) {
+        // Only admin can set mentoradoId
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Apenas administradores podem editar outros diagnósticos.",
+          });
+        }
+        targetMentoradoId = input.mentoradoId;
+      } else {
+        // Normal user: find their own mentorado record
+        const mentorado = await db.query.mentorados.findFirst({
+          where: eq(mentorados.userId, ctx.user.id),
         });
+
+        if (!mentorado) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Usuário não vinculado a um mentorado.",
+          });
+        }
+        targetMentoradoId = mentorado.id;
       }
 
       // 2. Check if exists
       const existing = await db.query.diagnosticos.findFirst({
-        where: eq(diagnosticos.mentoradoId, mentorado.id),
+        where: eq(diagnosticos.mentoradoId, targetMentoradoId),
       });
+
+      // Prepare data excluding mentoradoId from input to avoid schema conflict if we spread
+      const { mentoradoId: _ignored, ...dataToUpsert } = input;
 
       if (existing) {
         // Update
         const [updated] = await db
           .update(diagnosticos)
-          .set({ ...input, updatedAt: new Date() })
+          .set({ ...dataToUpsert, updatedAt: new Date() })
           .where(eq(diagnosticos.id, existing.id))
           .returning();
         return updated;
@@ -92,8 +110,8 @@ export const diagnosticoRouter = router({
         const [created] = await db
           .insert(diagnosticos)
           .values({
-            mentoradoId: mentorado.id,
-            ...input,
+            mentoradoId: targetMentoradoId,
+            ...dataToUpsert,
           })
           .returning();
         return created;

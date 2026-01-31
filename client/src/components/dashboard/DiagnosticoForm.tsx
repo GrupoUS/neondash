@@ -36,14 +36,32 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function DiagnosticoForm() {
+export function DiagnosticoForm({ mentoradoId }: { mentoradoId?: number }) {
   const utils = trpc.useUtils();
 
-  const { data: diagnostico, isLoading } = trpc.diagnostico.get.useQuery();
+  // Conditional Query: if mentoradoId is provided, use getByMentoradoId, else get (me)
+  const { data: diagnosticoMe, isLoading: isLoadingMe } =
+    trpc.diagnostico.get.useQuery(undefined, {
+      enabled: !mentoradoId,
+    });
+
+  const { data: diagnosticoById, isLoading: isLoadingById } =
+    trpc.diagnostico.getByMentoradoId.useQuery(
+      { mentoradoId: mentoradoId! },
+      { enabled: !!mentoradoId }
+    );
+
+  const diagnostico = mentoradoId ? diagnosticoById : diagnosticoMe;
+  const isLoading = mentoradoId ? isLoadingById : isLoadingMe;
+
   const upsertMutation = trpc.diagnostico.upsert.useMutation({
     onSuccess: () => {
       toast.success("Diagnóstico salvo com sucesso!");
+      // Invalidate both potential queries to be safe
       utils.diagnostico.get.invalidate();
+      if (mentoradoId) {
+        utils.diagnostico.getByMentoradoId.invalidate({ mentoradoId });
+      }
     },
     onError: error => {
       toast.error(`Erro: ${error.message}`);
@@ -90,7 +108,7 @@ export function DiagnosticoForm() {
   }, [diagnostico, form]);
 
   function onSubmit(values: FormValues) {
-    upsertMutation.mutate(values);
+    upsertMutation.mutate({ ...values, mentoradoId });
   }
 
   if (isLoading) {

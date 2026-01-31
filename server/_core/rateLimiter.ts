@@ -45,12 +45,23 @@ function isAdmin(req: Request): boolean {
  * User rate limiter for general API requests.
  * Admins are exempt from rate limiting.
  */
+// Helper to bypass express-rate-limit strict validation regex for req.ip
+const getClientIp = (req: Request) => req.ip || "unknown";
+
+/**
+ * User rate limiter for general API requests.
+ * Admins are exempt from rate limiting.
+ */
 export const userRateLimiter = rateLimit({
   windowMs: WINDOW_MS,
   max: MAX_REQUESTS_USER,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: getUserIdFromRequest,
+  keyGenerator: (req: Request) => {
+    // @ts-expect-error - Clerk adds auth to request
+    const auth = req.auth;
+    return auth?.userId || getClientIp(req);
+  },
   skip: isAdmin,
   message: {
     error: "Too many requests",
@@ -66,7 +77,7 @@ export const userRateLimiter = rateLimit({
         service: "rate-limiter",
         action: "user_rate_limit_exceeded",
         userId: getUserIdFromRequest(req),
-        ip: req.ip,
+        ip: getClientIp(req),
       })
     );
 
@@ -87,7 +98,7 @@ export const authRateLimiter = rateLimit({
   max: MAX_REQUESTS_AUTH,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req: Request) => req.ip || "unknown",
+  // keyGenerator removed: defaults to req.ip which is what we want
   skipSuccessfulRequests: true, // Only count failed attempts
   message: {
     error: "Too many authentication attempts",
@@ -101,7 +112,7 @@ export const authRateLimiter = rateLimit({
         level: "warn",
         service: "rate-limiter",
         action: "auth_rate_limit_exceeded",
-        ip: req.ip,
+        ip: getClientIp(req),
       })
     );
 

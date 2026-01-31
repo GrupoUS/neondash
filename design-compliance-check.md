@@ -6,10 +6,10 @@
 
 #### 1. Paleta de Cores
 
-- **Azul Escuro (#112031)**: ✅ Usado em backgrounds principais e texto de destaque
-- **Azul Petróleo (#20445B)**: ✅ Usado em elementos secundários e hover states
-- **Dourado (#AC9469)**: ✅ Usado em acentos, ícones e gradientes
-- **Cinza Elegante (#D2D0C7)**: ✅ Usado em backgrounds neutros
+- **Azul Escuro (#0f172a)**: ✅ Usado em backgrounds principais e texto de destaque (Dark Mode)
+- **Azul Petróleo (#0f4c75)**: ✅ Usado em elementos secundários, textos e hover states
+- **Dourado Brilhante (#ffd700)**: ✅ Usado em acentos, ícones e gradientes no modo escuro
+- **Cinza/Branco Suave (#f8fafc)**: ✅ Usado em backgrounds neutros e textos claros
 
 #### 2. Logo e Símbolo
 

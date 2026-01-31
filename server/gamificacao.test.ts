@@ -108,8 +108,6 @@ describe("Gamificação Service", () => {
       const result = await Gamificacao.getRanking(2025, 12);
       expect(result).toEqual([]);
     });
-
-
   });
 
   describe("getNotificacoes", () => {

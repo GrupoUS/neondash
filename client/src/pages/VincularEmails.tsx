@@ -98,8 +98,7 @@ export default function VincularEmails() {
                     <SelectContent>
                       {mentorados?.map(m => (
                         <SelectItem key={m.id} value={m.id.toString()}>
-                          {m.nomeCompleto} -{" "}
-                          Neon
+                          {m.nomeCompleto} - Neon
                           {m.email && ` (${m.email})`}
                         </SelectItem>
                       ))}

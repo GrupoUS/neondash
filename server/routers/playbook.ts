@@ -11,9 +11,7 @@ import { getDb } from "../db";
 
 export const playbookRouter = router({
   getModules: protectedProcedure
-    .input(
-      z.object({ turma: z.string().optional() })
-    )
+    .input(z.object({ turma: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const db = getDb();
       // Fetch modules, optionally filtered by turma or global (null)

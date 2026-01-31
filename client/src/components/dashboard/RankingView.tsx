@@ -191,9 +191,7 @@ export function RankingView({ selectedMonth, selectedYear }: RankingViewProps) {
                             </Badge>
                           )}
                         </h4>
-                        <p className="text-sm text-slate-500">
-                          Neon
-                        </p>
+                        <p className="text-sm text-slate-500">Neon</p>
                       </div>
 
                       <div className="text-right">

@@ -170,13 +170,13 @@ export function AnimatedTooltipSelector({
                   rotate: rotate,
                   whiteSpace: "nowrap",
                 }}
-                className="absolute -top-16 left-1/2 z-50 flex -translate-x-1/2 flex-col items-center justify-center rounded-lg bg-slate-900 px-3 py-1.5 shadow-xl ring-1 ring-white/10"
+                className="absolute top-full left-1/2 z-50 flex -translate-x-1/2 flex-col items-center justify-center rounded-lg bg-slate-900 px-3 py-1.5 shadow-xl ring-1 ring-white/10 mt-2"
               >
                 <div className="text-sm font-semibold text-white">
                   {item.name}
                 </div>
                 <div className="text-xs text-slate-400">{item.designation}</div>
-                <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900" />
+                <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900" />
               </motion.div>
             )}
           </AnimatePresence>

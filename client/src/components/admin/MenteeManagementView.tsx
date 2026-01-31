@@ -18,6 +18,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 
+// Mentorado list item type (matches tRPC output)
+interface MentoradoListItem {
+  id: number;
+  nomeCompleto: string;
+  email: string | null;
+  fotoUrl: string | null;
+  turma: "neon";
+  metaFaturamento: number;
+  metaLeads: number | null;
+  metaProcedimentos: number | null;
+  metaPosts: number | null;
+  metaStories: number | null;
+}
+
 type Turma = "neon";
 
 interface MentoradoForm {
@@ -51,7 +65,7 @@ export function MenteeManagementView() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedMentorado, setSelectedMentorado] = useState<any>(null);
+  const [selectedMentorado, setSelectedMentorado] = useState<MentoradoListItem | null>(null);
   const [form, setForm] = useState<MentoradoForm>(defaultForm);
 
   const createMutation = trpc.mentorados.createNew.useMutation({
@@ -125,7 +139,7 @@ export function MenteeManagementView() {
     deleteMutation.mutate({ id: selectedMentorado.id });
   };
 
-  const openEditDialog = (mentorado: any) => {
+  const openEditDialog = (mentorado: MentoradoListItem) => {
     setSelectedMentorado(mentorado);
     setForm({
       nomeCompleto: mentorado.nomeCompleto,
@@ -141,7 +155,7 @@ export function MenteeManagementView() {
     setIsEditOpen(true);
   };
 
-  const openDeleteDialog = (mentorado: any) => {
+  const openDeleteDialog = (mentorado: MentoradoListItem) => {
     setSelectedMentorado(mentorado);
     setIsDeleteOpen(true);
   };
@@ -150,7 +164,7 @@ export function MenteeManagementView() {
 
   const stats = {
     total: mentorados?.length || 0,
-    comEmail: mentorados?.filter((m: any) => m.email).length || 0,
+    comEmail: mentorados?.filter((m) => m.email).length || 0,
   };
 
   const _getInitials = (name: string) => {
@@ -337,13 +351,13 @@ export function MenteeManagementView() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredMentorados?.map((mentorado: any) => (
+            {filteredMentorados?.map((mentorado) => (
               <ProfileCard
                 key={mentorado.id}
                 name={mentorado.nomeCompleto}
                 email={mentorado.email || undefined}
                 imageUrl={mentorado.fotoUrl || undefined}
-                role="Mentorado"
+                jobTitle="Mentorado"
                 turma={mentorado.turma}
                 badges={[]} // Could add active/inactive here if needed
                 stats={[

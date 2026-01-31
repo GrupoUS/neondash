@@ -17,8 +17,6 @@ export function AdminOverview() {
   }
 
   const totalMentorados = mentorados?.length || 0;
-  const estruturaCount = mentorados?.filter((m: any) => m.turma === "neon_estrutura").length || 0;
-  const escalaCount = mentorados?.filter((m: any) => m.turma === "neon_escala").length || 0;
 
   return (
     <div className="space-y-6">
@@ -34,14 +32,7 @@ export function AdminOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-slate-900">{totalMentorados}</div>
-            <div className="flex gap-2 mt-1 text-xs">
-              <span className="bg-neon-purple/10 text-neon-purple px-2 py-0.5 rounded-full font-medium">
-                {estruturaCount} Estrutura
-              </span>
-              <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-                {escalaCount} Escala
-              </span>
-            </div>
+            <p className="text-xs text-slate-400 mt-1">Programa NEON</p>
           </CardContent>
         </Card>
 

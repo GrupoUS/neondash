@@ -8,12 +8,12 @@ import { cn } from "@/lib/utils";
 
 export interface ProfileCardProps {
   name: string;
-  role: string;
+  jobTitle: string;
   email?: string;
   imageUrl?: string;
   coverUrl?: string; // Optional custom cover
   badges?: string[];
-  turma?: "neon_estrutura" | "neon_escala"; // Specific to schema
+  turma?: "neon";
   stats?: {
     label: string;
     value: string | number;
@@ -27,7 +27,7 @@ export interface ProfileCardProps {
 
 export function ProfileCard({
   name,
-  role,
+  jobTitle,
   email,
   imageUrl,
   coverUrl,
@@ -39,13 +39,10 @@ export function ProfileCard({
   footer,
   className,
 }: ProfileCardProps) {
-  // Determine gradient based on turma or default
-  const gradientClass =
-    turma === "neon_escala"
-      ? "bg-gradient-to-r from-purple-500 to-pink-500"
-      : turma === "neon_estrutura"
-        ? "bg-gradient-to-r from-blue-500 to-cyan-500"
-        : "bg-gradient-to-r from-neutral-800 to-neutral-600"; // Default
+  // Gradient for neon turma
+  const gradientClass = turma
+    ? "bg-gradient-to-r from-blue-500 to-cyan-500"
+    : "bg-gradient-to-r from-neutral-800 to-neutral-600";
 
   return (
     <BentoCard
@@ -81,7 +78,7 @@ export function ProfileCard({
                 {name}
               </h3>
               <p className="text-sm font-medium text-muted-foreground flex items-center gap-1 mt-1">
-                <User className="w-3 h-3" /> {role}
+                <User className="w-3 h-3" /> {jobTitle}
               </p>
               {email && (
                 <p className="text-xs text-muted-foreground/80 flex items-center gap-1 mt-0.5">
@@ -90,10 +87,7 @@ export function ProfileCard({
               )}
             </div>
             {turma && (
-              <Badge
-                variant={turma === "neon_escala" ? "default" : "secondary"}
-                className="uppercase text-[10px] tracking-wider"
-              >
+              <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">
                 {turma.replace("_", " ")}
               </Badge>
             )}
@@ -101,8 +95,8 @@ export function ProfileCard({
 
           {badges.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-3">
-              {badges.map((badge, index) => (
-                <Badge key={index} variant="outline" className="text-xs rounded-full px-2">
+              {badges.map((badge) => (
+                <Badge key={badge} variant="outline" className="text-xs rounded-full px-2">
                   {badge}
                 </Badge>
               ))}
@@ -114,8 +108,8 @@ export function ProfileCard({
       {stats.length > 0 && (
         <BentoCardContent className="px-6 py-4">
           <div className="grid grid-cols-3 gap-4 border-t border-border/50 pt-4">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center group/stat cursor-default">
+            {stats.map((stat) => (
+              <div key={stat.label} className="text-center group/stat cursor-default">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1 group-hover/stat:text-primary transition-colors">
                   {stat.label}
                 </p>

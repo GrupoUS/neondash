@@ -32,53 +32,32 @@ export default function Home() {
   const [selectedYear, setSelectedYear] = useState(2025);
   const [selectedMonth, setSelectedMonth] = useState(12);
 
-  const topPerformers = [
-    ...analiseData.neon_estrutura.ranking.map(([nome, score]) => ({
+  const topPerformers = analiseData.neon.ranking
+    .map(([nome, score]: [string, number]) => ({
       nome,
       score,
       grupo: "Neon",
-    })),
-    ...analiseData.neon_escala.ranking.map(([nome, score]) => ({
-      nome,
-      score,
-      grupo: "Neon",
-    })),
-  ]
-    .sort((a, b) => b.score - a.score)
+    }))
     .slice(0, 5);
 
-  const faturamentoTotal =
-    Object.values(analiseData.neon_estrutura.analise).reduce(
-      (acc, curr) => acc + curr.dados.faturamento,
-      0
-    ) +
-    Object.values(analiseData.neon_escala.analise).reduce(
-      (acc, curr) => acc + curr.dados.faturamento,
-      0
-    );
+  const faturamentoTotal = Object.values(analiseData.neon.analise).reduce(
+    (acc, curr) => acc + curr.dados.faturamento,
+    0
+  );
 
-  const totalMentorados =
-    Object.keys(analiseData.neon_estrutura.analise).length +
-    Object.keys(analiseData.neon_escala.analise).length;
+  const totalMentorados = Object.keys(analiseData.neon.analise).length;
 
   const mediaScore = (
     topPerformers.reduce((acc, curr) => acc + curr.score, 0) / topPerformers.length
   ).toFixed(1);
 
-  const chartData = [
-    ...analiseData.neon_estrutura.ranking.map(([nome, score]) => ({
+  const chartData = analiseData.neon.ranking
+    .map(([nome, score]: [string, number]) => ({
       name: nome.split(" ")[0],
       score,
-      faturamento: analiseData.neon_estrutura.analise[nome].dados.faturamento,
+      faturamento: analiseData.neon.analise[nome].dados.faturamento,
       grupo: "Neon",
-    })),
-    ...analiseData.neon_escala.ranking.map(([nome, score]) => ({
-      name: nome.split(" ")[0],
-      score,
-      faturamento: analiseData.neon_escala.analise[nome].dados.faturamento,
-      grupo: "Neon",
-    })),
-  ]
+    }))
     .sort((a, b) => b.faturamento - a.faturamento)
     .slice(0, 10);
 
@@ -246,8 +225,8 @@ export default function Home() {
                           }}
                         />
                         <Bar dataKey="faturamento" radius={[4, 4, 0, 0]}>
-                          {chartData.map((_entry, index) => (
-                            <Cell key={`cell-${index}`} fill="#AC9469" />
+                          {chartData.map((entry) => (
+                            <Cell key={entry.name} fill="#AC9469" />
                           ))}
                         </Bar>
                       </BarChart>

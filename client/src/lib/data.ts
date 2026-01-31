@@ -47,12 +47,11 @@ export interface GrupoAnalise {
 }
 
 export interface AnaliseCompleta {
-  neon_estrutura: GrupoAnalise;
-  neon_escala: GrupoAnalise;
+  neon: GrupoAnalise;
 }
 
 export const analiseData: AnaliseCompleta = {
-  neon_estrutura: {
+  neon: {
     analise: {
       "Ana Scaravate": {
         dados: {
@@ -288,23 +287,6 @@ export const analiseData: AnaliseCompleta = {
             "Gabriela, janeiro é o mês da virada. Não se preocupe com perfeição, foque em execução. Sua meta é simples: 3 posts na semana e prospecção ativa diária. Use o Google Meu Negócio para atrair pacientes locais que já procuram pelo seu serviço. A meta é dobrar esse faturamento com ações simples e consistentes.",
         },
       },
-    },
-    ranking: [
-      ["Ana Scaravate", 88.8],
-      ["Alina Targino", 83.0],
-      ["Tânia Cristina", 82.8],
-      ["Mariana Guimarães", 80.8],
-      ["Gabriela Santiago", 57.8],
-    ],
-    benchmarks: {
-      meta_faturamento: 16000,
-      posts_feed_min: 8,
-      stories_min: 28,
-      procedimentos_min: 5,
-    },
-  },
-  neon_escala: {
-    analise: {
       "Thais Olimpia": {
         dados: {
           faturamento: 30725.0,
@@ -720,20 +702,25 @@ export const analiseData: AnaliseCompleta = {
     },
     ranking: [
       ["Thais Olimpia", 96.0],
+      ["Ana Scaravate", 88.8],
       ["Lana Máximo", 87.8],
       ["Kleber Oliveira", 87.5],
+      ["Alina Targino", 83.0],
+      ["Tânia Cristina", 82.8],
+      ["Mariana Guimarães", 80.8],
       ["Carmen", 77.5],
       ["Jéssica Sales", 77.2],
       ["Iza Pionório", 71.2],
       ["Élica", 58.2],
+      ["Gabriela Santiago", 57.8],
       ["Jayne", 51.9],
       ["Tamara Dilma", 48.7],
     ],
     benchmarks: {
-      meta_faturamento: 30000,
-      posts_feed_min: 12,
+      meta_faturamento: 16000,
+      posts_feed_min: 8,
       stories_min: 28,
-      procedimentos_min: 15,
+      procedimentos_min: 5,
       leads_min: 20,
     },
   },

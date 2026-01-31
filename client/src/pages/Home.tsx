@@ -16,11 +16,14 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import {
   LayoutDashboard,
   Trophy,
   Medal,
   Users,
   TrendingUp,
+  DollarSign,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MonthYearFilter from "@/components/MonthYearFilter";

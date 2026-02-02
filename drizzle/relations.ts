@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  aiAgentConfig,
   badges,
   feedbacks,
   interacoes,
@@ -11,6 +12,7 @@ import {
   notificacoes,
   rankingMensal,
   users,
+  whatsappMessages,
 } from "./schema";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -144,6 +146,32 @@ export const interacoesRelations = relations(interacoes, ({ one }) => ({
   }),
   mentorado: one(mentorados, {
     fields: [interacoes.mentoradoId],
+    references: [mentorados.id],
+  }),
+}));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WHATSAPP MESSAGES RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const whatsappMessagesRelations = relations(whatsappMessages, ({ one }) => ({
+  mentorado: one(mentorados, {
+    fields: [whatsappMessages.mentoradoId],
+    references: [mentorados.id],
+  }),
+  lead: one(leads, {
+    fields: [whatsappMessages.leadId],
+    references: [leads.id],
+  }),
+}));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AI AGENT CONFIG RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const aiAgentConfigRelations = relations(aiAgentConfig, ({ one }) => ({
+  mentorado: one(mentorados, {
+    fields: [aiAgentConfig.mentoradoId],
     references: [mentorados.id],
   }),
 }));

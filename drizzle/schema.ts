@@ -73,6 +73,10 @@ export const prioridadeTaskEnum = pgEnum("prioridade_task", ["alta", "media", "b
 
 export const temperaturaLeadEnum = pgEnum("temperatura_lead", ["frio", "morno", "quente"]);
 
+// WhatsApp / Z-API enums
+export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "outbound"]);
+export const messageStatusEnum = pgEnum("message_status", ["pending", "sent", "delivered", "read", "failed"]);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -124,6 +128,12 @@ export const mentorados = pgTable(
     metaStories: integer("meta_stories").default(60),
     ativo: ativoEnum("ativo").default("sim").notNull(),
     onboardingCompleted: simNaoEnum("onboarding_completed").default("nao").notNull(),
+    // Z-API WhatsApp Integration
+    zapiInstanceId: varchar("zapi_instance_id", { length: 128 }),
+    zapiToken: text("zapi_token"), // Encrypted
+    zapiConnected: simNaoEnum("zapi_connected").default("nao"),
+    zapiConnectedAt: timestamp("zapi_connected_at"),
+    zapiPhone: varchar("zapi_phone", { length: 20 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -758,3 +768,64 @@ export const googleTokens = pgTable(
 
 export type GoogleToken = typeof googleTokens.$inferSelect;
 export type InsertGoogleToken = typeof googleTokens.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WHATSAPP / Z-API INTEGRATION TABLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * WhatsApp Messages - Message history for Z-API integration
+ */
+export const whatsappMessages = pgTable(
+  "whatsapp_messages",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    leadId: integer("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    phone: varchar("phone", { length: 20 }).notNull(),
+    direction: messageDirectionEnum("direction").notNull(),
+    content: text("content").notNull(),
+    zapiMessageId: varchar("zapi_message_id", { length: 128 }),
+    status: messageStatusEnum("status").default("pending").notNull(),
+    isFromAi: simNaoEnum("is_from_ai").default("nao"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("whatsapp_messages_mentorado_idx").on(table.mentoradoId),
+    index("whatsapp_messages_lead_idx").on(table.leadId),
+    index("whatsapp_messages_phone_idx").on(table.phone),
+    index("whatsapp_messages_created_idx").on(table.createdAt),
+  ]
+);
+
+export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
+export type InsertWhatsappMessage = typeof whatsappMessages.$inferInsert;
+
+/**
+ * AI Agent Config - Configuration for AI SDR per mentorado
+ */
+export const aiAgentConfig = pgTable(
+  "ai_agent_config",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    enabled: simNaoEnum("enabled").default("nao").notNull(),
+    systemPrompt: text("system_prompt"),
+    greetingMessage: text("greeting_message"),
+    qualificationQuestions: text("qualification_questions"), // JSON string
+    workingHoursStart: varchar("working_hours_start", { length: 5 }).default("09:00"),
+    workingHoursEnd: varchar("working_hours_end", { length: 5 }).default("18:00"),
+    workingDays: varchar("working_days", { length: 20 }).default("1,2,3,4,5"), // CSV: 0=Sun, 6=Sat
+    responseDelayMs: integer("response_delay_ms").default(3000),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("ai_agent_config_mentorado_idx").on(table.mentoradoId)]
+);
+
+export type AiAgentConfig = typeof aiAgentConfig.$inferSelect;
+export type InsertAiAgentConfig = typeof aiAgentConfig.$inferInsert;

@@ -119,7 +119,7 @@ export function ChatInterface() {
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-1 flex-col gap-4 overflow-hidden p-4">
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">
         {!isActive ? (
           // Start session view
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -145,8 +145,8 @@ export function ChatInterface() {
         ) : (
           // Chat view
           <>
-            <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4">
-              <div className="flex flex-col gap-4">
+            <ScrollArea ref={scrollAreaRef} className="h-full min-h-0 flex-1 pr-4">
+              <div className="flex flex-col gap-4 pb-2">
                 <AnimatePresence initial={false}>
                   {messages.map((message) => (
                     <motion.div

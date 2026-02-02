@@ -14,6 +14,7 @@ import { calendarRouter } from "./routers/calendar";
 import { classesRouter } from "./routers/classes";
 import { playbookRouter } from "./routers/playbook";
 import { tasksRouter } from "./routers/tasks";
+import { zapiRouter } from "./zapiRouter";
 
 export const appRouter = router({
   system: systemRouter,
@@ -31,6 +32,7 @@ export const appRouter = router({
   interacoes: interacoesRouter,
   calendar: calendarRouter,
   crmColumns: crmColumnsRouter,
+  zapi: zapiRouter,
 });
 
 export type AppRouter = typeof appRouter;

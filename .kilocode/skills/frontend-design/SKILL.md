@@ -6,8 +6,16 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 # Frontend Design System
 
+> [!IMPORTANT]
+> **Dual Skill Architecture:** This skill works in partnership with `ui-ux-pro-max`:
+> - **ui-ux-pro-max** → Design System Generation (what design to use)
+> - **frontend-design** → Assets + Validation (how to implement)
+>
+> For design system searches, use `ui-ux-pro-max/scripts/search.py`.
+
 > **Philosophy:** Every pixel has purpose. Restraint is luxury. User psychology drives decisions.
 > **Core Principle:** THINK, don't memorize. ASK, don't assume.
+> **Default Theme:** GPUS Navy/Gold palette from `gpus-theme` skill.
 
 ---
 
@@ -15,31 +23,33 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 **Read REQUIRED files always, OPTIONAL only when needed:**
 
-| File                                                 | Status          | When to Read                       |
-| ---------------------------------------------------- | --------------- | ---------------------------------- |
-| [ux-psychology.md](ux-psychology.md)                 | 🔴 **REQUIRED** | Always read first!                 |
-| [color-system.md](color-system.md)                   | ⚪ Optional     | Color/palette decisions            |
-| [typography-system.md](typography-system.md)         | ⚪ Optional     | Font selection/pairing             |
-| [visual-effects.md](visual-effects.md)               | ⚪ Optional     | Glassmorphism, shadows, gradients  |
-| [animation-guide.md](animation-guide.md)             | ⚪ Optional     | Animation needed                   |
-| [motion-graphics.md](motion-graphics.md)             | ⚪ Optional     | Lottie, GSAP, 3D                   |
-| [decision-trees.md](decision-trees.md)               | ⚪ Optional     | Context templates                  |
-| [tailwind-v4-patterns.md](tailwind-v4-patterns.md)   | ⚪ Optional     | Tailwind CSS v4, container queries |
-| [algorithmic-art-guide.md](algorithmic-art-guide.md) | ⚪ Optional     | p5.js, generative art              |
-| [canvas-design-guide.md](canvas-design-guide.md)     | ⚪ Optional     | PDF/PNG visual art                 |
-| [design-system-search.md](design-system-search.md)   | ⚪ Optional     | Search 50+ styles, palettes        |
-| [nanobananaskill.md](nanobananaskill.md)             | ⚪ Optional     | AI image generation                |
+| File | Status | When to Read |
+| ---- | ------ | ------------ |
+| [../gpus-theme/SKILL.md](../gpus-theme/SKILL.md) | 🔴 **REQUIRED** | Always! Default theme |
+| [ux-psychology.md](ux-psychology.md) | 🔴 **REQUIRED** | Always read first! |
+| [color-system.md](color-system.md) | ⚪ Optional | Non-GPUS color decisions |
+| [typography-system.md](typography-system.md) | ⚪ Optional | Font selection/pairing |
+| [visual-effects.md](visual-effects.md) | ⚪ Optional | Glassmorphism, shadows, gradients |
+| [animation-guide.md](animation-guide.md) | ⚪ Optional | Animation needed |
+| [motion-graphics.md](motion-graphics.md) | ⚪ Optional | Lottie, GSAP, 3D |
+| [decision-trees.md](decision-trees.md) | ⚪ Optional | Context templates |
+| [tailwind-v4-patterns.md](tailwind-v4-patterns.md) | ⚪ Optional | Tailwind CSS v4, container queries |
+| [algorithmic-art-guide.md](algorithmic-art-guide.md) | ⚪ Optional | p5.js, generative art |
+| [canvas-design-guide.md](canvas-design-guide.md) | ⚪ Optional | PDF/PNG visual art |
+| [design-system-search.md](design-system-search.md) | ⚪ Optional | Search 50+ styles, palettes |
+| [nanobananaskill.md](nanobananaskill.md) | ⚪ Optional | AI image generation |
 
 ---
 
-## 🔧 Runtime Scripts
+## 🔧 Runtime Scripts (Unique to frontend-design)
 
-| Script                             | Purpose                  | Usage                                                   |
-| ---------------------------------- | ------------------------ | ------------------------------------------------------- |
-| `scripts/ux_audit.py`              | UX & Accessibility Audit | `python scripts/ux_audit.py <project_path>`             |
-| `scripts/accessibility_checker.py` | WCAG Compliance Check    | `python scripts/accessibility_checker.py <file>`        |
-| `scripts/generate_images.py`       | Nano Banana Image Gen    | `python scripts/generate_images.py "prompt" "filename"` |
-| `scripts/search.py`                | Design System Search     | `python scripts/search.py "query" --design-system`      |
+| Script | Purpose | Usage |
+| ------ | ------- | ----- |
+| `scripts/ux_audit.py` | UX & Accessibility Audit | `python scripts/ux_audit.py <project_path>` |
+| `scripts/accessibility_checker.py` | WCAG Compliance Check | `python scripts/accessibility_checker.py <file>` |
+| `scripts/generate_images.py` | Nano Banana Image Gen | `python scripts/generate_images.py "prompt" "filename"` |
+
+> **Note:** For design system generation, use `ui-ux-pro-max/scripts/search.py --design-system`. See [ui-ux-pro-max SKILL.md](../ui-ux-pro-max/SKILL.md).
 
 ---
 
@@ -51,15 +61,15 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### Anti-Patterns to Avoid
 
-| AI Default Tendency      | Think Instead                             |
-| ------------------------ | ----------------------------------------- |
-| Bento Grids              | Why does this content NEED a grid?        |
-| Hero Split (Left/Right)  | Massive Typography or Vertical Narrative? |
-| Mesh/Aurora Gradients    | What's a radical color pairing?           |
-| Glassmorphism            | Solid, high-contrast flat?                |
-| Deep Cyan / Fintech Blue | Red, Black, or Neon Green?                |
-| Dark + neon glow         | What does the BRAND need?                 |
-| Purple/violet everything | **PURPLE BAN ✅**                         |
+| AI Default Tendency | Think Instead |
+| ------------------- | ------------- |
+| Bento Grids | Why does this content NEED a grid? |
+| Hero Split (Left/Right) | Massive Typography or Vertical Narrative? |
+| Mesh/Aurora Gradients | What's a radical color pairing? |
+| Glassmorphism | Solid, high-contrast flat? |
+| Deep Cyan / Fintech Blue | Red, Black, or Neon Green? |
+| Dark + neon glow | What does the BRAND need? |
+| Purple/violet everything | **PURPLE BAN ✅** |
 
 ---
 
@@ -67,32 +77,45 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### Constraint Analysis (ALWAYS FIRST)
 
-| Constraint   | Question              | Why It Matters              |
-| ------------ | --------------------- | --------------------------- |
-| **Timeline** | How much time?        | Determines complexity       |
-| **Content**  | Ready or placeholder? | Affects layout flexibility  |
-| **Brand**    | Existing guidelines?  | May dictate colors/fonts    |
-| **Tech**     | What stack?           | Affects capabilities        |
-| **Audience** | Who exactly?          | Drives all visual decisions |
+| Constraint | Question | Why It Matters |
+| ---------- | -------- | -------------- |
+| **Timeline** | How much time? | Determines complexity |
+| **Content** | Ready or placeholder? | Affects layout flexibility |
+| **Brand** | Existing guidelines? | May dictate colors/fonts |
+| **Tech** | What stack? | Affects capabilities |
+| **Audience** | Who exactly? | Drives all visual decisions |
 
 ### Core Laws
 
-| Law              | Principle                         | Application                 |
-| ---------------- | --------------------------------- | --------------------------- |
-| **Hick's**       | More choices = slower decisions   | Limit options               |
-| **Fitts'**       | Bigger + closer = easier to click | Size CTAs appropriately     |
-| **Miller's**     | ~7 items in working memory        | Chunk content               |
-| **Von Restorff** | Different = memorable             | Make CTAs visually distinct |
+| Law | Principle | Application |
+| --- | --------- | ----------- |
+| **Hick's** | More choices = slower decisions | Limit options |
+| **Fitts'** | Bigger + closer = easier to click | Size CTAs appropriately |
+| **Miller's** | ~7 items in working memory | Chunk content |
+| **Von Restorff** | Different = memorable | Make CTAs visually distinct |
 
 ---
 
 ## 2. Design Execution
 
-### Color (60-30-10 Rule)
+### Color: GPUS Navy/Gold Palette (DEFAULT)
 
-- 60% → Primary/Background
-- 30% → Secondary
-- 10% → Accent (CTAs)
+**Use the GPUS theme by default:**
+
+| Mode | Background | Text | Primary/CTA |
+|------|------------|------|-------------|
+| Light | White `#fff` | Dark Blue | Gold `38 60% 45%` |
+| Dark | Navy `211 49% 10%` | Gold `39 44% 65%` | Gold |
+
+**60-30-10 Rule:**
+- 60% → Background (Navy/White)
+- 30% → Foreground (Gold/Dark Blue)
+- 10% → Accent/CTA (Gold)
+
+**Theme Assets:**
+- CSS: `.agent/skills/gpus-theme/assets/theme-tokens.css`
+- Tailwind: `.agent/skills/gpus-theme/assets/tailwind-theme.ts`
+- shadcn: `.agent/skills/gpus-theme/assets/components.json`
 
 ### Typography
 
@@ -115,14 +138,12 @@ python .agent/skills/frontend-design/scripts/generate_images.py "Your prompt" "o
 ```
 
 Models:
-
-- **gemini-2.5-flash-image**: Speed/bulk placeholders
-- **gemini-3-pro-image-preview**: Hero/marketing assets
+- **gemini-3-flash-preview**: Speed/bulk placeholders
+- **gemini-3-pro-preview**: Hero/marketing assets
 
 ### Generative Art (p5.js)
 
 Use templates in `assets/p5-templates/`:
-
 - `viewer.html` - Interactive artifact template
 - `generator_template.js` - Code patterns
 
@@ -158,27 +179,42 @@ Data in `assets/ui-ux-data/` (12 CSVs + 11 stack files).
 
 ## 5. CSS/Tailwind Patterns
 
-### Tailwind v4 Quick Reference
+### GPUS Theme Integration (DEFAULT)
+
+Always use the GPUS theme tokens from `gpus-theme` skill:
 
 ```css
-@theme {
-  --color-primary: oklch(0.7 0.15 250);
-  --spacing-md: 1rem;
+/* Import GPUS theme */
+@import "tailwindcss";
+
+/* Use semantic tokens */
+.card {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+/* Custom utilities available */
+.premium-card {
+  @apply glass-card bg-mesh;
 }
 ```
+
+### Tailwind v4 Quick Reference
 
 - Container queries: `@sm:`, `@md:`, `@lg:`
 - CSS variables: All tokens as `--*` vars
 - Read [tailwind-v4-patterns.md](tailwind-v4-patterns.md) for full guide
+- **Theme reference:** [../gpus-theme/references/css-variables.md](../gpus-theme/references/css-variables.md)
 
 ---
 
 ## 6. Animation Principles
 
-| Action   | Easing      | Duration  |
-| -------- | ----------- | --------- |
-| Entering | Ease-out    | 150-300ms |
-| Leaving  | Ease-in     | 150-300ms |
+| Action | Easing | Duration |
+| ------ | ------ | -------- |
+| Entering | Ease-out | 150-300ms |
+| Leaving | Ease-in | 150-300ms |
 | Emphasis | Ease-in-out | 200-400ms |
 
 - Animate only `transform` and `opacity`
@@ -210,12 +246,14 @@ Data in `assets/ui-ux-data/` (12 CSVs + 11 stack files).
 
 ## Assets
 
-| Folder                 | Contents                    |
-| ---------------------- | --------------------------- |
-| `assets/canvas-fonts/` | 81 fonts for canvas design  |
-| `assets/p5-templates/` | p5.js viewer + generator    |
-| `assets/ui-ux-data/`   | 12 CSVs + 11 stack guides   |
-| `scripts/`             | 4 Python automation scripts |
+| Folder | Contents |
+| ------ | -------- |
+| `../gpus-theme/assets/` | **GPUS theme tokens, CSS, shadcn config** |
+| `../gpus-theme/references/` | CSS variables, component inventory |
+| `assets/canvas-fonts/` | 81 fonts for canvas design |
+| `assets/p5-templates/` | p5.js viewer + generator |
+| `assets/ui-ux-data/` | 12 CSVs + 11 stack guides |
+| `scripts/` | 4 Python automation scripts |
 
 ---
 

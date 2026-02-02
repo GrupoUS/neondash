@@ -218,11 +218,11 @@ After every fix:
 # 1. Type check
 bun run check
 
-# 2. Lint
-bun run format
+# 2. Lint (Biome)
+bun run lint:check
 
-# 3. Test
-bun test
+# 3. Test (Vitest)
+bun run test
 
 # 4. Security check
 # - No hardcoded secrets
@@ -244,9 +244,9 @@ bun test
 
 ```bash
 bun run check      # Type safety
-bun run format     # Lint & format
-bun test           # Unit tests
-bun test --coverage
+bun run lint:check # Biome lint
+bun run test       # Vitest unit tests
+bun run test:coverage
 ```
 
 ### 5.2 Deployment Validation
@@ -507,8 +507,8 @@ useEffect(() => {
 | Gate         | Command                     | Expected      |
 | ------------ | --------------------------- | ------------- |
 | Type Check   | `bun run check`             | 0 errors      |
-| Lint         | `bun run format --check`    | 0 warnings    |
-| Tests        | `bun test`                  | All pass      |
+| Lint         | `bun run lint:check`        | 0 warnings    |
+| Tests        | `bun run test`              | All pass      |
 | Build        | `bun run build`             | Clean build   |
 | DB Schema    | `bun run db:push --dry-run` | No drift      |
 | Slow Queries | Neon MCP                    | < 100ms avg   |
@@ -523,7 +523,10 @@ useEffect(() => {
 | ------------ | ------------------------------ |
 | Debug issue  | `/debug [description]`         |
 | Check types  | `bun run check`                |
-| Run tests    | `bun test`                     |
+| Lint & fix   | `bun run lint`                 |
+| Lint check   | `bun run lint:check`           |
+| Run tests    | `bun run test`                 |
+| Watch tests  | `bun run test:watch`           |
 | Slow queries | Neon MCP tools                 |
 | Check logs   | `railway logs --latest -n 100` |
 | Full QA      | `/qa`                          |

@@ -111,7 +111,7 @@ export function Agenda() {
           <p className="text-lg text-gray-400 font-mono mb-8">
             {!statusQuery.data?.configured
               ? "O administrador precisa configurar as credenciais do Google Cloud para habilitar a integração."
-              : "Visualize seus compromissos diretamente no dashboard integrado. Seus dados permanecem seguros."}
+              : "Sincronize sua agenda pessoal do Google Calendar para visualizar seus compromissos aqui."}
           </p>
           {statusQuery.data?.configured && (
             <Button
@@ -120,8 +120,15 @@ export function Agenda() {
               className="bg-[#C6A665] hover:bg-[#C6A665]/90 text-black font-bold text-lg px-8 py-6 rounded-xl"
             >
               <Link className="w-5 h-5 mr-3" />
-              Sincronizar Google Calendar
+              Sincronizar Minha Agenda
             </Button>
+          )}
+          {!statusQuery.data?.configured && (
+            <p className="text-gray-500 text-sm font-mono">
+              Configure as variáveis <code className="text-[#C6A665]">GOOGLE_CLIENT_ID</code> e{" "}
+              <code className="text-[#C6A665]">GOOGLE_CLIENT_SECRET</code> no arquivo{" "}
+              <code className="text-[#C6A665]">.env</code>
+            </p>
           )}
         </NeonCard>
       </div>

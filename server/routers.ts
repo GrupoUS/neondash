@@ -3,6 +3,7 @@ import { router } from "./_core/trpc";
 import { atividadesRouter } from "./atividadesRouter";
 import { diagnosticoRouter } from "./diagnostico";
 import { gamificacaoRouter } from "./gamificacaoRouter";
+import { interacoesRouter } from "./interacoesRouter";
 import { interactionTemplatesRouter } from "./interactionTemplatesRouter";
 import { leadsRouter } from "./leadsRouter";
 import { mentoradosRouter } from "./mentoradosRouter";
@@ -26,6 +27,7 @@ export const appRouter = router({
   atividades: atividadesRouter,
   interactionTemplates: interactionTemplatesRouter,
   diagnostico: diagnosticoRouter,
+  interacoes: interacoesRouter,
   calendar: calendarRouter,
 });
 

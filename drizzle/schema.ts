@@ -422,7 +422,7 @@ export const interacoes = pgTable(
   {
     id: serial("id").primaryKey(),
     leadId: integer("lead_id")
-      .notNull()
+
       .references(() => leads.id, { onDelete: "cascade" }),
     mentoradoId: integer("mentorado_id")
       .notNull()

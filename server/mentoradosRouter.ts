@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server"; // Added import
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { mentorados, metricasMensais } from "../drizzle/schema";
+import { diagnosticos, mentorados, metricasMensais } from "../drizzle/schema";
 import { adminProcedure, mentoradoProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { sendWelcomeEmail } from "./emailService";
@@ -350,6 +350,62 @@ export const mentoradosRouter = router({
         mentoradosComDados,
       };
     }),
+
+  /**
+   * Get Overview Stats for Dashboard Redesign
+   */
+  getOverviewStats: mentoradoProcedure.query(async ({ ctx }) => {
+    const db = getDb();
+    const mentoradoId = ctx.mentorado.id;
+
+    // Fetch Last 12 months metrics
+    const metrics = await db
+      .select()
+      .from(metricasMensais)
+      .where(eq(metricasMensais.mentoradoId, mentoradoId))
+      .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
+      .limit(12);
+
+    // Calculate Financials
+    // Sort chronological for chart
+    const chartData = [...metrics].sort((a, b) => {
+      if (a.ano !== b.ano) return a.ano - b.ano;
+      return a.mes - b.mes;
+    });
+
+    const totalRevenue = metrics.reduce((acc, m) => acc + m.faturamento, 0);
+    const totalProfit = metrics.reduce((acc, m) => acc + m.lucro, 0);
+
+    // ROI Calculation (Mock: (Revenue - Cost) / Cost? We only have Profit and Revenue)
+    // If Profit is accurate, ROI could be implied.
+    // Image says "ROI Total da Mentoria".
+    // Let's assume a fixed investment for now or just return totals.
+    const averageRevenue = metrics.length > 0 ? totalRevenue / metrics.length : 0;
+
+    // Growth calculation (Year over Year? or Month over Month?)
+    // Image says "85% (Ano a Ano)".
+    // We need comparable month last year.
+    // For now, let's just return the raw data and let client calc specifics or return placeholder.
+
+    // Get Specialty from Diagnosticos
+    const [diagnostico] = await db
+      .select({ specialty: diagnosticos.atuacaoSaude })
+      .from(diagnosticos)
+      .where(eq(diagnosticos.mentoradoId, mentoradoId))
+      .limit(1);
+
+    return {
+      financials: {
+        totalRevenue,
+        totalProfit,
+        averageRevenue,
+        chartData,
+      },
+      profile: {
+        specialty: diagnostico?.specialty || "N/A",
+      },
+    };
+  }),
 
   // Link email to mentorado (admin only)
   linkEmail: adminProcedure

@@ -13,7 +13,6 @@ import {
 } from "recharts";
 import DashboardLayout from "@/components/DashboardLayout";
 import { AchievementsView } from "@/components/dashboard/AchievementsView";
-import { MenteeOverview } from "@/components/dashboard/MenteeOverview";
 import { RankingView } from "@/components/dashboard/RankingView";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
@@ -26,34 +25,14 @@ import {
 } from "@/components/ui/floating-dock-tabs";
 import { fadeIn, slideUp, staggerContainer } from "@/lib/animation-variants";
 import { analiseData } from "@/lib/data";
-import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
 export default function Home() {
-  const { data: me, isLoading } = trpc.mentorados.me.useQuery();
-
   // Admin dashboard state
   const [selectedYear, setSelectedYear] = useState(2025);
   const [selectedMonth, setSelectedMonth] = useState(12);
 
-  // If loading, show skeleton (using simple loading state for now)
-  if (isLoading)
-    return (
-      <DashboardLayout>
-        <div className="p-8 text-center">Carregando...</div>
-      </DashboardLayout>
-    );
-
-  // If Mentado (Me exists), show Mentee Dashboard
-  if (me) {
-    return (
-      <DashboardLayout>
-        <MenteeOverview />
-      </DashboardLayout>
-    );
-  }
-
-  // --- ADMIN VIEW (Existing Code) ---
+  // --- ADMIN VIEW ---
 
   const topPerformers = analiseData.neon.ranking
     .map(([nome, score]: [string, number]) => ({

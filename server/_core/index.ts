@@ -129,6 +129,30 @@ async function startServer() {
       createContext,
     })
   );
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Google Calendar OAuth Callback
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get("/api/calendar/callback", async (req, res) => {
+    const { code, state, error } = req.query;
+
+    // Handle OAuth errors
+    if (error) {
+      return res.redirect(`/agenda?error=${encodeURIComponent(String(error))}`);
+    }
+
+    if (!code || typeof code !== "string") {
+      return res.redirect("/agenda?error=missing_code");
+    }
+
+    // Redirect to client with code and state for tRPC to handle
+    // This keeps authentication in the Clerk context
+    const params = new URLSearchParams({
+      code,
+      ...(state && { state: String(state) }),
+    });
+    return res.redirect(`/agenda?${params.toString()}`);
+  });
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

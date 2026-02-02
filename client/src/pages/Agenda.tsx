@@ -1,5 +1,6 @@
 import { Calendar as CalendarIcon, Link, RefreshCw } from "lucide-react";
 import moment from "moment";
+import React from "react";
 import "moment/locale/pt-br";
 import { Calendar, type Event, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -46,6 +47,33 @@ export function Agenda() {
       statusQuery.refetch();
     },
   });
+  const handleCallbackMutation = trpc.calendar.handleCallback.useMutation({
+    onSuccess: () => {
+      // Clear URL params and refresh status
+      window.history.replaceState({}, "", "/agenda");
+      statusQuery.refetch();
+    },
+    onError: () => {
+      window.history.replaceState({}, "", "/agenda?error=callback_failed");
+    },
+  });
+
+  // Handle OAuth callback when returning from Google
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+    const error = params.get("error");
+
+    if (error) {
+      window.history.replaceState({}, "", "/agenda");
+      return;
+    }
+
+    if (code && !handleCallbackMutation.isPending && !handleCallbackMutation.isSuccess) {
+      handleCallbackMutation.mutate({ code, state: state || undefined });
+    }
+  }, [handleCallbackMutation]);
 
   // Convert events to Calendar format
   const events: CalendarEvent[] =

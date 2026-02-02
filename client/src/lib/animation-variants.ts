@@ -72,6 +72,7 @@ export const staggerContainer: Variants = {
   animate: {
     transition: {
       staggerChildren: prefersReducedMotion ? 0 : 0.05,
+      delayChildren: 0.1,
     },
   },
 };
@@ -80,6 +81,52 @@ export const accordion: Variants = {
   initial: { height: 0, opacity: 0 },
   animate: { height: "auto", opacity: 1 },
   exit: { height: 0, opacity: 0 },
+};
+
+// Advanced Variants
+
+export const textVariant = (delay: number): Variants => ({
+  hidden: {
+    y: 50,
+    opacity: 0,
+  },
+  show: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      duration: 1.25,
+      delay,
+    },
+  },
+});
+
+export const glowPulse: Variants = {
+  initial: { boxShadow: "0 0 0 rgba(255, 215, 0, 0)" },
+  animate: {
+    boxShadow: [
+      "0 0 0 rgba(255, 215, 0, 0)",
+      "0 0 20px rgba(255, 215, 0, 0.3)",
+      "0 0 0 rgba(255, 215, 0, 0)",
+    ],
+    transition: {
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
+};
+
+export const floatingAnimation: Variants = {
+  initial: { y: 0 },
+  animate: {
+    y: [-10, 10, -10],
+    transition: {
+      duration: 6,
+      repeat: Infinity,
+      ease: "easeInOut",
+    },
+  },
 };
 
 export const animations = {
@@ -91,4 +138,7 @@ export const animations = {
   scaleIn,
   staggerContainer,
   accordion,
+  textVariant,
+  glowPulse,
+  floatingAnimation,
 };

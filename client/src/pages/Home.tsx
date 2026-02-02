@@ -1,4 +1,15 @@
-import { Award, DollarSign, LayoutDashboard, Medal, TrendingUp, Trophy, Users } from "lucide-react";
+import {
+  Activity,
+  Award,
+  Calendar,
+  DollarSign,
+  LayoutDashboard,
+  Medal,
+  Target,
+  TrendingUp,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import {
@@ -17,12 +28,15 @@ import { RankingView } from "@/components/dashboard/RankingView";
 import MonthYearFilter from "@/components/MonthYearFilter";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { AnimatedList } from "@/components/ui/animated-list";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FloatingDockTabs,
   FloatingDockTabsContent,
   FloatingDockTabsList,
 } from "@/components/ui/floating-dock-tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { fadeIn, slideUp, staggerContainer } from "@/lib/animation-variants";
 import { analiseData } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -39,6 +53,7 @@ export default function Home() {
       nome,
       score,
       grupo: "Neon",
+      avatar: nome.charAt(0).toUpperCase(),
     }))
     .slice(0, 5);
 
@@ -65,236 +80,320 @@ export default function Home() {
 
   return (
     <DashboardLayout>
-      <motion.div
-        className="space-y-6"
-        initial="initial"
-        animate="animate"
-        variants={staggerContainer}
-      >
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">
-              Painel Administrativo
-            </h1>
-            <p className="text-muted-foreground mt-2">Visão consolidada e gestão de turmas</p>
+      <ScrollArea className="h-full">
+        <motion.div
+          className="space-y-8 p-2 md:p-4 pb-20"
+          initial="initial"
+          animate="animate"
+          variants={staggerContainer}
+        >
+          {/* Header Section with Gradient Text */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                Painel Administrativo
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Visão estratégica e gestão de alta performance.
+              </p>
+            </div>
+            <MonthYearFilter
+              selectedYear={selectedYear}
+              selectedMonth={selectedMonth}
+              onYearChange={setSelectedYear}
+              onMonthChange={setSelectedMonth}
+            />
           </div>
-          <MonthYearFilter
-            selectedYear={selectedYear}
-            selectedMonth={selectedMonth}
-            onYearChange={setSelectedYear}
-            onMonthChange={setSelectedMonth}
-          />
-        </div>
 
-        <FloatingDockTabs defaultValue="overview" className="w-full space-y-6">
-          <FloatingDockTabsList
-            tabs={[
-              {
-                value: "overview",
-                label: "Visão Geral",
-                icon: LayoutDashboard,
-              },
-              {
-                value: "ranking",
-                label: "Ranking",
-                icon: Trophy,
-              },
-              {
-                value: "conquistas",
-                label: "Conquistas",
-                icon: Medal,
-              },
-            ]}
-          />
+          <Separator className="bg-border/40" />
 
-          {/* OVERVIEW TAB */}
-          <FloatingDockTabsContent value="overview" className="space-y-8 mt-0" asChild>
-            <motion.div variants={fadeIn} initial="initial" animate="animate" exit="exit">
-              {/* KPI Cards */}
-              <motion.div
-                className="grid grid-cols-1 md:grid-cols-3 gap-6"
-                variants={staggerContainer}
-              >
-                <motion.div variants={slideUp}>
-                  <Card className="border shadow-sm bg-card overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <DollarSign className="w-16 h-16 text-primary" />
-                    </div>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                        Faturamento Total
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-foreground">
-                        <AnimatedCounter
-                          to={faturamentoTotal}
-                          duration={1.5}
-                          formatFn={(v) =>
-                            new Intl.NumberFormat("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                              maximumFractionDigits: 0,
-                            }).format(v)
-                          }
-                        />
-                      </div>
-                      <p className="text-xs text-primary mt-1 font-medium flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-primary" /> Dezembro 2025
-                      </p>
-                    </CardContent>
-                  </Card>
+          {/* KPI High-Level Cards */}
+          <FloatingDockTabs defaultValue="overview" className="w-full space-y-8">
+            <FloatingDockTabsList
+              tabs={[
+                {
+                  value: "overview",
+                  label: "Visão Geral",
+                  icon: LayoutDashboard,
+                },
+                {
+                  value: "ranking",
+                  label: "Ranking Global",
+                  icon: Trophy,
+                },
+                {
+                  value: "conquistas",
+                  label: "Badges & Conquistas",
+                  icon: Medal,
+                },
+              ]}
+              className="bg-muted/30 p-1 rounded-2xl border border-white/5 shadow-inner"
+            />
+
+            {/* OVERVIEW TAB */}
+            <FloatingDockTabsContent value="overview" className="mt-6 space-y-8" asChild>
+              <motion.div variants={fadeIn} initial="initial" animate="animate" exit="exit">
+                {/* 1. Primary Metrics Row */}
+                <motion.div
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                  variants={staggerContainer}
+                >
+                  {/* Faturamento */}
+                  <motion.div variants={slideUp}>
+                    <Card className="relative overflow-hidden border-none bg-gradient-to-br from-card to-card/50 shadow-xl ring-1 ring-white/10 dark:ring-white/5 transition-all hover:scale-[1.02] hover:shadow-2xl">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-50" />
+                      <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+
+                      <CardHeader className="relative pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                          <DollarSign className="w-4 h-4 text-primary" /> Faturamento Total
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <div className="text-4xl font-bold text-foreground tracking-tight">
+                          <AnimatedCounter
+                            to={faturamentoTotal}
+                            duration={1.5}
+                            formatFn={(v) =>
+                              new Intl.NumberFormat("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                                maximumFractionDigits: 0,
+                              }).format(v)
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-primary/5 w-fit border border-primary/10">
+                          <TrendingUp className="w-4 h-4 text-emerald-500" />
+                          <span className="text-xs font-medium text-primary">
+                            +12.5% vs mês anterior
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  {/* Mentorados */}
+                  <motion.div variants={slideUp}>
+                    <Card className="relative overflow-hidden border-none bg-gradient-to-br from-card to-card/50 shadow-xl ring-1 ring-white/10 dark:ring-white/5 transition-all hover:scale-[1.02] hover:shadow-2xl">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-50" />
+                      <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-blue-500/10 blur-3xl" />
+
+                      <CardHeader className="relative pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                          <Users className="w-4 h-4 text-blue-500" /> Mentorados Ativos
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <div className="text-4xl font-bold text-foreground tracking-tight">
+                          <AnimatedCounter to={totalMentorados} duration={1} />
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-blue-500/5 w-fit border border-blue-500/10 dark:border-blue-500/20">
+                          <Activity className="w-4 h-4 text-blue-500" />
+                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                            100% Taxa de Engajamento
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  {/* Score */}
+                  <motion.div variants={slideUp}>
+                    <Card className="relative overflow-hidden border-none bg-gradient-to-br from-card to-card/50 shadow-xl ring-1 ring-white/10 dark:ring-white/5 transition-all hover:scale-[1.02] hover:shadow-2xl">
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-50" />
+                      <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-purple-500/10 blur-3xl" />
+
+                      <CardHeader className="relative pb-2">
+                        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                          <Award className="w-4 h-4 text-purple-500" /> Score Médio (Top 5)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <div className="text-4xl font-bold text-foreground tracking-tight">
+                          <AnimatedCounter
+                            to={parseFloat(mediaScore)}
+                            duration={1.2}
+                            formatFn={(v) => v.toFixed(1)}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 p-2 rounded-lg bg-purple-500/5 w-fit border border-purple-500/10 dark:border-purple-500/20">
+                          <Target className="w-4 h-4 text-purple-500" />
+                          <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
+                            Alta performance
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </motion.div>
 
-                <motion.div variants={slideUp}>
-                  <Card className="border shadow-sm bg-card overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <Users className="w-16 h-16 text-blue-500" />
-                    </div>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                        Mentorados Ativos
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-foreground">
-                        <AnimatedCounter to={totalMentorados} duration={1} />
+                {/* 2. Charts & Performance Listings */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Performance Chart */}
+                  <Card className="lg:col-span-2 border-none bg-card/40 backdrop-blur-md shadow-lg ring-1 ring-black/5 dark:ring-white/5">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-xl font-semibold">Top Performance</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Faturamento vs. Meta (Dezembro 2025)
+                        </p>
                       </div>
-                      <span className="bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium text-xs">
-                        14 Mentorados
-                      </span>
+                      <Button variant="outline" size="sm" className="hidden sm:flex">
+                        <Calendar className="w-4 h-4 mr-2" /> Exportar Relatório
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="h-[400px] mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={chartData}
+                          margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                          barSize={32}
+                        >
+                          <defs>
+                            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                              <stop
+                                offset="100%"
+                                stopColor="hsl(var(--primary))"
+                                stopOpacity={0.6}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            vertical={false}
+                            stroke="hsl(var(--border))"
+                            opacity={0.4}
+                          />
+                          <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{
+                              fill: "hsl(var(--muted-foreground))",
+                              fontSize: 12,
+                              fontWeight: 500,
+                            }}
+                            dy={10}
+                          />
+                          <YAxis
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{
+                              fill: "hsl(var(--muted-foreground))",
+                              fontSize: 12,
+                              fontWeight: 500,
+                            }}
+                            tickFormatter={(value) => `R$${value / 1000}k`}
+                            dx={-10}
+                          />
+                          <Tooltip
+                            cursor={{ fill: "hsl(var(--muted)/0.3)" }}
+                            contentStyle={{
+                              borderRadius: "12px",
+                              border: "1px solid hsl(var(--border))",
+                              backgroundColor: "hsl(var(--card))",
+                              color: "hsl(var(--card-foreground))",
+                              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                              padding: "12px",
+                            }}
+                            formatter={(value: number) => [
+                              new Intl.NumberFormat("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              }).format(value),
+                              "Faturamento",
+                            ]}
+                          />
+                          <Bar
+                            dataKey="faturamento"
+                            fill="url(#barGradient)"
+                            radius={[6, 6, 0, 0]}
+                            animationDuration={1500}
+                          ></Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </CardContent>
                   </Card>
-                </motion.div>
 
-                <motion.div variants={slideUp}>
-                  <Card className="border shadow-sm bg-card overflow-hidden relative group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                      <Award className="w-16 h-16 text-purple-500" />
-                    </div>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                        Score Médio (Top 5)
+                  {/* Leaderboard Card */}
+                  <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg ring-1 ring-black/5 dark:ring-white/5 h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-amber-500" />
+                        Líderes do Mês
                       </CardTitle>
+                      <p className="text-sm text-muted-foreground">Baseado em score de metas</p>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-foreground">
-                        <AnimatedCounter
-                          to={parseFloat(mediaScore)}
-                          duration={1.2}
-                          formatFn={(v) => v.toFixed(1)}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Pontuação baseada em metas atingidas
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </motion.div>
-
-              {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Card className="lg:col-span-2 border shadow-sm">
-                  <CardHeader>
-                    <CardTitle>Top 10 Faturamento</CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={chartData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="hsl(var(--border))"
-                        />
-                        <XAxis
-                          dataKey="name"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                          tickFormatter={(value) => `R$${value / 1000}k`}
-                        />
-                        <Tooltip
-                          cursor={{ fill: "hsl(var(--muted)/0.5)" }}
-                          contentStyle={{
-                            borderRadius: "var(--radius)",
-                            border: "1px solid hsl(var(--border))",
-                            backgroundColor: "hsl(var(--card))",
-                            color: "hsl(var(--card-foreground))",
-                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                          }}
-                        />
-                        <Bar dataKey="faturamento" radius={[4, 4, 0, 0]}>
-                          {chartData.map((entry) => (
-                            <Cell key={entry.name} fill="hsl(var(--primary))" />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
-
-                <Card className="border shadow-sm">
-                  <CardHeader>
-                    <CardTitle>Top Performers (Score)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AnimatedList
-                      items={topPerformers}
-                      className="space-y-4"
-                      staggerDelay={0.1}
-                      renderItem={(performer, index) => (
-                        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={cn(
-                                "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm",
-                                index === 0
-                                  ? "bg-primary/10 text-primary"
-                                  : index === 1
-                                    ? "bg-muted text-muted-foreground"
-                                    : index === 2
-                                      ? "bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
-                                      : "bg-card text-muted-foreground border border-border"
-                              )}
-                            >
-                              {index + 1}
+                      <AnimatedList
+                        items={topPerformers}
+                        className="space-y-4"
+                        staggerDelay={0.1}
+                        renderItem={(performer, index) => (
+                          <div className="group flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/60 transition-all border border-transparent hover:border-primary/10">
+                            <div className="flex items-center gap-4">
+                              <div
+                                className={cn(
+                                  "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow-sm",
+                                  index === 0
+                                    ? "bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 ring-2 ring-amber-200"
+                                    : index === 1
+                                      ? "bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800 ring-2 ring-slate-100"
+                                      : index === 2
+                                        ? "bg-gradient-to-br from-orange-300 to-orange-400 text-orange-900 ring-2 ring-orange-200"
+                                        : "bg-background text-muted-foreground border border-border"
+                                )}
+                              >
+                                {index + 1}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                  {performer.nome}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  {performer.grupo}
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="font-medium text-foreground">{performer.nome}</div>
-                              <div className="text-xs text-muted-foreground">{performer.grupo}</div>
+                            <div className="flex flex-col items-end">
+                              <span className="font-bold text-primary text-lg">
+                                {performer.score}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                Score
+                              </span>
                             </div>
                           </div>
-                          <div className="font-bold text-primary">{performer.score}</div>
-                        </div>
-                      )}
-                      keyExtractor={(item) => item.nome}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </motion.div>
-          </FloatingDockTabsContent>
+                        )}
+                        keyExtractor={(item) => item.nome}
+                      />
+                      <Button
+                        variant="ghost"
+                        className="w-full mt-6 text-xs text-muted-foreground hover:text-primary"
+                      >
+                        Ver Ranking Completo
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
+            </FloatingDockTabsContent>
 
-          {/* RANKING TAB */}
-          <FloatingDockTabsContent value="ranking" className="mt-0">
-            <RankingView selectedMonth={selectedMonth} selectedYear={selectedYear} />
-          </FloatingDockTabsContent>
+            {/* RANKING TAB */}
+            <FloatingDockTabsContent value="ranking" className="mt-0">
+              <RankingView selectedMonth={selectedMonth} selectedYear={selectedYear} />
+            </FloatingDockTabsContent>
 
-          {/* ACHIEVEMENTS TAB */}
-          <FloatingDockTabsContent value="conquistas" className="mt-0">
-            <AchievementsView />
-          </FloatingDockTabsContent>
-        </FloatingDockTabs>
-      </motion.div>
+            {/* ACHIEVEMENTS TAB */}
+            <FloatingDockTabsContent value="conquistas" className="mt-0">
+              <AchievementsView />
+            </FloatingDockTabsContent>
+          </FloatingDockTabs>
+        </motion.div>
+      </ScrollArea>
     </DashboardLayout>
   );
 }

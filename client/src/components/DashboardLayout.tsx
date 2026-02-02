@@ -1,6 +1,15 @@
 "use client";
 import { motion } from "framer-motion";
-import { Bot, Briefcase, Calendar, LayoutDashboard, Moon, Sun, UserCog, Users } from "lucide-react";
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  CalendarRange,
+  LayoutTemplate,
+  Moon,
+  Sparkles,
+  Sun,
+  UsersRound,
+} from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { Link, Redirect, useLocation } from "wouter";
@@ -45,28 +54,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const navItems = [
-    { href: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
-    { href: "/meu-dashboard", label: "Meu Dashboard", icon: Users },
-    { href: "/agenda", label: "Agenda", icon: Calendar },
-    { href: "/assistente", label: "Assistente IA", icon: Bot },
-    { href: "/crm/leads", label: "CRM Leads", icon: Briefcase },
-    // Consolidated into /admin/mentorados
-    // { href: "/admin", label: "Administração", icon: Shield, adminOnly: true },
-    // {
-    //   href: "/admin/vincular",
-    //   label: "Vincular Emails",
-    //   icon: Link2,
-    //   adminOnly: true,
-    // },
+    { href: "/dashboard", label: "Visão Geral", icon: LayoutTemplate, adminOnly: true },
+    { href: "/meu-dashboard", label: "Meu Dashboard", icon: BarChart3 },
+    { href: "/agenda", label: "Agenda", icon: CalendarRange },
+    { href: "/crm/leads", label: "CRM Leads", icon: BriefcaseBusiness },
     {
       href: "/admin/mentorados",
-      label: "Área Administrativa", // Renamed from Gestão Mentorados
-      icon: UserCog,
+      label: "Área Administrativa",
+      icon: UsersRound,
       adminOnly: true,
     },
-    // { href: "/estrutura", label: "Neon Estrutura", icon: Building2 }, // Incorporated into Home
-    // { href: "/escala", label: "Neon Escala", icon: Rocket }, // Incorporated into Home
+    { href: "/assistente", label: "Assistente IA", icon: Sparkles, adminOnly: true },
   ];
+
+  // Logic to prevent non-admins from accessing admin routes
+  const currentPath = location;
+  const restrictedRoutes = ["/dashboard", "/assistente", "/admin"];
+  const isRestricted = restrictedRoutes.some((route) => currentPath.startsWith(route));
+
+  if (user && user.role !== "admin" && isRestricted) {
+    return <Redirect to="/meu-dashboard" />;
+  }
 
   const filteredNavItems = navItems.filter((item) => !item.adminOnly || user.role === "admin");
 

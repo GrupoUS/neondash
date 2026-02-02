@@ -49,17 +49,17 @@ export function RoadmapView({ mentoradoId }: RoadmapViewProps) {
           const isLastRow = rowIndex === rows.length - 1;
 
           return (
-            <div key={rowIndex} className="relative mb-24 last:mb-0">
+            <div key={rowIndex} className="relative mb-32 last:mb-0 md:mb-40">
               {/* Connector Lines */}
               {!isLastRow && (
                 <div
                   className={cn(
-                    "absolute top-1/2 w-32 h-44 border-[6px] border-slate-800 -z-10 hidden md:block",
+                    "absolute top-1/2 w-32 h-52 border-[6px] border-slate-800 -z-10 hidden md:block",
                     isReverse
                       ? "left-0 rounded-l-[4rem] border-r-0 translate-x-[-50%]" // Curve on left for reverse rows end
                       : "right-0 rounded-r-[4rem] border-l-0 translate-x-[50%]" // Curve on right for normal rows end
                   )}
-                  style={{ top: "30%" }} // Adjust vertical alignment of the curve
+                  style={{ top: "35%" }} // Adjust vertical alignment of the curve
                 />
               )}
 

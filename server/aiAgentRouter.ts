@@ -2,7 +2,7 @@
  * AI Agent Configuration tRPC Router
  * Manages AI SDR settings per mentorado
  */
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { aiAgentConfig } from "../drizzle/schema";
 import { protectedProcedure, router } from "./_core/trpc";
@@ -14,26 +14,22 @@ export const aiAgentRouter = router({
    * Get AI agent configuration for current mentorado
    */
   getConfig: protectedProcedure.query(async ({ ctx }) => {
-    // Get mentorado from user
+    if (!ctx.mentorado) {
+      return { exists: false, ...aiSdrService.getDefaultConfig() };
+    }
+
     const db = getDb();
     const [config] = await db
       .select()
       .from(aiAgentConfig)
-      .where(eq(aiAgentConfig.mentoradoId, ctx.mentoradoId ?? 0))
+      .where(eq(aiAgentConfig.mentoradoId, ctx.mentorado.id))
       .limit(1);
 
     if (!config) {
-      // Return default config if none exists
-      return {
-        exists: false,
-        ...aiSdrService.getDefaultConfig(),
-      };
+      return { exists: false, ...aiSdrService.getDefaultConfig() };
     }
 
-    return {
-      exists: true,
-      ...config,
-    };
+    return { exists: true, ...config };
   }),
 
   /**
@@ -54,15 +50,15 @@ export const aiAgentRouter = router({
           .string()
           .regex(/^\d{2}:\d{2}$/)
           .optional(),
-        workingDays: z.string().optional(), // CSV format: "0,1,2,3,4,5,6"
+        workingDays: z.string().optional(),
         responseDelayMs: z.number().min(1000).max(10000).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const mentoradoId = ctx.mentoradoId;
-      if (!mentoradoId) {
+      if (!ctx.mentorado) {
         throw new Error("Mentorado não encontrado");
       }
+      const mentoradoId = ctx.mentorado.id;
 
       const db = getDb();
 
@@ -74,16 +70,11 @@ export const aiAgentRouter = router({
         .limit(1);
 
       if (existing) {
-        // Update existing
         await db
           .update(aiAgentConfig)
-          .set({
-            ...input,
-            updatedAt: new Date(),
-          })
+          .set({ ...input, updatedAt: new Date() })
           .where(eq(aiAgentConfig.id, existing.id));
       } else {
-        // Create new with defaults
         const defaults = aiSdrService.getDefaultConfig();
         await db.insert(aiAgentConfig).values({
           mentoradoId,
@@ -105,14 +96,12 @@ export const aiAgentRouter = router({
    * Toggle AI agent enabled/disabled
    */
   toggleEnabled: protectedProcedure.mutation(async ({ ctx }) => {
-    const mentoradoId = ctx.mentoradoId;
-    if (!mentoradoId) {
+    if (!ctx.mentorado) {
       throw new Error("Mentorado não encontrado");
     }
+    const mentoradoId = ctx.mentorado.id;
 
     const db = getDb();
-
-    // Get current config
     const [config] = await db
       .select()
       .from(aiAgentConfig)
@@ -120,7 +109,6 @@ export const aiAgentRouter = router({
       .limit(1);
 
     if (!config) {
-      // Create new config with enabled
       const defaults = aiSdrService.getDefaultConfig();
       await db.insert(aiAgentConfig).values({
         mentoradoId,
@@ -135,7 +123,6 @@ export const aiAgentRouter = router({
       return { enabled: true };
     }
 
-    // Toggle current state
     const newEnabled = config.enabled === "sim" ? "nao" : "sim";
     await db
       .update(aiAgentConfig)
@@ -149,10 +136,10 @@ export const aiAgentRouter = router({
    * Reset configuration to defaults
    */
   resetToDefaults: protectedProcedure.mutation(async ({ ctx }) => {
-    const mentoradoId = ctx.mentoradoId;
-    if (!mentoradoId) {
+    if (!ctx.mentorado) {
       throw new Error("Mentorado não encontrado");
     }
+    const mentoradoId = ctx.mentorado.id;
 
     const defaults = aiSdrService.getDefaultConfig();
     const db = getDb();

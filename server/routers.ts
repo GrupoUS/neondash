@@ -1,5 +1,6 @@
 import { systemRouter } from "./_core/systemRouter";
 import { router } from "./_core/trpc";
+import { aiAgentRouter } from "./aiAgentRouter";
 import { atividadesRouter } from "./atividadesRouter";
 import { crmColumnsRouter } from "./crmColumnsRouter";
 import { diagnosticoRouter } from "./diagnostico";
@@ -33,6 +34,7 @@ export const appRouter = router({
   calendar: calendarRouter,
   crmColumns: crmColumnsRouter,
   zapi: zapiRouter,
+  aiAgent: aiAgentRouter,
 });
 
 export type AppRouter = typeof appRouter;

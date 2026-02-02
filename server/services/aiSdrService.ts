@@ -2,9 +2,8 @@
  * AI SDR (Sales Development Representative) Service
  * Handles AI-powered automated responses for lead qualification via WhatsApp
  *
- * Uses Gemini LLM for natural conversation generation
+ * Uses shared LLM service for natural conversation generation
  */
-import { GoogleGenAI } from "@google/genai";
 import { and, desc, eq } from "drizzle-orm";
 import {
   type AiAgentConfig,
@@ -14,9 +13,6 @@ import {
 } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { type ZApiCredentials, zapiService } from "./zapiService";
-
-// Initialize Gemini client
-const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY ?? "" });
 
 const DEFAULT_SYSTEM_PROMPT = `Você é um assistente de atendimento profissional para uma clínica de estética. 
 Seu objetivo é qualificar leads de forma amigável e profissional.
@@ -102,35 +98,40 @@ async function getMessageHistory(
 }
 
 /**
- * Generate AI response using Gemini
+ * Generate AI response using shared LLM service
  */
 async function generateResponse(context: ConversationContext): Promise<string> {
   const systemPrompt = context.config.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
 
-  // Build conversation history for context
-  const conversationHistory = context.messages
-    .map((msg) => `${msg.role === "user" ? "Cliente" : "Você"}: ${msg.content}`)
-    .join("\n");
-
-  const prompt = `${systemPrompt}
-
-Histórico da conversa:
-${conversationHistory || "Nenhuma mensagem anterior."}
-
-Responda a última mensagem do cliente de forma natural e profissional. 
-Apenas forneça sua resposta, sem prefixos como "Você:" ou "Assistente:".`;
-
   try {
-    const model = genAI.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-    });
+    // Import LLM dynamically to avoid circular dependencies
+    const { invokeLLM } = await import("../_core/llm");
 
-    const response = await model;
-    return (
-      response.text?.trim() ??
-      "Desculpe, não consegui processar sua mensagem. Um de nossos especialistas entrará em contato em breve."
-    );
+    // Build messages for LLM with conversation history
+    const messages = [
+      {
+        role: "system" as const,
+        content: systemPrompt,
+      },
+      ...context.messages.map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      })),
+    ];
+
+    const result = await invokeLLM({ messages });
+    const choice = result.choices[0];
+
+    if (choice?.message?.content) {
+      return typeof choice.message.content === "string"
+        ? choice.message.content
+        : choice.message.content
+            .filter((c): c is { type: "text"; text: string } => c.type === "text")
+            .map((c) => c.text)
+            .join("\n");
+    }
+
+    throw new Error("No content in LLM response");
   } catch (_error) {
     return "Obrigado pelo contato! Um de nossos especialistas entrará em contato em breve.";
   }

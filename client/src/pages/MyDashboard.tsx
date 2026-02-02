@@ -21,6 +21,7 @@ import {
   NeonTabsTrigger,
 } from "@/components/ui/neon-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { calcularProgresso } from "@/data/atividades-data";
 // import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { trpc } from "@/lib/trpc";
@@ -66,6 +67,28 @@ export default function MyDashboard() {
   // Derived ID for child components
   const targetMentoradoId =
     isAdmin && selectedMentoradoId ? parseInt(selectedMentoradoId, 10) : currentMentorado?.id;
+
+  // 4. Progress queries for atividades (always call both, use enabled to control which fetches)
+  const progressQueryMe = trpc.atividades.getProgress.useQuery(undefined, {
+    enabled: !isAdmin,
+  });
+  const progressQueryById = trpc.atividades.getProgressById.useQuery(
+    { mentoradoId: parseInt(selectedMentoradoId || "0", 10) },
+    { enabled: isAdmin && !!selectedMentoradoId }
+  );
+
+  const progressData =
+    isAdmin && selectedMentoradoId ? progressQueryById.data : progressQueryMe.data;
+  const progressLoading =
+    isAdmin && selectedMentoradoId ? progressQueryById.isLoading : progressQueryMe.isLoading;
+
+  const {
+    percentage: atividadesPercentage,
+    completed: atividadesCompleted,
+    total: atividadesTotal,
+  } = calcularProgresso(
+    Object.fromEntries(Object.entries(progressData ?? {}).map(([k, v]) => [k, v.completed]))
+  );
 
   if (isLoading) {
     return (
@@ -241,16 +264,29 @@ export default function MyDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-foreground">Progresso Geral</h3>
-                      <span className="text-sm text-muted-foreground">Mês Atual</span>
+                      <span className="text-sm text-muted-foreground">Atividades</span>
                     </div>
                     <div className="flex items-end gap-2">
-                      <span className="text-4xl font-bold text-primary">75%</span>
-                      <span className="text-green-500 flex items-center text-sm">
-                        <TrendingUp className="w-4 h-4 mr-1" /> +5%
-                      </span>
+                      {progressLoading ? (
+                        <Skeleton className="h-10 w-20" />
+                      ) : (
+                        <span className="text-4xl font-bold text-primary">
+                          {atividadesPercentage}%
+                        </span>
+                      )}
                     </div>
                     <p className="text-muted-foreground text-sm">
-                      Você está no caminho certo! Continue assim.
+                      {progressLoading ? (
+                        <Skeleton className="h-4 w-48" />
+                      ) : atividadesPercentage === 0 ? (
+                        "Comece sua jornada na aba Atividades!"
+                      ) : atividadesPercentage < 50 ? (
+                        `${atividadesCompleted}/${atividadesTotal} passos concluídos. Continue avançando!`
+                      ) : atividadesPercentage < 100 ? (
+                        `${atividadesCompleted}/${atividadesTotal} passos. Você está no caminho certo!`
+                      ) : (
+                        "Parabéns! Você completou todas as atividades! 🎉"
+                      )}
                     </p>
                   </div>
                 </NeonCard>

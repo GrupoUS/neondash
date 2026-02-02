@@ -1,7 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { playbookItems, playbookModules, playbookProgress } from "../../drizzle/schema";
+import {
+  diagnosticos,
+  playbookItems,
+  playbookModules,
+  playbookProgress,
+} from "../../drizzle/schema";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 
@@ -117,5 +122,84 @@ export const playbookRouter = router({
       if (ctx.user?.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const db = getDb();
       return await db.insert(playbookItems).values(input).returning();
+    }),
+
+  getRoadmap: protectedProcedure
+    .input(z.object({ mentoradoId: z.number().optional() }))
+    .query(async ({ ctx, input }) => {
+      const db = getDb();
+      let mentoradoId = input.mentoradoId;
+
+      if (!mentoradoId) {
+        if (ctx.user?.role === "admin") {
+          // If admin and no ID, return null or empty
+          return null;
+        }
+        mentoradoId = ctx.mentorado?.id;
+      }
+
+      if (!mentoradoId) return null;
+
+      const modules = await db.select().from(playbookModules).orderBy(asc(playbookModules.order));
+
+      const items = await db.select().from(playbookItems).orderBy(asc(playbookItems.order));
+
+      const progress = await db
+        .select()
+        .from(playbookProgress)
+        .where(eq(playbookProgress.mentoradoId, mentoradoId));
+
+      const [diagnostic] = await db
+        .select()
+        .from(diagnosticos)
+        .where(eq(diagnosticos.mentoradoId, mentoradoId));
+
+      const isDiagnosticDone = !!(diagnostic?.atuacaoSaude && diagnostic?.rendaMensal);
+
+      const roadmap = modules.map((mod) => {
+        const modItems = items.filter((item) => item.moduleId === mod.id);
+        const modProgress = modItems.map((item) => {
+          const prog = progress.find((p) => p.itemId === item.id);
+          return {
+            ...item,
+            isCompleted: !!prog,
+            completedAt: prog?.completedAt,
+          };
+        });
+
+        const total = modItems.length;
+        const completed = modProgress.filter((i) => i.isCompleted).length;
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        return {
+          ...mod,
+          items: modProgress,
+          progress: percent,
+          isLocked: false,
+          status: percent === 100 ? "completed" : percent > 0 ? "in_progress" : "locked",
+        };
+      });
+
+      for (let i = 0; i < roadmap.length; i++) {
+        if (i === 0) {
+          roadmap[i].isLocked = false;
+          // Force status to in_progress if 0% but unlocked, so it glows? No, let's keep logic.
+        } else {
+          const prev = roadmap[i - 1];
+          if (prev.status === "completed" || roadmap[i].progress > 0) {
+            roadmap[i].isLocked = false;
+          } else {
+            roadmap[i].isLocked = true;
+            roadmap[i].status = "locked";
+          }
+        }
+      }
+
+      return {
+        modules: roadmap,
+        diagnostic: {
+          isCompleted: isDiagnosticDone,
+        },
+      };
     }),
 });

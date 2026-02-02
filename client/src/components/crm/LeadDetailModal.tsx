@@ -61,6 +61,21 @@ export function LeadDetailModal({
         origem: data.lead.origem || "outro",
         status: data.lead.status || "novo",
         tags: data.lead.tags || [],
+        // Aesthetic Fields
+        dataNascimento: data.lead.dataNascimento
+          ? new Date(data.lead.dataNascimento).toISOString().split("T")[0]
+          : "",
+        genero: data.lead.genero || "",
+        procedimentosInteresse: data.lead.procedimentosInteresse || [],
+        historicoEstetico: data.lead.historicoEstetico || "",
+        alergias: data.lead.alergias || "",
+        tipoPele: data.lead.tipoPele || "",
+        disponibilidade: data.lead.disponibilidade || "",
+        indicadoPor: data.lead.indicadoPor || "",
+        profissao: data.lead.profissao || "",
+        dorPrincipal: data.lead.dorPrincipal || "",
+        desejoPrincipal: data.lead.desejoPrincipal || "",
+        temperatura: data.lead.temperatura,
       });
     }
   }, [data, isEditing]);
@@ -86,9 +101,9 @@ export function LeadDetailModal({
       id: leadId!,
       ...editData,
       valorEstimado: Math.round(editData.valorEstimado * 100),
+      dataNascimento: editData.dataNascimento || undefined,
     });
   };
-
   const handleQuickAction = (type: string) => {
     setInteractionType(type);
     setInteractionDialogOpen(true);
@@ -327,131 +342,323 @@ export function LeadDetailModal({
                       value="detalhes"
                       className="p-6 m-0 space-y-8 animate-in fade-in-50 slide-in-from-bottom-2 duration-300"
                     >
-                      {/* Info Grid */}
-                      <div className="grid grid-cols-2 gap-x-12 gap-y-6">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                            Valor Estimado
-                          </Label>
-                          {isEditing ? (
-                            <Input
-                              type="number"
-                              value={editData.valorEstimado}
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  valorEstimado: parseFloat(e.target.value),
-                                })
-                              }
-                              className="bg-transparent border-muted-foreground/20"
-                            />
-                          ) : (
-                            <div className="text-xl font-medium tracking-tight">
-                              {data.lead.valorEstimado ? (
-                                new Intl.NumberFormat("pt-BR", {
-                                  style: "currency",
-                                  currency: "BRL",
-                                }).format(data.lead.valorEstimado / 100)
+                      {/* Info Grid Refactored for Aesthetic CRM */}
+                      <div className="space-y-6">
+                        {/* 1. Dados Pessoais & Profissionais */}
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground border-b pb-1 mb-3">
+                            Dados Pessoais
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Data Nasc.
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  type="date"
+                                  value={
+                                    data.lead.dataNascimento
+                                      ? new Date(data.lead.dataNascimento)
+                                          .toISOString()
+                                          .split("T")[0]
+                                      : editData.dataNascimento || ""
+                                  }
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, dataNascimento: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
                               ) : (
-                                <span className="text-muted-foreground text-base">
-                                  Não definido
-                                </span>
+                                <div className="font-medium">
+                                  {data.lead.dataNascimento
+                                    ? new Date(data.lead.dataNascimento).toLocaleDateString("pt-BR")
+                                    : "-"}
+                                </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                            Origem
-                          </Label>
-                          {isEditing ? (
-                            <Select
-                              value={editData.origem}
-                              onValueChange={(val) => setEditData({ ...editData, origem: val })}
-                            >
-                              <SelectTrigger className="bg-transparent border-muted-foreground/20">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                                <SelectItem value="instagram">Instagram</SelectItem>
-                                <SelectItem value="google">Google</SelectItem>
-                                <SelectItem value="indicacao">Indicação</SelectItem>
-                                <SelectItem value="site">Site</SelectItem>
-                                <SelectItem value="outro">Outro</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <div className="capitalize font-medium">{data.lead.origem || "-"}</div>
-                          )}
-                        </div>
-                        <div className="space-y-1 col-span-2">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                            Telefone
-                          </Label>
-                          {isEditing ? (
-                            <Input
-                              value={editData.telefone}
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  telefone: e.target.value,
-                                })
-                              }
-                              placeholder="(00) 00000-0000"
-                              className="bg-transparent border-muted-foreground/20"
-                            />
-                          ) : (
-                            <div className="flex items-center gap-2 font-medium">
-                              {data.lead.telefone ? (
-                                <>
-                                  <Phone className="h-4 w-4 text-muted-foreground" />
-                                  <span>{data.lead.telefone}</span>
-                                </>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Gênero
+                              </Label>
+                              {isEditing ? (
+                                <Select
+                                  value={editData.genero || ""}
+                                  onValueChange={(val) => setEditData({ ...editData, genero: val })}
+                                >
+                                  <SelectTrigger className="h-8 bg-transparent border-muted-foreground/20">
+                                    <SelectValue placeholder="-" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Feminino">Feminino</SelectItem>
+                                    <SelectItem value="Masculino">Masculino</SelectItem>
+                                    <SelectItem value="Outro">Outro</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               ) : (
-                                "-"
+                                <div className="font-medium">{data.lead.genero || "-"}</div>
                               )}
                             </div>
-                          )}
-                        </div>
-                        <div className="space-y-3 col-span-2">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-                            Tags
-                          </Label>
-                          {isEditing ? (
-                            <Input
-                              value={editData.tags.join(", ")}
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  tags: e.target.value
-                                    .split(",")
-                                    .map((s) => s.trim())
-                                    .filter(Boolean),
-                                })
-                              }
-                              placeholder="tag1, tag2..."
-                              className="bg-transparent border-muted-foreground/20"
-                            />
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {data.lead.tags?.length ? (
-                                data.lead.tags.map((tag) => (
-                                  <Badge
-                                    key={tag}
-                                    variant="secondary"
-                                    className="px-2 py-0.5 text-xs font-normal border-transparent bg-secondary/50 hover:bg-secondary"
-                                  >
-                                    {tag}
-                                  </Badge>
-                                ))
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Profissão
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.profissao || ""}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, profissao: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
                               ) : (
-                                <span className="text-sm text-muted-foreground italic">
-                                  Sem tags
-                                </span>
+                                <div className="font-medium">{data.lead.profissao || "-"}</div>
                               )}
                             </div>
-                          )}
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Telefone
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.telefone}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, telefone: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium flex items-center gap-1">
+                                  {data.lead.telefone ? (
+                                    <>
+                                      <Phone className="w-3 h-3" /> {data.lead.telefone}
+                                    </>
+                                  ) : (
+                                    "-"
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Anamnese & Interesse */}
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground border-b pb-1 mb-3">
+                            Anamnese & Interesse
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Queixa Principal
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.dorPrincipal || ""}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, dorPrincipal: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium">{data.lead.dorPrincipal || "-"}</div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Desejo
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.desejoPrincipal || ""}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, desejoPrincipal: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium">
+                                  {data.lead.desejoPrincipal || "-"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Procedimentos */}
+                          <div className="mb-4 space-y-1">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                              Interesse em
+                            </Label>
+                            {isEditing ? (
+                              <Input
+                                value={
+                                  Array.isArray(editData.procedimentosInteresse)
+                                    ? editData.procedimentosInteresse.join(", ")
+                                    : editData.procedimentosInteresse || ""
+                                }
+                                onChange={(e) =>
+                                  setEditData({
+                                    ...editData,
+                                    procedimentosInteresse: e.target.value
+                                      .split(",")
+                                      .map((s: string) => s.trim()),
+                                  })
+                                }
+                                placeholder="Botox, etc (separar por vírgula)"
+                                className="bg-transparent border-muted-foreground/20 h-8"
+                              />
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {data.lead.procedimentosInteresse &&
+                                data.lead.procedimentosInteresse.length > 0
+                                  ? data.lead.procedimentosInteresse.map(
+                                      (proc: string, i: number) => (
+                                        <Badge
+                                          key={i}
+                                          variant="outline"
+                                          className="px-1.5 py-0 text-[10px]"
+                                        >
+                                          {proc}
+                                        </Badge>
+                                      )
+                                    )
+                                  : "-"}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Histórico
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.historicoEstetico || ""}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, historicoEstetico: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium text-sm">
+                                  {data.lead.historicoEstetico || "-"}
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Alergias
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.alergias || ""}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, alergias: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium text-destructive text-sm">
+                                  {data.lead.alergias || "-"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3. Qualificação */}
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground border-b pb-1 mb-3">
+                            Qualificação
+                          </h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Temperatura
+                              </Label>
+                              {isEditing ? (
+                                <Select
+                                  value={editData.temperatura || ""}
+                                  onValueChange={(val) =>
+                                    setEditData({ ...editData, temperatura: val })
+                                  }
+                                >
+                                  <SelectTrigger className="h-8 bg-transparent border-muted-foreground/20">
+                                    <SelectValue placeholder="-" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="frio">Frio ❄️</SelectItem>
+                                    <SelectItem value="morno">Morno 🌤️</SelectItem>
+                                    <SelectItem value="quente">Quente 🔥</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <div className="font-medium capitalize">
+                                  {data.lead.temperatura || "-"}
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Disponibilidade
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.disponibilidade || ""}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, disponibilidade: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium">
+                                  {data.lead.disponibilidade || "-"}
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Valor Proposta
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  type="number"
+                                  value={editData.valorEstimado}
+                                  onChange={(e) =>
+                                    setEditData({
+                                      ...editData,
+                                      valorEstimado: parseFloat(e.target.value),
+                                    })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium text-green-600">
+                                  {new Intl.NumberFormat("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  }).format((data.lead.valorEstimado || 0) / 100)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                                Indicado Por
+                              </Label>
+                              {isEditing ? (
+                                <Input
+                                  value={editData.indicadoPor || ""}
+                                  onChange={(e) =>
+                                    setEditData({ ...editData, indicadoPor: e.target.value })
+                                  }
+                                  className="bg-transparent border-muted-foreground/20 h-8"
+                                />
+                              ) : (
+                                <div className="font-medium">{data.lead.indicadoPor || "-"}</div>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </TabsContent>

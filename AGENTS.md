@@ -30,7 +30,7 @@
 
 ## 2. THE "ULTRATHINK" PROTOCOL (TRIGGER COMMAND)
 
-**TRIGGER:** When the user prompts **"ULTRATHINK"**:
+**TRIGGER:** When the user prompts **"ULTRATHINK"** or when planning and using the planning tool or the workflows `plan` or `design`:
 
 - **Override Brevity:** Immediately suspend the "Zero Fluff" rule.
 - **Maximum Depth:** You must engage in exhaustive, deep-level reasoning.

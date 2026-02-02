@@ -6,13 +6,15 @@ import { trpc } from "@/lib/trpc";
 import { FinancialHistoryChart } from "./FinancialHistoryChart";
 import { MeetingHistory } from "./MeetingHistory";
 import { MentorNotes } from "./MentorNotes";
-import { MilestoneTimeline } from "./MilestoneTimeline";
+import { NextLiveCard } from "./NextLiveCard";
+import { RoadmapView } from "./RoadmapView";
 
 interface MenteeOverviewProps {
   mentoradoId?: number;
+  isAdmin?: boolean;
 }
 
-export function MenteeOverview({ mentoradoId }: MenteeOverviewProps) {
+export function MenteeOverview({ mentoradoId, isAdmin }: MenteeOverviewProps) {
   // Determine if viewing another mentorado (admin mode)
   const isViewingOther = mentoradoId !== undefined;
 
@@ -41,122 +43,159 @@ export function MenteeOverview({ mentoradoId }: MenteeOverviewProps) {
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Profile Section */}
-      <div className="flex flex-col md:flex-row items-center gap-6 p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 shadow-xl">
-        <div className="relative">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F2D06B] blur-sm opacity-50"></div>
-          <Avatar className="w-24 h-24 border-2 border-[#D4AF37] relative z-10">
-            <AvatarImage src={mentorado.fotoUrl || undefined} />
+      <div className="flex flex-col md:flex-row items-center gap-6 p-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <BadgeCheck className="w-32 h-32 text-[#D4AF37]" />
+        </div>
+
+        <div className="relative group">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F2D06B] blur-sm opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <Avatar className="w-24 h-24 border-2 border-[#D4AF37] relative z-10 shadow-2xl">
+            <AvatarImage src={mentorado.fotoUrl || undefined} className="object-cover" />
             <AvatarFallback className="text-2xl font-bold bg-slate-800 text-[#D4AF37]">
               {mentorado.nomeCompleto.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </div>
 
-        <div className="flex-1 text-center md:text-left">
-          <h1 className="text-2xl font-bold text-white mb-1">{mentorado.nomeCompleto}</h1>
-          <p className="text-slate-400 font-medium">
-            Especialidade: <span className="text-slate-200">{stats.profile.specialty}</span>
+        <div className="flex-1 text-center md:text-left z-10">
+          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+            {mentorado.nomeCompleto}
+          </h1>
+          <p className="text-slate-400 font-medium flex items-center justify-center md:justify-start gap-2">
+            Especialidade:{" "}
+            <span className="text-slate-200 bg-slate-800/50 px-3 py-1 rounded-full text-sm border border-slate-700">
+              {stats.profile.specialty}
+            </span>
           </p>
         </div>
 
-        <Badge className="bg-gradient-to-r from-[#D4AF37] to-[#AA8C2C] text-slate-900 px-4 py-2 text-sm font-bold border-none shadow-lg flex items-center gap-2">
+        <Badge className="bg-gradient-to-br from-[#D4AF37] to-[#AA8C2C] text-slate-900 px-6 py-2.5 text-sm font-bold border-none shadow-xl flex items-center gap-2 hover:scale-105 transition-transform z-10">
           <BadgeCheck className="w-5 h-5" />
           High Performer
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Financials */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-[#D4AF37] text-lg font-medium">Histórico Financeiro</h2>
+      {/* Next Live Session Card */}
+      <div className="w-full">
+        <NextLiveCard isAdmin={isAdmin} />
+        {/* Let's simplify: if isAdmin is passed (true for admin view), or if we can derive it. passed prop is safest. */}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Financials & Roadmap */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="bg-slate-950/30 p-6 rounded-3xl border border-slate-800/60 backdrop-blur-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[#D4AF37] text-xl font-semibold flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Histórico Financeiro
+              </h2>
+            </div>
+            <FinancialHistoryChart data={stats.financials.chartData} />
           </div>
 
-          <FinancialHistoryChart data={stats.financials.chartData} />
-
-          <h2 className="text-[#D4AF37] text-lg font-medium mt-8">Linha do Tempo de Marcos</h2>
-          <MilestoneTimeline />
+          <div className="space-y-4">
+            <h2 className="text-[#D4AF37] text-xl font-semibold flex items-center gap-2 px-2">
+              <TrendingUp className="w-5 h-5" />
+              Jornada do Mentorado
+            </h2>
+            <RoadmapView mentoradoId={mentorado.id} />
+          </div>
         </div>
 
         {/* Right Column: Stats & Notes */}
-        <div className="space-y-6">
-          <h2 className="text-[#D4AF37] text-lg font-medium">
-            Principais Estatísticas Financeiras
-          </h2>
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-[#D4AF37] text-lg font-medium px-1">Principais Estatísticas</h2>
 
-          <div className="grid grid-cols-1 gap-4">
-            {/* ROI Card */}
-            <Card className="bg-slate-900/50 border-slate-700/50 hover:border-[#D4AF37]/50 transition-colors">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 text-[#D4AF37]">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-400">ROI Total da Mentoria</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-white">
-                      {formatCurrency(stats.financials.totalProfit)}
-                    </span>
-                    {stats.financials.growthPercent > 0 && (
-                      <span className="text-xs text-green-500 font-bold bg-green-500/10 px-1.5 py-0.5 rounded">
-                        +{stats.financials.growthPercent}%
+            <div className="grid grid-cols-1 gap-4">
+              {/* ROI Card */}
+              <Card className="bg-slate-900/50 border-slate-700/50 hover:border-[#D4AF37]/30 transition-all hover:bg-slate-900/80 group">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 text-[#D4AF37] group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-[#D4AF37]/20">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">
+                      ROI Total
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-white tracking-tight">
+                        {formatCurrency(stats.financials.totalProfit)}
                       </span>
-                    )}
+                      {stats.financials.growthPercent > 0 && (
+                        <span className="text-xs text-emerald-400 font-bold bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                          +{stats.financials.growthPercent}%
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Current Monthly Revenue Card */}
-            <Card className="bg-slate-900/50 border-slate-700/50 hover:border-[#D4AF37]/50 transition-colors">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 text-[#D4AF37]">
-                  <DollarSign className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-400">Receita Mensal Atual</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-white">
-                      {stats.financials.chartData.length > 0
-                        ? formatCurrency(
-                            stats.financials.chartData[stats.financials.chartData.length - 1]
-                              .faturamento
-                          )
-                        : "R$ 0,00"}
-                    </span>
+              {/* Current Monthly Revenue Card */}
+              <Card className="bg-slate-900/50 border-slate-700/50 hover:border-[#D4AF37]/30 transition-all hover:bg-slate-900/80 group">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 text-[#D4AF37] group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-[#D4AF37]/20">
+                    <DollarSign className="w-6 h-6" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">
+                      Receita Mensal
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-white tracking-tight">
+                        {stats.financials.chartData.length > 0
+                          ? formatCurrency(
+                              stats.financials.chartData[stats.financials.chartData.length - 1]
+                                .faturamento
+                            )
+                          : "R$ 0,00"}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Growth Card */}
-            <Card className="bg-slate-900/50 border-slate-700/50 hover:border-[#D4AF37]/50 transition-colors">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 text-[#D4AF37]">
-                  <Wallet className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-400">Percentual de Crescimento</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-white">
-                      {stats.financials.growthPercent}%
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">(Período)</span>
+              {/* Growth Card */}
+              <Card className="bg-slate-900/50 border-slate-700/50 hover:border-[#D4AF37]/30 transition-all hover:bg-slate-900/80 group">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 text-[#D4AF37] group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-[#D4AF37]/20">
+                    <Wallet className="w-6 h-6" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-1">
+                      Crescimento
+                    </p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-white tracking-tight">
+                        {stats.financials.growthPercent}%
+                      </span>
+                      <span className="text-xs text-slate-600 font-medium">(Geral)</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
-          <div className="pt-4 space-y-2">
-            <h2 className="text-[#D4AF37] text-lg font-medium">Anotações Privadas do Mentor</h2>
+          <div className="pt-4 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-px bg-slate-800 flex-1"></div>
+              <span className="text-slate-500 text-xs font-medium uppercase tracking-widest">
+                Mentor Area
+              </span>
+              <div className="h-px bg-slate-800 flex-1"></div>
+            </div>
+            <h2 className="text-[#D4AF37] text-lg font-medium px-1">Anotações Privadas</h2>
             <MentorNotes existingNotes={stats.notes} />
           </div>
 
-          <div className="pt-4 space-y-2">
-            <h2 className="text-[#D4AF37] text-lg font-medium">Histórico de Reuniões</h2>
+          <div className="pt-4 space-y-4">
+            <h2 className="text-[#D4AF37] text-lg font-medium px-1">Histórico de Reuniões</h2>
             <MeetingHistory meetings={stats.meetings} />
           </div>
         </div>

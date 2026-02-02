@@ -162,7 +162,7 @@ export default function MyDashboard() {
           </div>
 
           <NeonTabsContent value="visao-geral" className="space-y-6">
-            <MenteeOverview mentoradoId={targetMentoradoId} />
+            <MenteeOverview mentoradoId={targetMentoradoId} isAdmin={isAdmin} />
           </NeonTabsContent>
 
           <NeonTabsContent value="diagnostico">

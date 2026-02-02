@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { classes, classProgress } from "../../drizzle/schema";
-import { protectedProcedure, router } from "../_core/trpc";
+import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 
 export const classesRouter = router({
@@ -91,5 +91,65 @@ export const classesRouter = router({
         .returning();
 
       return newProgress;
+    }),
+
+  getNextLive: protectedProcedure.query(async ({ ctx }) => {
+    const db = getDb();
+
+    // Get future live classes
+    const futureClasses = await db
+      .select()
+      .from(classes)
+      .where(eq(classes.type, "live"))
+      .orderBy(desc(classes.date))
+      .limit(20);
+
+    // In memory sort/find is safer for small datasets to handle "Live Now" window
+    const now = Date.now();
+    const upcoming = futureClasses
+      .filter((c) => c.date && new Date(c.date).getTime() > now - 1000 * 60 * 60 * 2) // Within last 2 hours or future
+      .sort((a, b) => new Date(a.date!).getTime() - new Date(b.date!).getTime());
+
+    return upcoming[0] || null;
+  }),
+
+  upsertNextLive: adminProcedure
+    .input(
+      z.object({
+        id: z.number().optional(),
+        title: z.string(),
+        description: z.string().optional(),
+        url: z.string().url(),
+        date: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      if (input.id) {
+        const [updated] = await db
+          .update(classes)
+          .set({
+            title: input.title,
+            description: input.description,
+            url: input.url,
+            date: new Date(input.date),
+            type: "live",
+          })
+          .where(eq(classes.id, input.id))
+          .returning();
+        return updated;
+      }
+
+      const [created] = await db
+        .insert(classes)
+        .values({
+          title: input.title,
+          description: input.description || "",
+          url: input.url,
+          date: new Date(input.date),
+          type: "live",
+        })
+        .returning();
+      return created;
     }),
 });

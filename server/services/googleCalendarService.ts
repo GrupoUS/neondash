@@ -12,7 +12,7 @@ const GOOGLE_CLIENT_SECRET = ENV.googleClientSecret;
 const GOOGLE_REDIRECT_URI = ENV.googleRedirectUri;
 
 // Google Calendar API scopes
-const SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"];
+const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
 
 interface TokenResponse {
   access_token: string;
@@ -162,6 +162,128 @@ export async function getEvents(
 }
 
 /**
+ * Create a new event
+ */
+export async function createEvent(
+  accessToken: string,
+  event: Partial<CalendarEvent>
+): Promise<CalendarEvent> {
+  const resource: calendar_v3.Schema$Event = {
+    summary: event.title,
+    description: event.description,
+    location: event.location,
+    start: event.allDay
+      ? { date: event.start?.toISOString().split("T")[0] }
+      : { dateTime: event.start?.toISOString() },
+    end: event.allDay
+      ? { date: event.end?.toISOString().split("T")[0] }
+      : { dateTime: event.end?.toISOString() },
+  };
+
+  const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(resource),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create event: ${error}`);
+  }
+
+  const data = await response.json();
+  return {
+    id: data.id || "",
+    title: data.summary || "Sem título",
+    description: data.description || undefined,
+    start: new Date(data.start?.dateTime || data.start?.date || ""),
+    end: new Date(data.end?.dateTime || data.end?.date || ""),
+    allDay: Boolean(data.start?.date && !data.start?.dateTime),
+    location: data.location || undefined,
+    htmlLink: data.htmlLink || undefined,
+  };
+}
+
+/**
+ * Update an existing event (PATCH)
+ */
+export async function updateEvent(
+  accessToken: string,
+  eventId: string,
+  event: Partial<CalendarEvent>
+): Promise<CalendarEvent> {
+  const resource: calendar_v3.Schema$Event = {};
+
+  if (event.title) resource.summary = event.title;
+  if (event.description !== undefined) resource.description = event.description;
+  if (event.location !== undefined) resource.location = event.location;
+
+  if (event.start) {
+    resource.start = event.allDay
+      ? { date: event.start.toISOString().split("T")[0] }
+      : { dateTime: event.start.toISOString() };
+  }
+
+  if (event.end) {
+    resource.end = event.allDay
+      ? { date: event.end.toISOString().split("T")[0] }
+      : { dateTime: event.end.toISOString() };
+  }
+
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(resource),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to update event: ${error}`);
+  }
+
+  const data = await response.json();
+  return {
+    id: data.id || "",
+    title: data.summary || "Sem título",
+    description: data.description || undefined,
+    start: new Date(data.start?.dateTime || data.start?.date || ""),
+    end: new Date(data.end?.dateTime || data.end?.date || ""),
+    allDay: Boolean(data.start?.date && !data.start?.dateTime),
+    location: data.location || undefined,
+    htmlLink: data.htmlLink || undefined,
+  };
+}
+
+/**
+ * Delete an event
+ */
+export async function deleteEvent(accessToken: string, eventId: string): Promise<void> {
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to delete event: ${error}`);
+  }
+}
+
+/**
  * Revoke OAuth tokens
  */
 export async function revokeToken(token: string): Promise<void> {
@@ -181,5 +303,8 @@ export const googleCalendarService = {
   exchangeCodeForTokens,
   refreshAccessToken,
   getEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
   revokeToken,
 };

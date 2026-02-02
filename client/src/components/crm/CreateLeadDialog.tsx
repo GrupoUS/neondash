@@ -38,7 +38,7 @@ const createLeadFormSchema = z.object({
   origem: z.enum(["instagram", "whatsapp", "google", "indicacao", "site", "outro"]),
   valorEstimado: z.string().optional(),
 
-  // Novos campos
+  // B2B / Qualificação Fields
   indicadoPor: z.string().optional(),
   profissao: z.string().optional(),
   produtoInteresse: z.string().optional(),
@@ -48,6 +48,15 @@ const createLeadFormSchema = z.object({
   dorPrincipal: z.string().optional(),
   desejoPrincipal: z.string().optional(),
   temperatura: z.enum(["frio", "morno", "quente"]).optional(),
+
+  // Aesthetic Fields (B2C)
+  dataNascimento: z.string().optional(),
+  genero: z.string().optional(),
+  procedimentosInteresse: z.string().optional(), // Input as string, convert to array
+  historicoEstetico: z.string().optional(),
+  alergias: z.string().optional(),
+  tipoPele: z.string().optional(),
+  disponibilidade: z.string().optional(),
 });
 
 type CreateLeadFormValues = z.infer<typeof createLeadFormSchema>;
@@ -77,6 +86,14 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
       dorPrincipal: "",
       desejoPrincipal: "",
       temperatura: undefined,
+      // Aesthetic defaults
+      dataNascimento: "",
+      genero: "",
+      procedimentosInteresse: "",
+      historicoEstetico: "",
+      alergias: "",
+      tipoPele: "",
+      disponibilidade: "",
     },
   });
 
@@ -109,6 +126,14 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
 
     const anosEsteticaNumber = values.anosEstetica ? parseInt(values.anosEstetica, 10) : undefined;
 
+    // Convert comma-separated string to array
+    const procedimentosArray = values.procedimentosInteresse
+      ? values.procedimentosInteresse
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
     mutation.mutate({
       nome: values.nome,
       email: values.email,
@@ -125,6 +150,14 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
       dorPrincipal: values.dorPrincipal,
       desejoPrincipal: values.desejoPrincipal,
       temperatura: values.temperatura,
+      // Aesthetic Fields
+      dataNascimento: values.dataNascimento || undefined,
+      genero: values.genero,
+      procedimentosInteresse: procedimentosArray,
+      historicoEstetico: values.historicoEstetico,
+      alergias: values.alergias,
+      tipoPele: values.tipoPele,
+      disponibilidade: values.disponibilidade,
     });
   };
 
@@ -136,7 +169,7 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Dados Pessoais */}
+            {/* 1. Dados Pessoais */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
                 Dados Pessoais
@@ -197,43 +230,121 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
                   )}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="dataNascimento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data de Nascimento</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="genero"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gênero</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Feminino">Feminino</SelectItem>
+                          <SelectItem value="Masculino">Masculino</SelectItem>
+                          <SelectItem value="Outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
-            {/* Qualificação */}
+            {/* 2. Anamnese Comercial */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                Qualificação
+                Anamnese Comercial
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="possuiClinica"
+                  name="tipoPele"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Possui Clínica?</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="sim">Sim</SelectItem>
-                          <SelectItem value="nao">Não</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Tipo de Pele</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Oleosa, Seca..." {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <FormField
                   control={form.control}
-                  name="anosEstetica"
+                  name="alergias"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Anos na Estética</FormLabel>
+                      <FormLabel>Alergias</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="Ex: 5" {...field} />
+                        <Input placeholder="Possui alguma alergia?" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="historicoEstetico"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Histórico Estético</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Já fez procedimentos anteriores? Quais?" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* 3. Interesse */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">Interesse</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="procedimentosInteresse"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Procedimentos de Interesse</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: Botox, Preenchimento (separe por vírgula)"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="disponibilidade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Disponibilidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Manhã, Terças..." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -243,12 +354,12 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="faturamentoMensal"
+                  name="dorPrincipal"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Faturamento Mensal</FormLabel>
+                      <FormLabel>Queixa Principal (Dor)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: 10k - 20k" {...field} />
+                        <Input placeholder="O que mais incomoda?" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -256,22 +367,13 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
                 />
                 <FormField
                   control={form.control}
-                  name="temperatura"
+                  name="desejoPrincipal"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Temperatura do Lead</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="frio">Frio ❄️</SelectItem>
-                          <SelectItem value="morno">Morno 🌤️</SelectItem>
-                          <SelectItem value="quente">Quente 🔥</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Desejo/Sonho</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Resultado esperado?" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -279,10 +381,10 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
               </div>
             </div>
 
-            {/* Contexto e Origem */}
+            {/* 4. Outros (B2B / Qualificação) */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                Contexto da Venda
+                Qualificação / B2B
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -327,13 +429,22 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="produtoInteresse"
+                  name="temperatura"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Produto de Interesse</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Mentoria" {...field} />
-                      </FormControl>
+                      <FormLabel>Temperatura</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="frio">Frio ❄️</SelectItem>
+                          <SelectItem value="morno">Morno 🌤️</SelectItem>
+                          <SelectItem value="quente">Quente 🔥</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -343,39 +454,9 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
                   name="valorEstimado"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valor da Proposta (R$)</FormLabel>
+                      <FormLabel>Valor Proposta (R$)</FormLabel>
                       <FormControl>
                         <Input placeholder="0,00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="space-y-4 pt-2">
-                <FormField
-                  control={form.control}
-                  name="dorPrincipal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Principal Dor/Dificuldade</FormLabel>
-                      <FormControl>
-                        {/* Using Input for now, could be Textarea */}
-                        <Input placeholder="O que mais incomoda hoje?" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="desejoPrincipal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Principal Desejo/Sonho</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Onde quer chegar?" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -150,6 +150,14 @@ export const leadsRouter = router({
         dorPrincipal: z.string().optional(),
         desejoPrincipal: z.string().optional(),
         temperatura: z.enum(["frio", "morno", "quente"]).optional(),
+        // Aesthetic Fields (B2C)
+        dataNascimento: z.string().optional(), // Date string
+        genero: z.string().optional(),
+        procedimentosInteresse: z.array(z.string()).optional(),
+        historicoEstetico: z.string().optional(),
+        alergias: z.string().optional(),
+        tipoPele: z.string().optional(),
+        disponibilidade: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -176,6 +184,14 @@ export const leadsRouter = router({
           dorPrincipal: input.dorPrincipal,
           desejoPrincipal: input.desejoPrincipal,
           temperatura: input.temperatura,
+          // Aesthetic Fields
+          ...(input.dataNascimento ? { dataNascimento: input.dataNascimento } : {}),
+          genero: input.genero,
+          procedimentosInteresse: input.procedimentosInteresse,
+          historicoEstetico: input.historicoEstetico,
+          alergias: input.alergias,
+          tipoPele: input.tipoPele,
+          disponibilidade: input.disponibilidade,
         })
         .returning({ id: leads.id });
 
@@ -202,6 +218,14 @@ export const leadsRouter = router({
         dorPrincipal: z.string().optional(),
         desejoPrincipal: z.string().optional(),
         temperatura: z.enum(["frio", "morno", "quente"]).optional(),
+        // Aesthetic Fields (B2C)
+        dataNascimento: z.string().optional(),
+        genero: z.string().optional(),
+        procedimentosInteresse: z.array(z.string()).optional(),
+        historicoEstetico: z.string().optional(),
+        alergias: z.string().optional(),
+        tipoPele: z.string().optional(),
+        disponibilidade: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -242,6 +266,14 @@ export const leadsRouter = router({
           dorPrincipal: input.dorPrincipal,
           desejoPrincipal: input.desejoPrincipal,
           temperatura: input.temperatura,
+          // Aesthetic Fields
+          ...(input.dataNascimento ? { dataNascimento: input.dataNascimento } : {}),
+          genero: input.genero,
+          procedimentosInteresse: input.procedimentosInteresse,
+          historicoEstetico: input.historicoEstetico,
+          alergias: input.alergias,
+          tipoPele: input.tipoPele,
+          disponibilidade: input.disponibilidade,
           updatedAt: new Date(),
         })
         .where(eq(leads.id, input.id));

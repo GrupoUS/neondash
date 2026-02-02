@@ -9,12 +9,15 @@ import { googleTokens } from "../../drizzle/schema";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import {
+  createEvent,
+  deleteEvent,
   exchangeCodeForTokens,
   getAuthUrl,
   getEvents,
   isGoogleConfigured,
   refreshAccessToken,
   revokeToken,
+  updateEvent,
 } from "../services/googleCalendarService";
 
 export const calendarRouter = router({
@@ -234,4 +237,148 @@ export const calendarRouter = router({
 
     return { success: true };
   }),
+
+  /**
+   * Create a new event
+   */
+  createEvent: protectedProcedure
+    .input(
+      z.object({
+        title: z.string().min(1),
+        description: z.string().optional(),
+        start: z.string().datetime(), // ISO string
+        end: z.string().datetime(), // ISO string
+        allDay: z.boolean().default(false),
+        location: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      const [token] = await db
+        .select()
+        .from(googleTokens)
+        .where(eq(googleTokens.userId, ctx.user.id))
+        .limit(1);
+
+      if (!token) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Google Calendar não conectado.",
+        });
+      }
+
+      // TODO: Refactor token refresh logic into reusable function
+      // For now assuming token is valid or client handles error
+
+      try {
+        const event = await createEvent(token.accessToken, {
+          title: input.title,
+          description: input.description,
+          start: new Date(input.start),
+          end: new Date(input.end),
+          allDay: input.allDay,
+          location: input.location,
+        });
+        return { success: true, event };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Falha ao criar evento.",
+        });
+      }
+    }),
+
+  /**
+   * Update an event
+   */
+  updateEvent: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        start: z.string().datetime().optional(),
+        end: z.string().datetime().optional(),
+        allDay: z.boolean().optional(),
+        location: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      const [token] = await db
+        .select()
+        .from(googleTokens)
+        .where(eq(googleTokens.userId, ctx.user.id))
+        .limit(1);
+
+      if (!token) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Google Calendar não conectado.",
+        });
+      }
+
+      try {
+        const event = await updateEvent(token.accessToken, input.id, {
+          title: input.title,
+          description: input.description,
+          start: input.start ? new Date(input.start) : undefined,
+          end: input.end ? new Date(input.end) : undefined,
+          allDay: input.allDay,
+          location: input.location,
+        });
+        return { success: true, event };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Falha ao atualizar evento.",
+        });
+      }
+    }),
+
+  /**
+   * Delete an event
+   */
+  deleteEvent: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      const [token] = await db
+        .select()
+        .from(googleTokens)
+        .where(eq(googleTokens.userId, ctx.user.id))
+        .limit(1);
+
+      if (!token) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Google Calendar não conectado.",
+        });
+      }
+
+      try {
+        await deleteEvent(token.accessToken, input.id);
+        return { success: true };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Falha ao excluir evento.",
+        });
+      }
+    }),
 });

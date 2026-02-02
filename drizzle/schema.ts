@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
   varchar,
+  date,
 } from "drizzle-orm/pg-core";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -413,6 +414,15 @@ export const leads = pgTable(
     dorPrincipal: text("dor_principal"),
     desejoPrincipal: text("desejo_principal"),
     temperatura: temperaturaLeadEnum("temperatura"),
+
+    // Campos Aesthetic (B2C)
+    dataNascimento: date("data_nascimento"),
+    genero: text("genero"),
+    procedimentosInteresse: text("procedimentos_interesse").array(),
+    historicoEstetico: text("historico_estetico"),
+    alergias: text("alergias"),
+    tipoPele: text("tipo_pele"),
+    disponibilidade: text("disponibilidade"),
     
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

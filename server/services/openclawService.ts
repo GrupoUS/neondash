@@ -178,19 +178,41 @@ class OpenClawGatewayService {
   // ─────────────────────────────────────────────────────────────────────────
 
   async createSession(userId: number, channelType: ChannelType): Promise<string> {
-    const sessionId = randomUUID();
     const db = getDb();
 
-    // Store in database
-    const [_dbSession] = await db
-      .insert(openclawSessions)
-      .values({
+    // Check if user already has an active session for this channel type
+    const existingSession = await db
+      .select()
+      .from(openclawSessions)
+      .where(
+        and(eq(openclawSessions.userId, userId), eq(openclawSessions.channelType, channelType))
+      )
+      .limit(1);
+
+    let sessionId: string;
+
+    if (existingSession.length > 0) {
+      // Reactivate existing session
+      sessionId = existingSession[0].sessionId;
+
+      // Update to active if it wasn't
+      if (existingSession[0].isActive !== "sim") {
+        await db
+          .update(openclawSessions)
+          .set({ isActive: "sim", updatedAt: new Date() })
+          .where(eq(openclawSessions.id, existingSession[0].id));
+      }
+    } else {
+      // Create new session
+      sessionId = randomUUID();
+
+      await db.insert(openclawSessions).values({
         userId,
         channelType,
         sessionId,
         isActive: "sim",
-      })
-      .returning({ id: openclawSessions.id });
+      });
+    }
 
     // Store in memory (indexed by sessionId)
     const context: SessionContext = {

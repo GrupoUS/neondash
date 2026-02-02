@@ -7,9 +7,9 @@
  * - on-message-status: Message status updates (sent, delivered, read)
  * - on-disconnected: WhatsApp disconnection
  */
-
 import { eq } from "drizzle-orm";
 import type { Router } from "express";
+import type { Lead } from "../../drizzle/schema";
 import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { phonesMatch } from "../services/zapiService";
@@ -64,10 +64,11 @@ async function findMentoradoByInstance(instanceId: string) {
  * Find lead by phone number for a specific mentorado
  */
 async function findLeadByPhone(mentoradoId: number, phone: string) {
+  const db = getDb();
   const allLeads = await db.select().from(leads).where(eq(leads.mentoradoId, mentoradoId));
 
   // Use phonesMatch for flexible matching
-  return allLeads.find((lead) => lead.telefone && phonesMatch(lead.telefone, phone)) ?? null;
+  return allLeads.find((lead: Lead) => lead.telefone && phonesMatch(lead.telefone, phone)) ?? null;
 }
 
 /**
@@ -80,7 +81,7 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   // Find mentorado by instance
   const mentorado = await findMentoradoByInstance(payload.instanceId);
   if (!mentorado) {
-    console.warn(`[Z-API Webhook] Unknown instance: ${payload.instanceId}`);
+    // Unknown instance - skip silently
     return;
   }
 
@@ -91,6 +92,7 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   const lead = await findLeadByPhone(mentorado.id, payload.phone);
 
   // Store message
+  const db = getDb();
   await db.insert(whatsappMessages).values({
     mentoradoId: mentorado.id,
     leadId: lead?.id ?? null,
@@ -120,6 +122,7 @@ async function handleMessageStatus(payload: ZApiMessageStatusPayload): Promise<v
   const status = statusMap[payload.status];
   if (!status) return;
 
+  const db = getDb();
   await db
     .update(whatsappMessages)
     .set({ status })
@@ -130,6 +133,7 @@ async function handleMessageStatus(payload: ZApiMessageStatusPayload): Promise<v
  * Handle disconnection webhook
  */
 async function handleDisconnected(payload: ZApiDisconnectedPayload): Promise<void> {
+  const db = getDb();
   await db
     .update(mentorados)
     .set({
@@ -137,10 +141,6 @@ async function handleDisconnected(payload: ZApiDisconnectedPayload): Promise<voi
       updatedAt: new Date(),
     })
     .where(eq(mentorados.zapiInstanceId, payload.instanceId));
-
-  console.log(
-    `[Z-API Webhook] Instance ${payload.instanceId} disconnected: ${payload.reason ?? "unknown"}`
-  );
 }
 
 /**
@@ -162,8 +162,7 @@ export function registerZapiWebhooks(router: Router): void {
       const payload = req.body as ZApiMessageReceivedPayload;
       await handleMessageReceived(payload);
       res.status(200).json({ success: true });
-    } catch (error) {
-      console.error("[Z-API Webhook] Error processing message:", error);
+    } catch (_error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -181,8 +180,7 @@ export function registerZapiWebhooks(router: Router): void {
       const payload = req.body as ZApiMessageStatusPayload;
       await handleMessageStatus(payload);
       res.status(200).json({ success: true });
-    } catch (error) {
-      console.error("[Z-API Webhook] Error processing status:", error);
+    } catch (_error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -200,8 +198,7 @@ export function registerZapiWebhooks(router: Router): void {
       const payload = req.body as ZApiDisconnectedPayload;
       await handleDisconnected(payload);
       res.status(200).json({ success: true });
-    } catch (error) {
-      console.error("[Z-API Webhook] Error processing disconnection:", error);
+    } catch (_error) {
       res.status(500).json({ error: "Internal server error" });
     }
   });

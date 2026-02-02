@@ -259,12 +259,28 @@ railway logs --latest -n 50
 
 ### 5.3 E2E Validation (if UI affected)
 
+> [!IMPORTANT]
+> **SEMPRE prefira `agent-browser` CLI** ao invés do `browser_subagent` padrão.
+> O `agent-browser` oferece controle programático preciso, snapshots reproduzíveis, e refs consistentes para debugging.
+
 ```bash
-agent-browser open http://localhost:3000
-agent-browser snapshot
-agent-browser screenshot debug-result.png
-agent-browser close
+# Workflow preferido para validação frontend
+agent-browser open http://localhost:3000   # Abre página
+agent-browser snapshot                     # Lista elementos interativos (@refs)
+agent-browser screenshot debug-result.png  # Captura estado visual
+agent-browser get text @e1                 # Verifica conteúdo de elemento
+agent-browser close                        # Cleanup obrigatório
 ```
+
+**Quando usar cada ferramenta:**
+
+| Cenário                        | Ferramenta          | Motivo                                |
+| ------------------------------ | ------------------- | ------------------------------------- |
+| Validar UI visualmente         | `agent-browser`     | Snapshots reproduzíveis, refs estáveis |
+| Testar fluxos de usuário       | `agent-browser`     | Comandos encadeados, sem overhead     |
+| Capturar screenshots           | `agent-browser`     | Direto, salva como PNG                |
+| Gravar vídeo de reprodução     | `browser_subagent`  | Único caso para usar (grava WebP)     |
+| Debugging interativo complexo  | `agent-browser`     | Controle step-by-step                 |
 
 ---
 

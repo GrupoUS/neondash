@@ -1,19 +1,12 @@
 "use client";
 import { motion } from "framer-motion";
-import {
-  BarChart3,
-  BriefcaseBusiness,
-  CalendarRange,
-  Moon,
-  Sparkles,
-  Sun,
-  UsersRound,
-} from "lucide-react";
+import { BarChart3, BriefcaseBusiness, CalendarRange, Moon, Sun, UsersRound } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { Link, Redirect, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/_core/hooks/useTheme";
+import { GlobalAIChat } from "@/components/ai-chat";
 import { UserButton } from "@/components/auth/UserButton";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
@@ -62,12 +55,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: UsersRound,
       adminOnly: true,
     },
-    { href: "/assistente", label: "Assistente IA", icon: Sparkles, adminOnly: true },
   ];
 
   // Logic to prevent non-admins from accessing admin routes
   const currentPath = location;
-  const restrictedRoutes = ["/assistente", "/admin"];
+  const restrictedRoutes = ["/admin"];
   const isRestricted = restrictedRoutes.some((route) => currentPath.startsWith(route));
 
   if (user && user.role !== "admin" && isRestricted) {
@@ -154,6 +146,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 overflow-y-auto w-full p-2 md:p-10 border-l border-border bg-background rounded-tl-2xl">
         {children}
       </main>
+      <GlobalAIChat />
     </div>
   );
 }

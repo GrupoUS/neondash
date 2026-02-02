@@ -2,7 +2,6 @@
  * Z-API tRPC Router
  * Handles WhatsApp connection management and messaging
  */
-
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { mentorados, whatsappMessages } from "../drizzle/schema";
@@ -15,6 +14,7 @@ import { type ZApiCredentials, zapiService } from "./services/zapiService";
  * Get mentorado with Z-API credentials
  */
 async function getMentoradoWithZapi(userId: number) {
+  const db = getDb();
   const [mentorado] = await db
     .select()
     .from(mentorados)
@@ -66,6 +66,7 @@ export const zapiRouter = router({
     // Update connection status in DB if changed
     const isConnected = status.connected ? "sim" : "nao";
     if (mentorado.zapiConnected !== isConnected) {
+      const db = getDb();
       await db
         .update(mentorados)
         .set({
@@ -104,6 +105,7 @@ export const zapiRouter = router({
       // Encrypt token before storing
       const encryptedToken = encrypt(input.token);
 
+      const db = getDb();
       await db
         .update(mentorados)
         .set({
@@ -155,6 +157,7 @@ export const zapiRouter = router({
 
     await zapiService.disconnect(credentials);
 
+    const db = getDb();
     await db
       .update(mentorados)
       .set({
@@ -195,6 +198,7 @@ export const zapiRouter = router({
       });
 
       // Store message in DB
+      const db = getDb();
       const [savedMessage] = await db
         .insert(whatsappMessages)
         .values({
@@ -244,6 +248,7 @@ export const zapiRouter = router({
         conditions.push(eq(whatsappMessages.phone, normalizedPhone));
       }
 
+      const db = getDb();
       const messages = await db
         .select()
         .from(whatsappMessages)
@@ -265,6 +270,7 @@ export const zapiRouter = router({
 
     // Get all inbound messages that haven't been "seen"
     // For now, simple count per lead
+    const db = getDb();
     const messages = await db
       .select({
         leadId: whatsappMessages.leadId,

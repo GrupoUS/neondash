@@ -53,11 +53,27 @@ export default function LandingPage() {
     }
   }, [hasCheckedAuth, isAuthenticated, loading, loadingMentorado, mentorado, user, setLocation]);
 
-  if (loading || !hasCheckedAuth || (isAuthenticated && loadingMentorado) || isAuthenticated) {
+  // Show loading while:
+  // 1. Auth is loading
+  // 2. Initial auth check hasn't completed
+  // 3. User is authenticated and we're fetching their mentorado data
+  // After that, either redirect happens (via useEffect) or we show the landing page
+  if (loading || !hasCheckedAuth || (isAuthenticated && loadingMentorado)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground font-medium tracking-wide">
           Carregando Neon...
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated, the useEffect above will redirect - show loading while that happens
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground font-medium tracking-wide">
+          Redirecionando...
         </div>
       </div>
     );

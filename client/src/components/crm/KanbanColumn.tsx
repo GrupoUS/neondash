@@ -1,5 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadCard } from "./LeadCard";
 
@@ -24,6 +26,8 @@ interface KanbanColumnProps {
   isSelectMode: boolean;
   selectedLeads: number[];
   onToggleSelect: (id: number) => void;
+  showAddButton?: boolean;
+  onAddLead?: () => void;
 }
 
 export function KanbanColumn({
@@ -36,6 +40,8 @@ export function KanbanColumn({
   isSelectMode,
   selectedLeads,
   onToggleSelect,
+  showAddButton,
+  onAddLead,
 }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({
     id: id,
@@ -56,17 +62,29 @@ export function KanbanColumn({
       {/* Header */}
       <div
         className={cn(
-          "flex items-center justify-between p-3 mb-3 rounded-lg border bg-card/50 backdrop-blur-sm",
+          "flex flex-col gap-2 p-3 mb-3 rounded-lg border bg-card/50 backdrop-blur-sm",
           borderColor
         )}
       >
-        <div className="flex items-center gap-2">
-          <div className={cn("w-2 h-2 rounded-full", accentColor)} />
-          <h3 className="font-semibold text-sm text-foreground">{title}</h3>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {safeLeads.length}
-          </span>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <div className={cn("w-2 h-2 rounded-full", accentColor)} />
+            <h3 className="font-semibold text-sm text-foreground">{title}</h3>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {safeLeads.length}
+            </span>
+          </div>
         </div>
+
+        {showAddButton && (
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-primary/10 h-8 text-xs border border-dashed border-border/50"
+            onClick={onAddLead}
+          >
+            <Plus className="w-3 h-3 mr-2" /> Novo Lead
+          </Button>
+        )}
       </div>
 
       {/* Drop Zone */}

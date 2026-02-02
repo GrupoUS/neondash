@@ -65,9 +65,14 @@ const COLUMNS = [
 export interface PipelineKanbanProps {
   mentoradoId?: number;
   isReadOnly?: boolean;
+  onCreateLead?: () => void;
 }
 
-export function PipelineKanban({ mentoradoId, isReadOnly = false }: PipelineKanbanProps) {
+export function PipelineKanban({
+  mentoradoId,
+  isReadOnly = false,
+  onCreateLead,
+}: PipelineKanbanProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -183,35 +188,6 @@ export function PipelineKanban({ mentoradoId, isReadOnly = false }: PipelineKanb
 
   return (
     <div className="flex flex-col h-full gap-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-background/40 p-4 rounded-xl border border-border backdrop-blur-xl">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Pipeline de Vendas</h1>
-
-        <div className="flex items-center gap-2">
-          {!isReadOnly && (
-            <Button
-              variant={isSelectMode ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => {
-                setIsSelectMode(!isSelectMode);
-                setSelectedLeads([]);
-              }}
-            >
-              <CheckSquare className="mr-2 h-4 w-4" />
-              {isSelectMode ? "Cancelar" : "Selecionar"}
-            </Button>
-          )}
-          <div className="h-4 w-px bg-border" />
-          <Button variant="outline" size="sm">
-            <ListFilter className="mr-2 h-4 w-4" /> Filtrar
-          </Button>
-          {!isReadOnly && (
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20">
-              <Plus className="mr-2 h-4 w-4" /> Novo Lead
-            </Button>
-          )}
-        </div>
-      </div>
-
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -233,6 +209,8 @@ export function PipelineKanban({ mentoradoId, isReadOnly = false }: PipelineKanb
                 isSelectMode={isSelectMode}
                 selectedLeads={selectedLeads}
                 onToggleSelect={toggleSelectLead}
+                showAddButton={column.id === "novo" && !isReadOnly}
+                onAddLead={onCreateLead}
               />
             ))}
           </div>

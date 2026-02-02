@@ -143,11 +143,6 @@ export function LeadsPage() {
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
               </div>
-              {!isReadOnly && (
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" /> Novo Lead
-                </Button>
-              )}
             </div>
           </div>
 
@@ -216,7 +211,11 @@ export function LeadsPage() {
               </div>
             ) : (
               <div className="p-4 flex-1 overflow-auto bg-muted/10">
-                <PipelineKanban mentoradoId={viewMentoradoId} isReadOnly={isReadOnly} />
+                <PipelineKanban
+                  mentoradoId={viewMentoradoId}
+                  isReadOnly={isReadOnly}
+                  onCreateLead={() => setCreateDialogOpen(true)}
+                />
               </div>
             )}
           </div>

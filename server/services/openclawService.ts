@@ -320,35 +320,75 @@ class OpenClawGatewayService {
   }
 
   /**
-   * Generate a mock AI response for development/testing
+   * Generate AI response using the LLM provider
+   * Falls back to mock responses if LLM is not configured
    */
   private async generateMockResponse(
     sessionId: string,
-    _userContent: string,
+    userContent: string,
     userId: number,
     dbSessionId: number
   ): Promise<void> {
     const db = getDb();
+    let aiContent: string;
 
-    // Simulate AI thinking delay
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000));
+    try {
+      // Try to use real LLM if configured
+      const { invokeLLM } = await import("../_core/llm");
 
-    // Mock responses based on context
-    const mockResponses = [
-      "Olá! Sou o Assistente NEON. Como posso ajudar você hoje com suas métricas de mentoria?",
-      "Entendi sua pergunta. Analisando seus dados de faturamento e métricas...",
-      "Com base nos seus dados atuais, posso sugerir algumas estratégias para melhorar seus resultados.",
-      "Você está indo bem! Continue focando em suas metas e acompanhando suas métricas.",
-      "Posso te ajudar a analisar suas métricas mensais e identificar oportunidades de melhoria.",
-    ];
+      // Get conversation history for context
+      const history = await this.getMessageHistory(dbSessionId, 10);
 
-    const mockContent = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+      // Build messages for LLM
+      const messages = [
+        {
+          role: "system" as const,
+          content: `Você é o Assistente NEON, um assistente de IA para mentoria de negócios. 
+Você ajuda mentorados a analisar suas métricas de faturamento, leads, procedimentos e desempenho em redes sociais.
+Seja conciso, útil e profissional. Responda sempre em português brasileiro.
+Foque em dar insights práticos e acionáveis sobre os dados do mentorado.`,
+        },
+        ...history.map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        })),
+        {
+          role: "user" as const,
+          content: userContent,
+        },
+      ];
+
+      const result = await invokeLLM({ messages });
+      const choice = result.choices[0];
+
+      if (choice?.message?.content) {
+        aiContent =
+          typeof choice.message.content === "string"
+            ? choice.message.content
+            : choice.message.content
+                .filter((c): c is { type: "text"; text: string } => c.type === "text")
+                .map((c) => c.text)
+                .join("\n");
+      } else {
+        throw new Error("No content in LLM response");
+      }
+    } catch (_error) {
+      // Fallback to mock responses if LLM fails or is not configured
+      const mockResponses = [
+        "Olá! Sou o Assistente NEON. Como posso ajudar você hoje com suas métricas de mentoria?",
+        "Entendi sua pergunta. Analisando seus dados de faturamento e métricas...",
+        "Com base nos seus dados atuais, posso sugerir algumas estratégias para melhorar seus resultados.",
+        "Você está indo bem! Continue focando em suas metas e acompanhando suas métricas.",
+        "Posso te ajudar a analisar suas métricas mensais e identificar oportunidades de melhoria.",
+      ];
+      aiContent = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+    }
 
     // Save assistant message to database
     await db.insert(openclawMessages).values({
       sessionId: dbSessionId,
       role: "assistant",
-      content: mockContent,
+      content: aiContent,
     });
 
     // Forward to client WebSocket
@@ -359,7 +399,7 @@ class OpenClawGatewayService {
           type: "message",
           sessionId,
           role: "assistant",
-          content: mockContent,
+          content: aiContent,
           timestamp: new Date().toISOString(),
         })
       );

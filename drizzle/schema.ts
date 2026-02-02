@@ -69,6 +69,9 @@ export const tipoInteracaoEnum = pgEnum("tipo_interacao", [
 
 export const prioridadeTaskEnum = pgEnum("prioridade_task", ["alta", "media", "baixa"]);
 
+
+export const temperaturaLeadEnum = pgEnum("temperatura_lead", ["frio", "morno", "quente"]);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -399,6 +402,18 @@ export const leads = pgTable(
     status: statusLeadEnum("status").notNull().default("novo"),
     valorEstimado: integer("valor_estimado"), // em centavos
     tags: text("tags").array(),
+    
+    // Novos campos
+    indicadoPor: text("indicado_por"),
+    profissao: text("profissao"),
+    produtoInteresse: text("produto_interesse"),
+    possuiClinica: simNaoEnum("possui_clinica"),
+    anosEstetica: integer("anos_estetica"),
+    faturamentoMensal: text("faturamento_mensal"),
+    dorPrincipal: text("dor_principal"),
+    desejoPrincipal: text("desejo_principal"),
+    temperatura: temperaturaLeadEnum("temperatura"),
+    
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

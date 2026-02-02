@@ -9,12 +9,16 @@ import { MentorNotes } from "./MentorNotes";
 import { MilestoneTimeline } from "./MilestoneTimeline";
 
 export function MenteeOverview() {
-  const { data: mentorado } = trpc.mentorados.me.useQuery();
+  // Single optimized query that fetches everything
   const { data: stats, isLoading } = trpc.mentorados.getOverviewStats.useQuery();
+  const { data: mentorado } = trpc.mentorados.me.useQuery();
 
-  if (isLoading || !mentorado) {
+  if (isLoading || !mentorado || !stats) {
     return <OverviewSkeleton />;
   }
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   return (
     <div className="space-y-6">
@@ -33,7 +37,7 @@ export function MenteeOverview() {
         <div className="flex-1 text-center md:text-left">
           <h1 className="text-2xl font-bold text-white mb-1">{mentorado.nomeCompleto}</h1>
           <p className="text-slate-400 font-medium">
-            Especialidade: <span className="text-slate-200">{stats?.profile?.specialty}</span>
+            Especialidade: <span className="text-slate-200">{stats.profile.specialty}</span>
           </p>
         </div>
 
@@ -50,7 +54,7 @@ export function MenteeOverview() {
             <h2 className="text-[#D4AF37] text-lg font-medium">Histórico Financeiro</h2>
           </div>
 
-          <FinancialHistoryChart data={stats?.financials.chartData || []} />
+          <FinancialHistoryChart data={stats.financials.chartData} />
 
           <h2 className="text-[#D4AF37] text-lg font-medium mt-8">Linha do Tempo de Marcos</h2>
           <MilestoneTimeline />
@@ -73,14 +77,13 @@ export function MenteeOverview() {
                   <p className="text-sm text-slate-400">ROI Total da Mentoria</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-xl font-bold text-white">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(stats?.financials.totalProfit || 0)}
+                      {formatCurrency(stats.financials.totalProfit)}
                     </span>
-                    <span className="text-xs text-green-500 font-bold bg-green-500/10 px-1.5 py-0.5 rounded">
-                      +420%
-                    </span>
+                    {stats.financials.growthPercent > 0 && (
+                      <span className="text-xs text-green-500 font-bold bg-green-500/10 px-1.5 py-0.5 rounded">
+                        +{stats.financials.growthPercent}%
+                      </span>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -96,11 +99,8 @@ export function MenteeOverview() {
                   <p className="text-sm text-slate-400">Receita Mensal Atual</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-xl font-bold text-white">
-                      {stats?.financials?.chartData && stats.financials.chartData.length > 0
-                        ? new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(
+                      {stats.financials.chartData.length > 0
+                        ? formatCurrency(
                             stats.financials.chartData[stats.financials.chartData.length - 1]
                               .faturamento
                           )
@@ -120,8 +120,10 @@ export function MenteeOverview() {
                 <div>
                   <p className="text-sm text-slate-400">Percentual de Crescimento</p>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-white">85%</span>
-                    <span className="text-xs text-slate-500 font-medium">(Ano a Ano)</span>
+                    <span className="text-xl font-bold text-white">
+                      {stats.financials.growthPercent}%
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">(Período)</span>
                   </div>
                 </div>
               </CardContent>
@@ -130,12 +132,12 @@ export function MenteeOverview() {
 
           <div className="pt-4 space-y-2">
             <h2 className="text-[#D4AF37] text-lg font-medium">Anotações Privadas do Mentor</h2>
-            <MentorNotes />
+            <MentorNotes existingNotes={stats.notes} />
           </div>
 
           <div className="pt-4 space-y-2">
             <h2 className="text-[#D4AF37] text-lg font-medium">Histórico de Reuniões</h2>
-            <MeetingHistory />
+            <MeetingHistory meetings={stats.meetings} />
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server"; // Added import
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { diagnosticos, mentorados, metricasMensais } from "../drizzle/schema";
+import { diagnosticos, interacoes, mentorados, metricasMensais } from "../drizzle/schema";
 import { adminProcedure, mentoradoProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { sendWelcomeEmail } from "./emailService";
@@ -352,22 +352,64 @@ export const mentoradosRouter = router({
     }),
 
   /**
-   * Get Overview Stats for Dashboard Redesign
+   * Get Overview Stats for Dashboard Redesign (Optimized)
+   * Fetches all data in parallel for better performance
    */
   getOverviewStats: mentoradoProcedure.query(async ({ ctx }) => {
     const db = getDb();
     const mentoradoId = ctx.mentorado.id;
 
-    // Fetch Last 12 months metrics
-    const metrics = await db
-      .select()
-      .from(metricasMensais)
-      .where(eq(metricasMensais.mentoradoId, mentoradoId))
-      .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
-      .limit(12);
+    // Parallel fetching for performance
+    const [metrics, diagnostico, meetings, notes] = await Promise.all([
+      // 1. Fetch Last 12 months metrics
+      db
+        .select()
+        .from(metricasMensais)
+        .where(eq(metricasMensais.mentoradoId, mentoradoId))
+        .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
+        .limit(12),
+
+      // 2. Get Specialty from Diagnosticos
+      db
+        .select({ specialty: diagnosticos.atuacaoSaude })
+        .from(diagnosticos)
+        .where(eq(diagnosticos.mentoradoId, mentoradoId))
+        .limit(1)
+        .then((res) => res[0]),
+
+      // 3. Get recent meetings
+      db
+        .select({
+          id: interacoes.id,
+          createdAt: interacoes.createdAt,
+          duracao: interacoes.duracao,
+          notas: interacoes.notas,
+        })
+        .from(interacoes)
+        .where(and(eq(interacoes.mentoradoId, mentoradoId), eq(interacoes.tipo, "reuniao")))
+        .orderBy(desc(interacoes.createdAt))
+        .limit(5),
+
+      // 4. Get recent notes
+      db
+        .select({
+          id: interacoes.id,
+          createdAt: interacoes.createdAt,
+          notas: interacoes.notas,
+        })
+        .from(interacoes)
+        .where(
+          and(
+            eq(interacoes.mentoradoId, mentoradoId),
+            eq(interacoes.tipo, "nota"),
+            isNull(interacoes.leadId)
+          )
+        )
+        .orderBy(desc(interacoes.createdAt))
+        .limit(5),
+    ]);
 
     // Calculate Financials
-    // Sort chronological for chart
     const chartData = [...metrics].sort((a, b) => {
       if (a.ano !== b.ano) return a.ano - b.ano;
       return a.mes - b.mes;
@@ -375,35 +417,29 @@ export const mentoradosRouter = router({
 
     const totalRevenue = metrics.reduce((acc, m) => acc + m.faturamento, 0);
     const totalProfit = metrics.reduce((acc, m) => acc + m.lucro, 0);
-
-    // ROI Calculation (Mock: (Revenue - Cost) / Cost? We only have Profit and Revenue)
-    // If Profit is accurate, ROI could be implied.
-    // Image says "ROI Total da Mentoria".
-    // Let's assume a fixed investment for now or just return totals.
     const averageRevenue = metrics.length > 0 ? totalRevenue / metrics.length : 0;
 
-    // Growth calculation (Year over Year? or Month over Month?)
-    // Image says "85% (Ano a Ano)".
-    // We need comparable month last year.
-    // For now, let's just return the raw data and let client calc specifics or return placeholder.
-
-    // Get Specialty from Diagnosticos
-    const [diagnostico] = await db
-      .select({ specialty: diagnosticos.atuacaoSaude })
-      .from(diagnosticos)
-      .where(eq(diagnosticos.mentoradoId, mentoradoId))
-      .limit(1);
+    // Calculate growth (compare latest month vs first month in data)
+    let growthPercent = 0;
+    if (chartData.length >= 2) {
+      const first = chartData[0].faturamento || 1;
+      const last = chartData[chartData.length - 1].faturamento;
+      growthPercent = Math.round(((last - first) / first) * 100);
+    }
 
     return {
       financials: {
         totalRevenue,
         totalProfit,
         averageRevenue,
+        growthPercent,
         chartData,
       },
       profile: {
         specialty: diagnostico?.specialty || "N/A",
       },
+      meetings,
+      notes,
     };
   }),
 

@@ -1,21 +1,17 @@
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { trpc } from "@/lib/trpc";
 
-export function MeetingHistory() {
-  // AT-003.3 will implement this properly.
-  // For now this is a skeleton/stub to satisfy imports in MenteeOverview
-  const { data: meetings, isLoading } = trpc.interacoes.getMeetings.useQuery({ limit: 3 });
+interface Meeting {
+  id: number;
+  createdAt: Date;
+  duracao: number | null;
+  notas: string | null;
+}
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-12 w-full bg-slate-800" />
-        <Skeleton className="h-12 w-full bg-slate-800" />
-      </div>
-    );
-  }
+interface MeetingHistoryProps {
+  meetings: Meeting[];
+}
 
+export function MeetingHistory({ meetings }: MeetingHistoryProps) {
   if (!meetings || meetings.length === 0) {
     return (
       <div className="bg-slate-900/50 p-6 rounded-lg border border-slate-800 text-center text-slate-500 text-sm">

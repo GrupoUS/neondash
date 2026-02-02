@@ -4,6 +4,7 @@
   "rsc": false,
   "tsx": true,
   "tailwind": {
+    "config": "tailwind.config.js",
     "css": "client/src/index.css",
     "baseColor": "neutral",
     "cssVariables": true,
@@ -18,6 +19,11 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@kokonutui": "https://kokonutui.com/r/{name}.json"
+    "@kokonutui": "https://kokonutui.com/r/{name}.json",
+    "@tailark": "https://tailark.com/r/{name}.json",
+    "@cult-ui": "https://cult-ui.com/r/{name}.json",
+    "@reui": "https://reui.io/r/{name}.json",
+    "@react-bits": "https://reactbits.dev/r/{name}.json",
+    "@aceternity": "https://ui.aceternity.com/registry/{name}.json"
   }
 }

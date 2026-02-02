@@ -1,4 +1,5 @@
 import { EvolutionChart } from "@/components/dashboard/EvolutionChart";
+import { SubmitMetricsForm } from "@/components/dashboard/SubmitMetricsForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -29,6 +30,18 @@ export function EvolucaoView({ mentoradoId }: EvolucaoViewProps) {
   return (
     <div className="space-y-4">
       <EvolutionChart mentoradoId={mentoradoId} />
+
+      <Card className="col-span-4 bg-black/40 border-white/5">
+        <CardHeader>
+          <CardTitle>Lançar Métricas Mensais</CardTitle>
+          <CardDescription>
+            Preencha os dados do mês para alimentar seu dashboard e comparativos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SubmitMetricsForm className="bg-transparent" />
+        </CardContent>
+      </Card>
 
       <Card className="col-span-4">
         <CardHeader>

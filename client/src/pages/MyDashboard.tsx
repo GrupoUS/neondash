@@ -7,7 +7,7 @@ import { DiagnosticoForm } from "@/components/dashboard/DiagnosticoForm";
 import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
 import { MenteeOverview } from "@/components/dashboard/MenteeOverview";
 import { PlaybookView } from "@/components/dashboard/PlaybookView";
-import { SubmitMetricsForm } from "@/components/dashboard/SubmitMetricsForm";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FloatingDock } from "@/components/ui/floating-dock";
 import { NeonCard } from "@/components/ui/neon-card";
@@ -160,7 +160,7 @@ export default function MyDashboard() {
               <NeonTabsTrigger value="diagnostico">Diagnóstico</NeonTabsTrigger>
               <NeonTabsTrigger value="evolucao">Evolução</NeonTabsTrigger>
               <NeonTabsTrigger value="comparativo">Comparativo</NeonTabsTrigger>
-              <NeonTabsTrigger value="lancar-metricas">Lançar Métricas</NeonTabsTrigger>
+
               <NeonTabsTrigger value="jornada">Playbook</NeonTabsTrigger>
               <NeonTabsTrigger value="atividades">Atividades</NeonTabsTrigger>
             </NeonTabsList>
@@ -189,20 +189,6 @@ export default function MyDashboard() {
           <NeonTabsContent value="diagnostico">
             <div className="grid grid-cols-1 max-w-4xl mx-auto w-full">
               {isAdmin ? <DiagnosticoForm mentoradoId={targetMentoradoId} /> : <DiagnosticoForm />}
-            </div>
-          </NeonTabsContent>
-
-          <NeonTabsContent value="lancar-metricas">
-            <div className="grid grid-cols-1 max-w-2xl mx-auto">
-              <NeonCard className="p-6 bg-black/40 border-white/5">
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-white mb-2">Lançar Métricas Mensais</h2>
-                  <p className="text-gray-400">
-                    Preencha os dados do mês para alimentar seu dashboard e comparativos.
-                  </p>
-                </div>
-                <SubmitMetricsForm className="bg-transparent" />
-              </NeonCard>
             </div>
           </NeonTabsContent>
 

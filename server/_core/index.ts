@@ -2,7 +2,7 @@ import "dotenv/config";
 import { createServer } from "node:http";
 import net from "node:net";
 import { URL } from "node:url";
-import { clerkMiddleware } from "@clerk/express";
+import { clerkMiddleware, getAuth } from "@clerk/express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
 import { type WebSocket, WebSocketServer } from "ws";
@@ -11,7 +11,7 @@ import { openclawService } from "../services/openclawService";
 import { handleClerkWebhook } from "../webhooks/clerk";
 import { createContext } from "./context";
 import { userRateLimiter } from "./rateLimiter";
-import { initRedis } from "./sessionCache";
+import { initRedis, invalidateSession } from "./sessionCache";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -117,6 +117,29 @@ async function startServer() {
 
   // Clerk middleware (must be before tRPC if using auth middleware in procedures, but usually globally applied)
   app.use(clerkMiddleware());
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Auth Routes (Login/Logout)
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get("/api/auth/login", (_req, res) => {
+    // Redirect to Clerk's sign-in page
+    // In production, Clerk handles the OAuth flow and redirects back
+    const signInUrl = process.env.CLERK_SIGN_IN_URL || "/sign-in";
+    res.redirect(signInUrl);
+  });
+
+  app.get("/api/auth/logout", async (req, res) => {
+    const auth = getAuth(req);
+
+    // Invalidate session cache if user is authenticated
+    if (auth.userId) {
+      await invalidateSession(auth.userId);
+    }
+
+    // Redirect to Clerk's sign-out page or back to home
+    const signOutUrl = process.env.CLERK_SIGN_OUT_URL || "/";
+    res.redirect(signOutUrl);
+  });
 
   // Rate limiting for API routes
   app.use("/api/trpc", userRateLimiter);

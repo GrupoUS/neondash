@@ -1,15 +1,17 @@
+import { useClerk } from "@clerk/clerk-react";
 import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
- * SignInButton - Custom sign-in button without Clerk
+ * SignInButton - Sign-in button using Clerk
  *
- * Redirects to the OAuth login page or shows login modal.
+ * Redirects to Clerk's hosted sign-in page.
  */
 export function SignInButton() {
+  const { redirectToSignIn } = useClerk();
+
   const handleSignIn = () => {
-    // Redirect to OAuth login endpoint
-    window.location.href = "/api/auth/login";
+    redirectToSignIn({ redirectUrl: "/dashboard" });
   };
 
   return (

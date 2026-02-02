@@ -1,13 +1,17 @@
+import { useClerk } from "@clerk/clerk-react";
 import { useCallback, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 
 /**
- * useAuth - Authentication hook without Clerk dependency
+ * useAuth - Authentication hook with Clerk integration
  *
  * Uses tRPC auth.me query for user data.
- * Works with the backend session/JWT authentication.
+ * Uses Clerk's signOut for logout functionality.
  */
 export function useAuth() {
+  const { signOut } = useClerk();
+  const utils = trpc.useUtils();
+
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -23,10 +27,12 @@ export function useAuth() {
     };
   }, [meQuery.data, meQuery.error, meQuery.isLoading]);
 
-  const logout = useCallback(() => {
-    // Clear cookies by hitting logout endpoint and redirect
-    window.location.href = "/api/auth/logout";
-  }, []);
+  const logout = useCallback(async () => {
+    // Clear tRPC cache
+    utils.invalidate();
+    // Sign out via Clerk (this clears Clerk's session)
+    await signOut({ redirectUrl: "/" });
+  }, [signOut, utils]);
 
   return {
     ...state,

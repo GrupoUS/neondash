@@ -1,7 +1,7 @@
 "use client";
 import { UserButton } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
-import { Bot, Briefcase, LayoutDashboard, Moon, Sun, UserCog, Users } from "lucide-react";
+import { Bot, Briefcase, Calendar, LayoutDashboard, Moon, Sun, UserCog, Users } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { Link, Redirect, useLocation } from "wouter";
@@ -47,6 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { href: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: Users },
+    { href: "/agenda", label: "Agenda", icon: Calendar },
     { href: "/assistente", label: "Assistente IA", icon: Bot },
     { href: "/crm/leads", label: "CRM Leads", icon: Briefcase },
     // Consolidated into /admin/mentorados

@@ -1,11 +1,13 @@
 /**
  * WhatsApp Connection Card Component
- * Displays QR code for Z-API connection and manages connection status
+ * Simplified setup: user configures Z-API externally, then pastes credentials here
  */
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlertCircle,
   CheckCircle2,
+  ExternalLink,
   Loader2,
   MessageCircle,
   QrCode,
@@ -16,6 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +45,7 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrError, setQrError] = useState<string | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   // Get current connection status
   const { data: connectionStatus, refetch: refetchStatus } = trpc.zapi.getStatus.useQuery(
@@ -65,7 +69,6 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
   useEffect(() => {
     if (qrQueryError) {
       const errorMessage = qrQueryError.message || "Erro desconhecido";
-      // Parse common Z-API errors
       if (errorMessage.includes("Instance not found")) {
         setQrError("Instância Z-API não encontrada. Verifique o Instance ID.");
       } else if (errorMessage.includes("Unauthorized") || errorMessage.includes("401")) {
@@ -79,8 +82,12 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
   // Mutations
   const configureMutation = trpc.zapi.configure.useMutation({
     onSuccess: () => {
+      setConfigError(null);
       setStatus("connecting");
       refetchQr();
+    },
+    onError: (error) => {
+      setConfigError(error.message || "Erro ao salvar credenciais");
     },
   });
 
@@ -108,6 +115,7 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
   const handleConnect = () => {
     if (!instanceId.trim() || !token.trim()) return;
     setQrError(null);
+    setConfigError(null);
     configureMutation.mutate({ instanceId: instanceId.trim(), token: token.trim() });
   };
 
@@ -117,6 +125,7 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
 
   const handleReconfigure = () => {
     setQrError(null);
+    setConfigError(null);
     setStatus("disconnected");
   };
 
@@ -319,14 +328,51 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
+              {/* Setup Instructions */}
+              <Alert className="border-primary/20 bg-primary/5">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Como configurar</AlertTitle>
+                <AlertDescription className="mt-2 space-y-2">
+                  <ol className="list-decimal list-inside text-sm space-y-1">
+                    <li>
+                      Acesse o{" "}
+                      <a
+                        href="https://developer.z-api.io/my-account/instance"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline inline-flex items-center gap-1"
+                      >
+                        painel Z-API <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </li>
+                    <li>Crie uma instância ou use uma existente</li>
+                    <li>
+                      Copie o <strong>Instance ID</strong> e <strong>Token</strong>
+                    </li>
+                    <li>Cole os dados abaixo e clique em "Conectar"</li>
+                  </ol>
+                </AlertDescription>
+              </Alert>
+
+              {/* Error Alert */}
+              {configError && (
+                <Alert variant="destructive">
+                  <XCircle className="h-4 w-4" />
+                  <AlertTitle>Erro</AlertTitle>
+                  <AlertDescription>{configError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Credentials Form */}
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="instanceId">Instance ID</Label>
                   <Input
                     id="instanceId"
-                    placeholder="Digite seu Instance ID do Z-API"
+                    placeholder="Ex: 3EE2B8773C6FD20BCB499A5378BD59DA"
                     value={instanceId}
                     onChange={(e) => setInstanceId(e.target.value)}
+                    className="font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-2">
@@ -334,9 +380,10 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
                   <Input
                     id="token"
                     type="password"
-                    placeholder="Digite seu Token do Z-API"
+                    placeholder="Ex: E8DAEF8FA386CB5C53AA42A6"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
+                    className="font-mono text-sm"
                   />
                 </div>
 
@@ -347,11 +394,11 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
                 >
                   {configureMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   <QrCode className="w-4 h-4 mr-2" />
-                  Gerar QR Code
+                  Conectar WhatsApp
                 </Button>
               </div>
 
-              <div className="text-xs text-muted-foreground text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 Você precisa de uma assinatura Z-API para conectar.{" "}
                 <a
                   href="https://www.z-api.io"
@@ -361,7 +408,7 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
                 >
                   Saiba mais
                 </a>
-              </div>
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

@@ -126,3 +126,25 @@ describe("Instagram Integration Router", () => {
     });
   });
 });
+
+describe("Instagram Client Router (instagramRouter)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should have saveToken procedure defined", async () => {
+    const { instagramRouter } = await import("./instagramRouter");
+    expect(instagramRouter._def.procedures).toHaveProperty("saveToken");
+  });
+
+  it("saveToken should be a mutation", async () => {
+    const { instagramRouter } = await import("./instagramRouter");
+    const procedure = instagramRouter._def.procedures.saveToken;
+    expect(procedure._def.type).toBe("mutation");
+  });
+
+  // We can't easily test the internal implementation (calls to service) without calling the procedure,
+  // which requires a full tRPC context mock. For now, we verify structure.
+  // The integration verification will happen via 'bun test' on the full suite if possible,
+  // but here we are checking definitions.
+});

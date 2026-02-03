@@ -813,6 +813,7 @@ export async function upsertInstagramToken(data: InsertInstagramToken) {
         expiresAt: data.expiresAt,
         scope: data.scope,
         instagramBusinessAccountId: data.instagramBusinessAccountId,
+        instagramUsername: data.instagramUsername,
         updatedAt: new Date(),
       })
       .where(eq(instagramTokens.mentoradoId, data.mentoradoId))

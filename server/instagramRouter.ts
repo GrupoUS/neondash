@@ -6,9 +6,12 @@
  */
 
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { mentorados } from "../drizzle/schema";
 import { createLogger } from "./_core/logger";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { getDb } from "./db";
 import { instagramService } from "./services/instagramService";
 
 const logger = createLogger({ service: "instagram-router" });
@@ -133,25 +136,39 @@ export const instagramRouter = router({
       });
 
       try {
-        // Token expires in 60 days for long-lived tokens
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 60);
+        // Exchange short-lived token from FB SDK for long-lived token (60 days)
+        const longLivedResponse = await instagramService.exchangeForLongLivedToken(
+          input.accessToken
+        );
+
+        const expiresAt = new Date(Date.now() + longLivedResponse.expires_in * 1000);
 
         await instagramService.upsertInstagramToken({
           mentoradoId: input.mentoradoId,
-          accessToken: input.accessToken,
+          accessToken: longLivedResponse.access_token,
           expiresAt,
           scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",
           instagramBusinessAccountId: input.instagramAccountId,
           instagramUsername: input.instagramUsername,
         });
 
+        // Update connection status in mentorados table
+        const db = getDb();
+        await db
+          .update(mentorados)
+          .set({
+            instagramConnected: "sim",
+            instagramBusinessAccountId: input.instagramAccountId,
+            updatedAt: new Date(),
+          })
+          .where(eq(mentorados.id, input.mentoradoId));
+
         return { success: true };
       } catch (error) {
         logger.error("save_token_failed", error, { mentoradoId: input.mentoradoId });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Erro ao salvar token do Instagram.",
+          message: error instanceof Error ? error.message : "Erro ao salvar token do Instagram.",
         });
       }
     }),

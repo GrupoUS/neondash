@@ -11,6 +11,7 @@ import { interacoesRouter } from "./interacoesRouter";
 import { interactionTemplatesRouter } from "./interactionTemplatesRouter";
 import { leadsRouter } from "./leadsRouter";
 import { mentoradosRouter } from "./mentoradosRouter";
+import { adminRouter } from "./routers/admin";
 import { authRouter } from "./routers/auth";
 import { calendarRouter } from "./routers/calendar";
 import { classesRouter } from "./routers/classes";
@@ -37,6 +38,7 @@ export const appRouter = router({
   zapi: zapiRouter,
   aiAgent: aiAgentRouter,
   instagram: instagramRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;

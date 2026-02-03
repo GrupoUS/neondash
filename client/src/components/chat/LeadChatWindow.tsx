@@ -49,12 +49,12 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
     },
   });
 
-  // Scroll to bottom when messages change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages?.length]);
+  }, [messages]);
 
   const handleSend = () => {
     if (!message.trim() || sendMutation.isPending || !phone) return;

@@ -104,6 +104,37 @@ python3 .agent/skills/ui-ux-pro-max/scripts/search.py "query" --stack shadcn|rea
 
 ---
 
+## Phase 1.5: AI Prototyping (Stitch)
+
+> **Goal:** Generate high-fidelity UI prototypes and code using Gemini 3.0.
+
+### 1. Create Design File
+Create `docs/DESIGN-{slug}.md` to store all outputs.
+
+### 2. Generate Prototype (Stitch)
+```bash
+# 1. Create Project
+stitch_create_project(title="{slug}")
+
+# 2. Generate Screen (Iterate until satisfied)
+stitch_generate_screen_from_text(
+  project_id="...", 
+  prompt="High-fidelity dashboard for [User], [Style] aesthetics (Navy/Gold), using Tailwind v4 and shadcn/ui. [Specific Features]. Use gemini-3-pro."
+)
+
+# 3. Capture Code
+# Copy full `output_components` from the tool response into docs/DESIGN-{slug}.md
+```
+
+### 3. Generate Assets (Nano Banana Pro)
+For hero images or specific visuals needed in the design:
+```bash
+# REQUIRED: Use --model gemini-3-pro for high fidelity
+python3 .agent/skills/frontend-design/scripts/generate_images.py "Prompt" "filename" --model gemini-3-pro
+```
+
+---
+
 ## Phase 2: Asset Generation (Optional)
 
 ### Image Generation

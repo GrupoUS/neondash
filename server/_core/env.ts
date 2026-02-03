@@ -11,6 +11,7 @@ export const ENV = {
   // Legacy: OpenAI-compatible LLM provider (deprecated, use googleAiApiKey)
   llmApiUrl: process.env.LLM_API_URL,
   llmApiKey: process.env.LLM_API_KEY,
+  llmModel: process.env.LLM_MODEL,
   geminiApiKey: process.env.GEMINI_API_KEY,
 
   // Google Calendar OAuth (optional, for calendar integration)

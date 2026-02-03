@@ -23,6 +23,7 @@ import { trpc } from "@/lib/trpc";
 export default function MyDashboard() {
   const _isMobile = useIsMobile();
   const [selectedMentoradoId, setSelectedMentoradoId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("visao-geral");
 
   // 1. Get current user to check role
   const { data: user } = trpc.auth.me.useQuery();
@@ -152,7 +153,7 @@ export default function MyDashboard() {
           </div>
         </div>
 
-        <NeonTabs defaultValue="visao-geral" className="w-full">
+        <NeonTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex justify-center mb-6">
             <NeonTabsList>
               <NeonTabsTrigger value="visao-geral">Visão Geral</NeonTabsTrigger>
@@ -164,7 +165,11 @@ export default function MyDashboard() {
           </div>
 
           <NeonTabsContent value="visao-geral" className="space-y-6">
-            <MenteeOverview mentoradoId={targetMentoradoId} isAdmin={isAdmin} />
+            <MenteeOverview
+              mentoradoId={targetMentoradoId}
+              isAdmin={isAdmin}
+              onNavigateToTab={setActiveTab}
+            />
           </NeonTabsContent>
 
           <NeonTabsContent value="diagnostico">

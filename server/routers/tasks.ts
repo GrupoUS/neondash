@@ -286,6 +286,8 @@ export const tasksRouter = router({
         });
 
         const content = result.choices[0].message.content as string;
+        // biome-ignore lint/suspicious/noConsole: debugging
+        console.log("[TasksRouter] LLM Response:", content);
         let suggestedTasks: string[] = [];
 
         const parsed = JSON.parse(content);
@@ -306,10 +308,14 @@ export const tasksRouter = router({
         }
 
         return { success: true, count: suggestedTasks.length };
-      } catch {
+      } catch (error: any) {
+        console.error("[TasksRouter] AI Generation Failed:", error);
+        if (error.cause) console.error("[TasksRouter] Cause:", error.cause);
+
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Falha ao gerar plano com IA. Tente novamente.",
+          cause: error,
         });
       }
     }),

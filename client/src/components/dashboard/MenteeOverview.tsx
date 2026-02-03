@@ -7,15 +7,17 @@ import { AITasksCard } from "./AITasksCard";
 import { FinancialHistoryChart } from "./FinancialHistoryChart";
 import { MeetingHistory } from "./MeetingHistory";
 import { MentorNotes } from "./MentorNotes";
+import { NewMentoradoWelcome } from "./NewMentoradoWelcome";
 import { NextLiveCard } from "./NextLiveCard";
 import { RoadmapView } from "./RoadmapView";
 
 interface MenteeOverviewProps {
   mentoradoId?: number;
   isAdmin?: boolean;
+  onNavigateToTab?: (tab: string) => void;
 }
 
-export function MenteeOverview({ mentoradoId, isAdmin }: MenteeOverviewProps) {
+export function MenteeOverview({ mentoradoId, isAdmin, onNavigateToTab }: MenteeOverviewProps) {
   // Determine if viewing another mentorado (admin mode)
   const isViewingOther = mentoradoId !== undefined;
 
@@ -38,6 +40,17 @@ export function MenteeOverview({ mentoradoId, isAdmin }: MenteeOverviewProps) {
 
   if (isLoading || !stats) {
     return <OverviewSkeleton />;
+  }
+
+  // Check if this is a new mentorado without any data
+  const hasNoData = stats.financials.chartData.length === 0;
+  if (hasNoData && !isAdmin) {
+    return (
+      <NewMentoradoWelcome
+        mentoradoName={mentorado.nomeCompleto}
+        onNavigateToDiagnostico={() => onNavigateToTab?.("diagnostico")}
+      />
+    );
   }
 
   const formatCurrency = (value: number) =>

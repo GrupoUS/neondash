@@ -219,9 +219,9 @@ async function runCatchUpSyncIfNeeded(logger: Logger): Promise<boolean> {
         partial: summary.partial,
       });
 
-      console.log(
-        `[Scheduler] Catch-up sync completed: ${summary.successful}/${summary.totalMentorados} mentorados synced`
-      );
+      logger.info("catchup_sync_message", {
+        message: `Catch-up sync completed: ${summary.successful}/${summary.totalMentorados} mentorados synced`,
+      });
 
       return true;
     }
@@ -261,9 +261,9 @@ async function instagramDailySyncTask(logger: Logger): Promise<void> {
     errors: summary.errors.slice(0, 5), // Log first 5 errors only
   });
 
-  console.log(
-    `[Scheduler] Daily Instagram sync: ${summary.successful}/${summary.totalMentorados} mentorados (${summary.failed} failed)`
-  );
+  logger.info("daily_sync_message", {
+    message: `Daily Instagram sync: ${summary.successful}/${summary.totalMentorados} mentorados (${summary.failed} failed)`,
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -292,9 +292,7 @@ export async function initSchedulers(): Promise<void> {
       reason: "Missing environment variables",
       missingVars,
     });
-    console.log(
-      `[Scheduler] Instagram scheduler disabled - missing env vars: ${missingVars.join(", ")}`
-    );
+
     return;
   }
 
@@ -316,7 +314,7 @@ export async function initSchedulers(): Promise<void> {
     scheduledTasks: ["instagram_sync @ 06:00 daily"],
   });
 
-  console.log("✓ Schedulers initialized (Instagram sync: daily 6 AM)");
+
 }
 
 /**
@@ -335,5 +333,5 @@ export function stopSchedulers(): void {
   }
 
   activeTasks.length = 0;
-  console.log("[Scheduler] All tasks stopped");
+  logger.info("scheduler_stopped");
 }

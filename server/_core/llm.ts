@@ -273,9 +273,9 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     responseFormat,
     response_format,
   } = params;
-
-  // Use Gemini Flash 3 Preview if available, otherwise fallback or use env var if needed
-  const model = "gemini-3-flash-preview";
+  // Determine model based on available config
+  const isGemini = !!ENV.geminiApiKey;
+  const model = isGemini ? "gemini-3-flash-preview" : ENV.llmModel || "gpt-4o";
 
   const payload: Record<string, unknown> = {
     model,

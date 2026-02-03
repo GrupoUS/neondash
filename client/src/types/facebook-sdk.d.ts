@@ -52,7 +52,7 @@ declare global {
       logout: (callback: () => void) => void;
       api: <T>(path: string, callback: (response: T) => void) => void;
       XFBML: {
-        parse: (element?: HTMLElement) => void;
+        parse: (element?: HTMLElement, callback?: () => void) => void;
       };
       AppEvents: {
         logPageView: () => void;

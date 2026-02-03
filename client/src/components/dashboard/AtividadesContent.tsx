@@ -1,4 +1,10 @@
 import {
+  calcularProgresso,
+  getAtividadesByEtapa,
+  getEtapaColor,
+  getMotivationalMessage,
+} from "@shared/atividades-data";
+import {
   Bookmark,
   CheckCircle2,
   ListTodo,
@@ -34,12 +40,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CelebrationEffect, useCelebration } from "@/components/ui/celebration-effect";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  calcularProgresso,
-  getAtividadesByEtapa,
-  getEtapaColor,
-  getMotivationalMessage,
-} from "@/data/atividades-data";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 

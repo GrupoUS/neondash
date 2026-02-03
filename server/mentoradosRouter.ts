@@ -108,13 +108,14 @@ export const mentoradosRouter = router({
   }),
 
   // Get metrics history sorted ASC for charts
-  evolution: mentoradoProcedure
+  evolution: protectedProcedure
     .input(z.object({ mentoradoId: z.number().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      let targetId = ctx.mentorado.id;
+      // Determine target mentorado ID
+      let targetId: number;
 
-      // If requested specific ID, verify access
       if (input?.mentoradoId) {
+        // Admin requesting specific mentorado
         if (ctx.user?.role !== "admin") {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -122,6 +123,14 @@ export const mentoradosRouter = router({
           });
         }
         targetId = input.mentoradoId;
+      } else if (ctx.mentorado) {
+        // Regular user viewing their own stats
+        targetId = ctx.mentorado.id;
+      } else {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Perfil de mentorado não encontrado",
+        });
       }
 
       return await getMetricasEvolution(targetId);

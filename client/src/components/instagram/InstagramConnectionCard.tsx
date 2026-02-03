@@ -27,6 +27,7 @@ export function InstagramConnectionCard({ mentoradoId }: InstagramConnectionCard
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [xfbmlFailed, setXfbmlFailed] = useState(false);
   const loginButtonRef = useRef<HTMLDivElement>(null);
 
   // tRPC mutations
@@ -143,7 +144,24 @@ export function InstagramConnectionCard({ mentoradoId }: InstagramConnectionCard
 
         // Parse XFBML to render the login button
         if (loginButtonRef.current) {
-          window.FB.XFBML.parse(loginButtonRef.current);
+          // Check if we're on HTTP (XFBML button won't work)
+          const isHttp = window.location.protocol === "http:";
+          
+          if (isHttp) {
+            // On HTTP, always show fallback button since XFBML won't render properly
+            setXfbmlFailed(true);
+          } else {
+            // On HTTPS, parse XFBML and verify rendering
+            window.FB.XFBML.parse(loginButtonRef.current, () => {
+              setTimeout(() => {
+                const fbIframe = loginButtonRef.current?.querySelector("iframe");
+                // Check if iframe exists and has visible dimensions
+                if (!fbIframe || fbIframe.offsetWidth < 10) {
+                  setXfbmlFailed(true);
+                }
+              }, 1500);
+            });
+          }
         }
 
         return true;
@@ -204,6 +222,28 @@ export function InstagramConnectionCard({ mentoradoId }: InstagramConnectionCard
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  // Manual login handler for HTTP environments (fallback when XFBML doesn't render)
+  const handleManualLogin = () => {
+    if (!window.FB) {
+      toast.error("Facebook SDK não carregado. Aguarde ou recarregue a página.");
+      return;
+    }
+
+    window.FB.login(
+      (response) => {
+        if (response.authResponse) {
+          // Trigger the same flow as the XFBML button
+          window.checkLoginState?.();
+        } else {
+          toast.error("Login cancelado ou não autorizado.");
+        }
+      },
+      {
+        scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",
+      }
+    );
   };
 
   const isConnected = connectionStatus.data?.isConnected;
@@ -296,20 +336,39 @@ export function InstagramConnectionCard({ mentoradoId }: InstagramConnectionCard
               </Button>
             </>
           ) : (
-            <div ref={loginButtonRef} className="w-full flex justify-center">
-              {/* Official Facebook Login Button */}
-              {/* The onlogin callback calls checkLoginState() which is registered globally */}
-              <div
-                className="fb-login-button"
-                data-width="100%"
-                data-size="large"
-                data-button-type="login_with"
-                data-layout="default"
-                data-auto-logout-link="false"
-                data-use-continue-as="true"
-                data-scope="instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement"
-                data-onlogin="checkLoginState();"
-              />
+            <div ref={loginButtonRef} className="w-full flex flex-col items-center gap-3">
+              {/* Official Facebook Login Button (XFBML) */}
+              {/* Note: This only renders on HTTPS. On HTTP, we show fallback button below */}
+              {!xfbmlFailed && (
+                <div
+                  className="fb-login-button"
+                  data-width="100%"
+                  data-size="large"
+                  data-button-type="login_with"
+                  data-layout="default"
+                  data-auto-logout-link="false"
+                  data-use-continue-as="true"
+                  data-scope="instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement"
+                  data-onlogin="checkLoginState();"
+                />
+              )}
+
+              {/* Fallback button for HTTP environments or when XFBML fails */}
+              {xfbmlFailed && sdkLoaded && (
+                <Button
+                  onClick={handleManualLogin}
+                  disabled={isProcessing}
+                  className="w-full bg-[#1877F2] hover:bg-[#166FE5] text-white"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Instagram className="mr-2 h-4 w-4" />
+                  )}
+                  Conectar com Facebook
+                </Button>
+              )}
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, FileText, Lock } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { getModuleIcon } from "./RoadmapIcons";
@@ -72,20 +72,12 @@ export function RoadmapView({ mentoradoId }: RoadmapViewProps) {
                   isReverse ? "md:flex-row-reverse" : ""
                 )}
               >
-                {rowModules.map((module, index) => {
-                  // Calculate absolute index to determine first/last in global list or row
-                  const globalIndex = rowIndex * modulesPerRow + index;
-
+                {rowModules.map((module) => {
                   return (
                     <div
                       key={module.id}
                       className="relative group w-full md:w-auto flex justify-center"
                     >
-                      {/* Special Case: Diagnostic Button below Module 1 */}
-                      {globalIndex === 0 && (
-                        <DiagnosticButton isCompleted={roadmap.diagnostic.isCompleted} />
-                      )}
-
                       <RoadmapNode
                         module={module}
                         locked={module.isLocked}
@@ -126,36 +118,6 @@ export function RoadmapView({ mentoradoId }: RoadmapViewProps) {
   );
 }
 
-function DiagnosticButton({ isCompleted }: { isCompleted: boolean }) {
-  return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-10 md:mt-14 z-20 flex flex-col items-center group/diag">
-      {/* Down Connector */}
-      <div className="w-[3px] h-10 md:h-14 bg-gradient-to-b from-[#D4AF37] to-slate-700 mb-0 group-hover/diag:to-[#D4AF37] transition-colors duration-500" />
-
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        className={cn(
-          "flex items-center gap-3 px-6 py-3.5 rounded-xl border-2 transition-all shadow-xl backdrop-blur-md cursor-pointer whitespace-nowrap",
-          isCompleted
-            ? "bg-[#0B1221]/90 border-[#D4AF37]/50 text-[#D4AF37] shadow-[#D4AF37]/20"
-            : "bg-slate-900/90 border-slate-700 text-slate-400 hover:border-slate-500"
-        )}
-      >
-        <div className={cn("p-1.5 rounded-lg", isCompleted ? "bg-[#D4AF37]/10" : "bg-slate-800")}>
-          <FileText className="w-4 h-4" />
-        </div>
-        <div>
-          <span className="block text-xs font-bold uppercase tracking-wider opacity-80 mb-0.5">
-            Extra
-          </span>
-          <span className="font-bold text-sm">Diagnóstico do Negócio</span>
-        </div>
-        {isCompleted && <Check className="w-4 h-4 ml-2 text-emerald-400" />}
-      </motion.div>
-    </div>
-  );
-}
-
 function calculateTotalProgress(modules: any[]) {
   if (!modules?.length) return 0;
   const totalProg = modules.reduce((acc, m) => acc + (m.progress || 0), 0);
@@ -192,7 +154,7 @@ function RoadmapNode({ module, locked, active, completed }: RoadmapNodeProps) {
       {/* Inner Card */}
       <div
         className={cn(
-          "bg-[#0F172A] rounded-[2.2rem] p-5 h-28 flex items-center gap-5 relative overflow-hidden transition-colors",
+          "bg-[#0F172A] rounded-[2.2rem] p-5 h-32 flex items-center gap-5 relative overflow-hidden transition-colors", // Increased height slightly
           active ? "bg-gradient-to-br from-[#1e293b] to-[#0f172a]" : ""
         )}
       >
@@ -223,7 +185,7 @@ function RoadmapNode({ module, locked, active, completed }: RoadmapNodeProps) {
         </div>
 
         {/* Text Content */}
-        <div className="flex-1 min-w-0 z-10">
+        <div className="flex-1 min-w-0 z-10 flex flex-col justify-center h-full py-1">
           <div className="flex justify-between items-center mb-1">
             <p
               className={cn(
@@ -249,6 +211,13 @@ function RoadmapNode({ module, locked, active, completed }: RoadmapNodeProps) {
           >
             {module.title}
           </h3>
+
+          {/* Description - Added per request */}
+          {module.description && active && (
+            <p className="text-[10px] text-slate-400 line-clamp-1 mb-1 font-medium">
+              {module.description}
+            </p>
+          )}
 
           {/* Sub-status */}
           <p className="text-[11px] font-medium text-slate-400">

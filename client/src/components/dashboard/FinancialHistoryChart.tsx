@@ -1,3 +1,4 @@
+import { TrendingUp } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -35,6 +36,31 @@ const monthNames = [
 ];
 
 export function FinancialHistoryChart({ data }: FinancialHistoryChartProps) {
+  // Handle empty data state
+  if (data.length === 0) {
+    return (
+      <Card className="bg-card dark:bg-slate-900/50 border-border dark:border-slate-700 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-foreground dark:text-slate-200 text-sm font-medium">
+            Receita Mensal dos Últimos 12 Meses
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="h-[300px] flex flex-col items-center justify-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+            <TrendingUp className="w-8 h-8 text-muted-foreground/50" />
+          </div>
+          <p className="text-muted-foreground text-center">
+            Nenhum dado financeiro registrado ainda.
+            <br />
+            <span className="text-sm">
+              Preencha suas métricas mensais para visualizar o histórico.
+            </span>
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const chartData = data.map((d) => ({
     name: monthNames[d.mes],
     faturamento: d.faturamento,

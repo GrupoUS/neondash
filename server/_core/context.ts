@@ -101,6 +101,7 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
             mentoradoId: mentoradoByEmail[0].id,
             userId: user.id,
           });
+
           // Link the user to the mentorado and mark onboarding as complete
           await db
             .update(mentorados)
@@ -115,24 +116,35 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
             email: user.email,
           });
 
-          const [newMentorado] = await db
-            .insert(mentorados)
-            .values({
-              userId: user.id,
-              nomeCompleto: user.name || "Novo Usuário",
-              email: user.email,
-              fotoUrl: user.imageUrl,
-              turma: "neon", // Default value
-              ativo: "sim",
-              metaFaturamento: 16000,
-              metaLeads: 50,
-              metaProcedimentos: 10,
-              metaPosts: 12,
-              metaStories: 60,
-            })
-            .returning();
+          try {
+            const [newMentorado] = await db
+              .insert(mentorados)
+              .values({
+                userId: user.id,
+                nomeCompleto: user.name || "Novo Usuário",
+                email: user.email,
+                fotoUrl: user.imageUrl,
+                turma: "neon", // Default value
+                ativo: "sim",
+                metaFaturamento: 16000,
+                metaLeads: 50,
+                metaProcedimentos: 10,
+                metaPosts: 12,
+                metaStories: 60,
+              })
+              .returning();
 
-          mentorado = newMentorado;
+            mentorado = newMentorado;
+            logger.info("mentorado_created", {
+              mentoradoId: newMentorado?.id,
+              userId: user.id,
+            });
+          } catch (error) {
+            logger.error("mentorado_creation_failed", error, {
+              userId: user.id,
+              email: user.email,
+            });
+          }
         }
       }
     }
@@ -142,6 +154,9 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
     cacheHit,
     hasUser: !!user,
     hasMentorado: !!mentorado,
+    userId: user?.id,
+    userRole: user?.role,
+    mentoradoId: mentorado?.id,
   });
 
   return {

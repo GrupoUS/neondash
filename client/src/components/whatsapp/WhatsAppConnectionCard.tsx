@@ -331,26 +331,40 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
               {/* Setup Instructions */}
               <Alert className="border-primary/20 bg-primary/5">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Como configurar</AlertTitle>
-                <AlertDescription className="mt-2 space-y-2">
-                  <ol className="list-decimal list-inside text-sm space-y-1">
+                <AlertTitle>Como configurar o Z-API</AlertTitle>
+                <AlertDescription className="mt-2 space-y-3">
+                  <ol className="list-decimal list-inside text-sm space-y-2">
                     <li>
-                      Acesse o{" "}
+                      <strong>Crie sua conta:</strong> Acesse{" "}
                       <a
-                        href="https://developer.z-api.io/my-account/instance"
+                        href="https://www.z-api.io/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary underline inline-flex items-center gap-1"
                       >
-                        painel Z-API <ExternalLink className="w-3 h-3" />
-                      </a>
+                        www.z-api.io <ExternalLink className="w-3 h-3" />
+                      </a>{" "}
+                      e clique em "Criar conta grátis"
                     </li>
-                    <li>Crie uma instância ou use uma existente</li>
                     <li>
-                      Copie o <strong>Instance ID</strong> e <strong>Token</strong>
+                      <strong>Faça login:</strong> Após cadastrar, acesse o painel Z-API
                     </li>
-                    <li>Cole os dados abaixo e clique em "Conectar"</li>
+                    <li>
+                      <strong>Crie uma instância:</strong> No menu lateral, clique em "Minhas
+                      Instâncias" → "Nova Instância" → Escolha um nome e clique em "Criar"
+                    </li>
+                    <li>
+                      <strong>Copie as credenciais:</strong> Na tela da instância, copie o{" "}
+                      <strong>Instance ID</strong> e o <strong>Token</strong>
+                    </li>
+                    <li>
+                      <strong>Cole abaixo:</strong> Preencha os campos e clique em "Conectar
+                      WhatsApp"
+                    </li>
                   </ol>
+                  <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+                    💡 Dica: O Z-API oferece período de teste gratuito para novos usuários.
+                  </p>
                 </AlertDescription>
               </Alert>
 

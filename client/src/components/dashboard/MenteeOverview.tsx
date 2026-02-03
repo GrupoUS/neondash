@@ -3,18 +3,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { AITasksCard } from "./AITasksCard";
 import { FinancialHistoryChart } from "./FinancialHistoryChart";
 import { MeetingHistory } from "./MeetingHistory";
 import { MentorNotes } from "./MentorNotes";
+import { NewMentoradoWelcome } from "./NewMentoradoWelcome";
 import { NextLiveCard } from "./NextLiveCard";
 import { RoadmapView } from "./RoadmapView";
 
 interface MenteeOverviewProps {
   mentoradoId?: number;
   isAdmin?: boolean;
+  onNavigateToTab?: (tab: string) => void;
 }
 
-export function MenteeOverview({ mentoradoId, isAdmin }: MenteeOverviewProps) {
+export function MenteeOverview({ mentoradoId, isAdmin, onNavigateToTab }: MenteeOverviewProps) {
   // Determine if viewing another mentorado (admin mode)
   const isViewingOther = mentoradoId !== undefined;
 
@@ -24,19 +27,48 @@ export function MenteeOverview({ mentoradoId, isAdmin }: MenteeOverviewProps) {
   );
 
   // Fetch mentorado info - use getById for admin view, me for self view
-  const { data: mentoradoMe } = trpc.mentorados.me.useQuery(undefined, {
+  const { data: mentoradoMe, isLoading: isLoadingMe } = trpc.mentorados.me.useQuery(undefined, {
     enabled: !isViewingOther,
   });
-  const { data: mentoradoById } = trpc.mentorados.getById.useQuery(
+  const { data: mentoradoById, isLoading: isLoadingById } = trpc.mentorados.getById.useQuery(
     { id: mentoradoId! },
     { enabled: isViewingOther }
   );
 
   const mentorado = isViewingOther ? mentoradoById : mentoradoMe;
-  const isLoading = isLoadingStats || !mentorado;
 
-  if (isLoading || !stats) {
+  // Determine if queries have finished loading
+  const isQueriesLoading = isLoadingStats || (isViewingOther ? isLoadingById : isLoadingMe);
+
+  // If still loading, show skeleton
+  if (isQueriesLoading) {
     return <OverviewSkeleton />;
+  }
+
+  // If no mentorado exists (user without mentorado profile), show welcome screen
+  if (!mentorado) {
+    return (
+      <NewMentoradoWelcome
+        mentoradoName="Novo Usuário"
+        onNavigateToDiagnostico={() => onNavigateToTab?.("diagnostico")}
+      />
+    );
+  }
+
+  // If stats failed to load, show skeleton (shouldn't happen normally)
+  if (!stats) {
+    return <OverviewSkeleton />;
+  }
+
+  // Check if this is a new mentorado without any data
+  const hasNoData = stats.financials.chartData.length === 0;
+  if (hasNoData && !isAdmin) {
+    return (
+      <NewMentoradoWelcome
+        mentoradoName={mentorado.nomeCompleto}
+        onNavigateToDiagnostico={() => onNavigateToTab?.("diagnostico")}
+      />
+    );
   }
 
   const formatCurrency = (value: number) =>
@@ -192,6 +224,11 @@ export function MenteeOverview({ mentoradoId, isAdmin }: MenteeOverviewProps) {
             </div>
             <h2 className="text-primary text-lg font-medium px-1">Anotações Privadas</h2>
             <MentorNotes existingNotes={stats.notes} />
+          </div>
+
+          <div className="pt-4 space-y-4">
+            {/* AI Tasks Section - Placed prominently below notes */}
+            <AITasksCard mentoradoId={mentorado.id} isAdmin={isAdmin} />
           </div>
 
           <div className="pt-4 space-y-4">

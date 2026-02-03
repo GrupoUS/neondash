@@ -1,0 +1,4286 @@
+{
+  "id": "70e6704c-393b-473d-87d7-bd3cc673dbd9",
+  "prevId": "813b2459-2d0f-432f-9642-a21fd6192622",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.ai_agent_config": {
+      "name": "ai_agent_config",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nao'"
+        },
+        "system_prompt": {
+          "name": "system_prompt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "greeting_message": {
+          "name": "greeting_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qualification_questions": {
+          "name": "qualification_questions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "working_hours_start": {
+          "name": "working_hours_start",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'09:00'"
+        },
+        "working_hours_end": {
+          "name": "working_hours_end",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'18:00'"
+        },
+        "working_days": {
+          "name": "working_days",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'1,2,3,4,5'"
+        },
+        "response_delay_ms": {
+          "name": "response_delay_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 3000
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ai_agent_config_mentorado_idx": {
+          "name": "ai_agent_config_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ai_agent_config_mentorado_id_mentorados_id_fk": {
+          "name": "ai_agent_config_mentorado_id_mentorados_id_fk",
+          "tableFrom": "ai_agent_config",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.atividade_progress": {
+      "name": "atividade_progress",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atividade_codigo": {
+          "name": "atividade_codigo",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "step_codigo": {
+          "name": "step_codigo",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed": {
+          "name": "completed",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nao'"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "atividade_progress_unique_idx": {
+          "name": "atividade_progress_unique_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "atividade_codigo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "step_codigo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "atividade_progress_mentorado_idx": {
+          "name": "atividade_progress_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "atividade_progress_atividade_idx": {
+          "name": "atividade_progress_atividade_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "atividade_codigo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "atividade_progress_mentorado_id_mentorados_id_fk": {
+          "name": "atividade_progress_mentorado_id_mentorados_id_fk",
+          "tableFrom": "atividade_progress",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.badges": {
+      "name": "badges",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "codigo": {
+          "name": "codigo",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descricao": {
+          "name": "descricao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icone": {
+          "name": "icone",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cor": {
+          "name": "cor",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'gold'"
+        },
+        "categoria": {
+          "name": "categoria",
+          "type": "categoria",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criterio": {
+          "name": "criterio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pontos": {
+          "name": "pontos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 10
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "badges_codigo_idx": {
+          "name": "badges_codigo_idx",
+          "columns": [
+            {
+              "expression": "codigo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "badges_categoria_idx": {
+          "name": "badges_categoria_idx",
+          "columns": [
+            {
+              "expression": "categoria",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "badges_codigo_unique": {
+          "name": "badges_codigo_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "codigo"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.call_notes": {
+      "name": "call_notes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_call": {
+          "name": "data_call",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "principais_insights": {
+          "name": "principais_insights",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acoes_acordadas": {
+          "name": "acoes_acordadas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proximos_passos": {
+          "name": "proximos_passos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duracao_minutos": {
+          "name": "duracao_minutos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "call_notes_mentorado_idx": {
+          "name": "call_notes_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "call_notes_data_idx": {
+          "name": "call_notes_data_idx",
+          "columns": [
+            {
+              "expression": "data_call",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "call_notes_mentorado_data_idx": {
+          "name": "call_notes_mentorado_data_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "data_call",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "call_notes_mentorado_id_mentorados_id_fk": {
+          "name": "call_notes_mentorado_id_mentorados_id_fk",
+          "tableFrom": "call_notes",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.class_progress": {
+      "name": "class_progress",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "class_id": {
+          "name": "class_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "class_progress_unique_idx": {
+          "name": "class_progress_unique_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "class_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "class_progress_mentorado_idx": {
+          "name": "class_progress_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "class_progress_mentorado_id_mentorados_id_fk": {
+          "name": "class_progress_mentorado_id_mentorados_id_fk",
+          "tableFrom": "class_progress",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "class_progress_class_id_classes_id_fk": {
+          "name": "class_progress_class_id_classes_id_fk",
+          "tableFrom": "class_progress",
+          "tableTo": "classes",
+          "columnsFrom": [
+            "class_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.classes": {
+      "name": "classes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date": {
+          "name": "date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'aula'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.crm_column_config": {
+      "name": "crm_column_config",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_id": {
+          "name": "original_id",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visible": {
+          "name": "visible",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'sim'"
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "crm_col_config_mentorado_idx": {
+          "name": "crm_col_config_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "crm_col_config_unique_idx": {
+          "name": "crm_col_config_unique_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "original_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "crm_col_config_order_idx": {
+          "name": "crm_col_config_order_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "crm_column_config_mentorado_id_mentorados_id_fk": {
+          "name": "crm_column_config_mentorado_id_mentorados_id_fk",
+          "tableFrom": "crm_column_config",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.diagnosticos": {
+      "name": "diagnosticos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atuacao_saude": {
+          "name": "atuacao_saude",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tempo_livre": {
+          "name": "tempo_livre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ja_atua_estetica": {
+          "name": "ja_atua_estetica",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tem_clinica": {
+          "name": "tem_clinica",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "renda_mensal": {
+          "name": "renda_mensal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fatura_estetica": {
+          "name": "fatura_estetica",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contas": {
+          "name": "contas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "custo_vida": {
+          "name": "custo_vida",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "capacidade_investimento": {
+          "name": "capacidade_investimento",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "incomoda_rotina": {
+          "name": "incomoda_rotina",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dificuldade_crescer": {
+          "name": "dificuldade_crescer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tentativas_anteriores": {
+          "name": "tentativas_anteriores",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "objetivo_6_meses": {
+          "name": "objetivo_6_meses",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resultado_transformador": {
+          "name": "resultado_transformador",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "visao_um_ano": {
+          "name": "visao_um_ano",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "porque_agora": {
+          "name": "porque_agora",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "horas_disponiveis": {
+          "name": "horas_disponiveis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nivel_prioridade": {
+          "name": "nivel_prioridade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rede_apoio": {
+          "name": "rede_apoio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organizacao": {
+          "name": "organizacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "diagnosticos_mentorado_idx": {
+          "name": "diagnosticos_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "diagnosticos_mentorado_id_mentorados_id_fk": {
+          "name": "diagnosticos_mentorado_id_mentorados_id_fk",
+          "tableFrom": "diagnosticos",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.feedbacks": {
+      "name": "feedbacks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ano": {
+          "name": "ano",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mes": {
+          "name": "mes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "analise_mes": {
+          "name": "analise_mes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "foco_proximo_mes": {
+          "name": "foco_proximo_mes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sugestao_mentor": {
+          "name": "sugestao_mentor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "feedbacks_mentorado_periodo_idx": {
+          "name": "feedbacks_mentorado_periodo_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "feedbacks_mentorado_id_mentorados_id_fk": {
+          "name": "feedbacks_mentorado_id_mentorados_id_fk",
+          "tableFrom": "feedbacks",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.google_tokens": {
+      "name": "google_tokens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "google_tokens_user_idx": {
+          "name": "google_tokens_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "google_tokens_user_id_users_id_fk": {
+          "name": "google_tokens_user_id_users_id_fk",
+          "tableFrom": "google_tokens",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.instagram_sync_log": {
+      "name": "instagram_sync_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ano": {
+          "name": "ano",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mes": {
+          "name": "mes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "posts_count": {
+          "name": "posts_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "stories_count": {
+          "name": "stories_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "sync_status": {
+          "name": "sync_status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "instagram_sync_mentorado_periodo_idx": {
+          "name": "instagram_sync_mentorado_periodo_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "instagram_sync_mentorado_idx": {
+          "name": "instagram_sync_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "instagram_sync_periodo_idx": {
+          "name": "instagram_sync_periodo_idx",
+          "columns": [
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "instagram_sync_status_idx": {
+          "name": "instagram_sync_status_idx",
+          "columns": [
+            {
+              "expression": "sync_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "instagram_sync_date_idx": {
+          "name": "instagram_sync_date_idx",
+          "columns": [
+            {
+              "expression": "synced_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "instagram_sync_log_mentorado_id_mentorados_id_fk": {
+          "name": "instagram_sync_log_mentorado_id_mentorados_id_fk",
+          "tableFrom": "instagram_sync_log",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.instagram_tokens": {
+      "name": "instagram_tokens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "instagram_business_account_id": {
+          "name": "instagram_business_account_id",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instagram_username": {
+          "name": "instagram_username",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "instagram_tokens_mentorado_idx": {
+          "name": "instagram_tokens_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "instagram_tokens_expires_idx": {
+          "name": "instagram_tokens_expires_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "instagram_tokens_mentorado_id_mentorados_id_fk": {
+          "name": "instagram_tokens_mentorado_id_mentorados_id_fk",
+          "tableFrom": "instagram_tokens",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "instagram_tokens_mentorado_id_unique": {
+          "name": "instagram_tokens_mentorado_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "mentorado_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.interacoes": {
+      "name": "interacoes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "tipo_interacao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notas": {
+          "name": "notas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duracao": {
+          "name": "duracao",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "interacoes_lead_idx": {
+          "name": "interacoes_lead_idx",
+          "columns": [
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "interacoes_mentorado_idx": {
+          "name": "interacoes_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "interacoes_created_idx": {
+          "name": "interacoes_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "interacoes_lead_created_idx": {
+          "name": "interacoes_lead_created_idx",
+          "columns": [
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "interacoes_lead_id_leads_id_fk": {
+          "name": "interacoes_lead_id_leads_id_fk",
+          "tableFrom": "interacoes",
+          "tableTo": "leads",
+          "columnsFrom": [
+            "lead_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "interacoes_mentorado_id_mentorados_id_fk": {
+          "name": "interacoes_mentorado_id_mentorados_id_fk",
+          "tableFrom": "interacoes",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.interaction_templates": {
+      "name": "interaction_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "tipo_interacao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "interaction_templates_user_idx": {
+          "name": "interaction_templates_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "interaction_templates_user_id_users_id_fk": {
+          "name": "interaction_templates_user_id_users_id_fk",
+          "tableFrom": "interaction_templates",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.leads": {
+      "name": "leads",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telefone": {
+          "name": "telefone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "empresa": {
+          "name": "empresa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origem": {
+          "name": "origem",
+          "type": "origem_lead",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "status_lead",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'novo'"
+        },
+        "valor_estimado": {
+          "name": "valor_estimado",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "indicado_por": {
+          "name": "indicado_por",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profissao": {
+          "name": "profissao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "produto_interesse": {
+          "name": "produto_interesse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "possui_clinica": {
+          "name": "possui_clinica",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anos_estetica": {
+          "name": "anos_estetica",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faturamento_mensal": {
+          "name": "faturamento_mensal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dor_principal": {
+          "name": "dor_principal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "desejo_principal": {
+          "name": "desejo_principal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "temperatura": {
+          "name": "temperatura",
+          "type": "temperatura_lead",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "data_nascimento": {
+          "name": "data_nascimento",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "genero": {
+          "name": "genero",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "procedimentos_interesse": {
+          "name": "procedimentos_interesse",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "historico_estetico": {
+          "name": "historico_estetico",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alergias": {
+          "name": "alergias",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tipo_pele": {
+          "name": "tipo_pele",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disponibilidade": {
+          "name": "disponibilidade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "leads_mentorado_idx": {
+          "name": "leads_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leads_status_idx": {
+          "name": "leads_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leads_origem_idx": {
+          "name": "leads_origem_idx",
+          "columns": [
+            {
+              "expression": "origem",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leads_mentorado_status_idx": {
+          "name": "leads_mentorado_status_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "leads_created_idx": {
+          "name": "leads_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "leads_mentorado_id_mentorados_id_fk": {
+          "name": "leads_mentorado_id_mentorados_id_fk",
+          "tableFrom": "leads",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mentorado_badges": {
+      "name": "mentorado_badges",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "badge_id": {
+          "name": "badge_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conquistado_em": {
+          "name": "conquistado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ano": {
+          "name": "ano",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mes": {
+          "name": "mes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "mentorado_badges_mentorado_idx": {
+          "name": "mentorado_badges_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mentorado_badges_badge_idx": {
+          "name": "mentorado_badges_badge_idx",
+          "columns": [
+            {
+              "expression": "badge_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mentorado_badges_unique_idx": {
+          "name": "mentorado_badges_unique_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "badge_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mentorado_badges_mentorado_id_mentorados_id_fk": {
+          "name": "mentorado_badges_mentorado_id_mentorados_id_fk",
+          "tableFrom": "mentorado_badges",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "mentorado_badges_badge_id_badges_id_fk": {
+          "name": "mentorado_badges_badge_id_badges_id_fk",
+          "tableFrom": "mentorado_badges",
+          "tableTo": "badges",
+          "columnsFrom": [
+            "badge_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mentorados": {
+      "name": "mentorados",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nome_completo": {
+          "name": "nome_completo",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto_url": {
+          "name": "foto_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "turma": {
+          "name": "turma",
+          "type": "turma",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meta_faturamento": {
+          "name": "meta_faturamento",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 16000
+        },
+        "meta_leads": {
+          "name": "meta_leads",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 50
+        },
+        "meta_procedimentos": {
+          "name": "meta_procedimentos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 10
+        },
+        "meta_posts": {
+          "name": "meta_posts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 12
+        },
+        "meta_stories": {
+          "name": "meta_stories",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 60
+        },
+        "ativo": {
+          "name": "ativo",
+          "type": "ativo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'sim'"
+        },
+        "onboarding_completed": {
+          "name": "onboarding_completed",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nao'"
+        },
+        "zapi_instance_id": {
+          "name": "zapi_instance_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_token": {
+          "name": "zapi_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_client_token": {
+          "name": "zapi_client_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_connected": {
+          "name": "zapi_connected",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'nao'"
+        },
+        "zapi_connected_at": {
+          "name": "zapi_connected_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_phone": {
+          "name": "zapi_phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_instance_status": {
+          "name": "zapi_instance_status",
+          "type": "zapi_instance_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_instance_due_date": {
+          "name": "zapi_instance_due_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_instance_created_at": {
+          "name": "zapi_instance_created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zapi_managed_by_integrator": {
+          "name": "zapi_managed_by_integrator",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'nao'"
+        },
+        "instagram_connected": {
+          "name": "instagram_connected",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'nao'"
+        },
+        "instagram_business_account_id": {
+          "name": "instagram_business_account_id",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_metrics_reminder": {
+          "name": "last_metrics_reminder",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "mentorados_user_id_idx": {
+          "name": "mentorados_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mentorados_user_id_unique_idx": {
+          "name": "mentorados_user_id_unique_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mentorados_email_idx": {
+          "name": "mentorados_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mentorados_turma_idx": {
+          "name": "mentorados_turma_idx",
+          "columns": [
+            {
+              "expression": "turma",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mentorados_turma_ativo_idx": {
+          "name": "mentorados_turma_ativo_idx",
+          "columns": [
+            {
+              "expression": "turma",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ativo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "mentorados_user_id_users_id_fk": {
+          "name": "mentorados_user_id_users_id_fk",
+          "tableFrom": "mentorados",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.metas_progressivas": {
+      "name": "metas_progressivas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "tipo_meta",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meta_atual": {
+          "name": "meta_atual",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meta_inicial": {
+          "name": "meta_inicial",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incremento": {
+          "name": "incremento",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 10
+        },
+        "vezes_atingida": {
+          "name": "vezes_atingida",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ultima_atualizacao": {
+          "name": "ultima_atualizacao",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "metas_mentorado_tipo_idx": {
+          "name": "metas_mentorado_tipo_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tipo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "metas_progressivas_mentorado_id_mentorados_id_fk": {
+          "name": "metas_progressivas_mentorado_id_mentorados_id_fk",
+          "tableFrom": "metas_progressivas",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.metricas_mensais": {
+      "name": "metricas_mensais",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ano": {
+          "name": "ano",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mes": {
+          "name": "mes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faturamento": {
+          "name": "faturamento",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "lucro": {
+          "name": "lucro",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "posts_feed": {
+          "name": "posts_feed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "stories": {
+          "name": "stories",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "leads": {
+          "name": "leads",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "procedimentos": {
+          "name": "procedimentos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "observacoes": {
+          "name": "observacoes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instagram_synced": {
+          "name": "instagram_synced",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'nao'"
+        },
+        "instagram_sync_date": {
+          "name": "instagram_sync_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "metricas_mentorado_idx": {
+          "name": "metricas_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "metricas_mentorado_periodo_idx": {
+          "name": "metricas_mentorado_periodo_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "metricas_periodo_idx": {
+          "name": "metricas_periodo_idx",
+          "columns": [
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "metricas_mensais_mentorado_id_mentorados_id_fk": {
+          "name": "metricas_mensais_mentorado_id_mentorados_id_fk",
+          "tableFrom": "metricas_mensais",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.notificacoes": {
+      "name": "notificacoes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "tipo_notificacao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mensagem": {
+          "name": "mensagem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lida": {
+          "name": "lida",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nao'"
+        },
+        "enviada_por_email": {
+          "name": "enviada_por_email",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nao'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "notificacoes_mentorado_idx": {
+          "name": "notificacoes_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notificacoes_mentorado_lida_idx": {
+          "name": "notificacoes_mentorado_lida_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "lida",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notificacoes_created_idx": {
+          "name": "notificacoes_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "notificacoes_mentorado_id_mentorados_id_fk": {
+          "name": "notificacoes_mentorado_id_mentorados_id_fk",
+          "tableFrom": "notificacoes",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.moltbot_messages": {
+      "name": "moltbot_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "moltbot_messages_session_idx": {
+          "name": "moltbot_messages_session_idx",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "moltbot_messages_created_idx": {
+          "name": "moltbot_messages_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "moltbot_messages_session_id_moltbot_sessions_id_fk": {
+          "name": "moltbot_messages_session_id_moltbot_sessions_id_fk",
+          "tableFrom": "moltbot_messages",
+          "tableTo": "moltbot_sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.moltbot_sessions": {
+      "name": "moltbot_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel_type": {
+          "name": "channel_type",
+          "type": "channel_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'sim'"
+        },
+        "config": {
+          "name": "config",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_activity_at": {
+          "name": "last_activity_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "moltbot_sessions_user_idx": {
+          "name": "moltbot_sessions_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "moltbot_sessions_active_idx": {
+          "name": "moltbot_sessions_active_idx",
+          "columns": [
+            {
+              "expression": "is_active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "moltbot_sessions_user_channel_idx": {
+          "name": "moltbot_sessions_user_channel_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "channel_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "moltbot_sessions_user_id_users_id_fk": {
+          "name": "moltbot_sessions_user_id_users_id_fk",
+          "tableFrom": "moltbot_sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playbook_items": {
+      "name": "playbook_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "module_id": {
+          "name": "module_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'task'"
+        },
+        "content_url": {
+          "name": "content_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_optional": {
+          "name": "is_optional",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'nao'"
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "playbook_items_module_idx": {
+          "name": "playbook_items_module_idx",
+          "columns": [
+            {
+              "expression": "module_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "playbook_items_order_idx": {
+          "name": "playbook_items_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "playbook_items_module_id_playbook_modules_id_fk": {
+          "name": "playbook_items_module_id_playbook_modules_id_fk",
+          "tableFrom": "playbook_items",
+          "tableTo": "playbook_modules",
+          "columnsFrom": [
+            "module_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playbook_modules": {
+      "name": "playbook_modules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "turma": {
+          "name": "turma",
+          "type": "turma",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "playbook_modules_order_idx": {
+          "name": "playbook_modules_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "playbook_modules_turma_idx": {
+          "name": "playbook_modules_turma_idx",
+          "columns": [
+            {
+              "expression": "turma",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.playbook_progress": {
+      "name": "playbook_progress",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'completed'"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "playbook_progress_unique_idx": {
+          "name": "playbook_progress_unique_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "playbook_progress_mentorado_idx": {
+          "name": "playbook_progress_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "playbook_progress_mentorado_id_mentorados_id_fk": {
+          "name": "playbook_progress_mentorado_id_mentorados_id_fk",
+          "tableFrom": "playbook_progress",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "playbook_progress_item_id_playbook_items_id_fk": {
+          "name": "playbook_progress_item_id_playbook_items_id_fk",
+          "tableFrom": "playbook_progress",
+          "tableTo": "playbook_items",
+          "columnsFrom": [
+            "item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ranking_mensal": {
+      "name": "ranking_mensal",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ano": {
+          "name": "ano",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mes": {
+          "name": "mes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "turma": {
+          "name": "turma",
+          "type": "turma",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "posicao": {
+          "name": "posicao",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pontuacao_total": {
+          "name": "pontuacao_total",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "pontos_bonus": {
+          "name": "pontos_bonus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ranking_mentorado_periodo_idx": {
+          "name": "ranking_mentorado_periodo_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ranking_turma_periodo_idx": {
+          "name": "ranking_turma_periodo_idx",
+          "columns": [
+            {
+              "expression": "turma",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ranking_posicao_idx": {
+          "name": "ranking_posicao_idx",
+          "columns": [
+            {
+              "expression": "turma",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ano",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "mes",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "posicao",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ranking_mensal_mentorado_id_mentorados_id_fk": {
+          "name": "ranking_mensal_mentorado_id_mentorados_id_fk",
+          "tableFrom": "ranking_mensal",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.system_settings": {
+      "name": "system_settings",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "varchar(100)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tasks": {
+      "name": "tasks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'todo'"
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'geral'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "prioridade_task",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'media'"
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'manual'"
+        },
+        "atividade_codigo": {
+          "name": "atividade_codigo",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tasks_mentorado_idx": {
+          "name": "tasks_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_status_idx": {
+          "name": "tasks_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_priority_idx": {
+          "name": "tasks_priority_idx",
+          "columns": [
+            {
+              "expression": "priority",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tasks_mentorado_id_mentorados_id_fk": {
+          "name": "tasks_mentorado_id_mentorados_id_fk",
+          "tableFrom": "tasks",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "clerk_id": {
+          "name": "clerk_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "login_method": {
+          "name": "login_method",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'user'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_signed_in": {
+          "name": "last_signed_in",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "users_clerk_id_idx": {
+          "name": "users_clerk_id_idx",
+          "columns": [
+            {
+              "expression": "clerk_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_email_idx": {
+          "name": "users_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_clerk_id_unique": {
+          "name": "users_clerk_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "clerk_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.whatsapp_messages": {
+      "name": "whatsapp_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "mentorado_id": {
+          "name": "mentorado_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "message_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zapi_message_id": {
+          "name": "zapi_message_id",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "message_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "is_from_ai": {
+          "name": "is_from_ai",
+          "type": "sim_nao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'nao'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "whatsapp_messages_mentorado_idx": {
+          "name": "whatsapp_messages_mentorado_idx",
+          "columns": [
+            {
+              "expression": "mentorado_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "whatsapp_messages_lead_idx": {
+          "name": "whatsapp_messages_lead_idx",
+          "columns": [
+            {
+              "expression": "lead_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "whatsapp_messages_phone_idx": {
+          "name": "whatsapp_messages_phone_idx",
+          "columns": [
+            {
+              "expression": "phone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "whatsapp_messages_created_idx": {
+          "name": "whatsapp_messages_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "whatsapp_messages_mentorado_id_mentorados_id_fk": {
+          "name": "whatsapp_messages_mentorado_id_mentorados_id_fk",
+          "tableFrom": "whatsapp_messages",
+          "tableTo": "mentorados",
+          "columnsFrom": [
+            "mentorado_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "whatsapp_messages_lead_id_leads_id_fk": {
+          "name": "whatsapp_messages_lead_id_leads_id_fk",
+          "tableFrom": "whatsapp_messages",
+          "tableTo": "leads",
+          "columnsFrom": [
+            "lead_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.ativo": {
+      "name": "ativo",
+      "schema": "public",
+      "values": [
+        "sim",
+        "nao"
+      ]
+    },
+    "public.categoria": {
+      "name": "categoria",
+      "schema": "public",
+      "values": [
+        "faturamento",
+        "conteudo",
+        "operacional",
+        "consistencia",
+        "especial"
+      ]
+    },
+    "public.channel_type": {
+      "name": "channel_type",
+      "schema": "public",
+      "values": [
+        "webchat",
+        "whatsapp",
+        "telegram",
+        "slack"
+      ]
+    },
+    "public.message_direction": {
+      "name": "message_direction",
+      "schema": "public",
+      "values": [
+        "inbound",
+        "outbound"
+      ]
+    },
+    "public.message_status": {
+      "name": "message_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "sent",
+        "delivered",
+        "read",
+        "failed"
+      ]
+    },
+    "public.origem_lead": {
+      "name": "origem_lead",
+      "schema": "public",
+      "values": [
+        "instagram",
+        "whatsapp",
+        "google",
+        "indicacao",
+        "site",
+        "outro"
+      ]
+    },
+    "public.prioridade_task": {
+      "name": "prioridade_task",
+      "schema": "public",
+      "values": [
+        "alta",
+        "media",
+        "baixa"
+      ]
+    },
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "user",
+        "admin"
+      ]
+    },
+    "public.sim_nao": {
+      "name": "sim_nao",
+      "schema": "public",
+      "values": [
+        "sim",
+        "nao"
+      ]
+    },
+    "public.status_lead": {
+      "name": "status_lead",
+      "schema": "public",
+      "values": [
+        "novo",
+        "primeiro_contato",
+        "qualificado",
+        "proposta",
+        "negociacao",
+        "fechado",
+        "perdido"
+      ]
+    },
+    "public.sync_status": {
+      "name": "sync_status",
+      "schema": "public",
+      "values": [
+        "success",
+        "failed",
+        "partial"
+      ]
+    },
+    "public.temperatura_lead": {
+      "name": "temperatura_lead",
+      "schema": "public",
+      "values": [
+        "frio",
+        "morno",
+        "quente"
+      ]
+    },
+    "public.tipo_interacao": {
+      "name": "tipo_interacao",
+      "schema": "public",
+      "values": [
+        "ligacao",
+        "email",
+        "whatsapp",
+        "reuniao",
+        "nota"
+      ]
+    },
+    "public.tipo_meta": {
+      "name": "tipo_meta",
+      "schema": "public",
+      "values": [
+        "faturamento",
+        "leads",
+        "procedimentos",
+        "posts",
+        "stories"
+      ]
+    },
+    "public.tipo_notificacao": {
+      "name": "tipo_notificacao",
+      "schema": "public",
+      "values": [
+        "lembrete_metricas",
+        "alerta_meta",
+        "conquista",
+        "ranking"
+      ]
+    },
+    "public.turma": {
+      "name": "turma",
+      "schema": "public",
+      "values": [
+        "neon"
+      ]
+    },
+    "public.zapi_instance_status": {
+      "name": "zapi_instance_status",
+      "schema": "public",
+      "values": [
+        "trial",
+        "active",
+        "suspended",
+        "canceled"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

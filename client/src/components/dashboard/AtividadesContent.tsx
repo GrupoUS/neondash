@@ -1,4 +1,10 @@
 import {
+  calcularProgresso,
+  getAtividadesByEtapa,
+  getEtapaColor,
+  getMotivationalMessage,
+} from "@shared/atividades-data";
+import {
   Bookmark,
   CheckCircle2,
   ListTodo,
@@ -34,12 +40,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CelebrationEffect, useCelebration } from "@/components/ui/celebration-effect";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  calcularProgresso,
-  getAtividadesByEtapa,
-  getEtapaColor,
-  getMotivationalMessage,
-} from "@/data/atividades-data";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
@@ -527,7 +527,7 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
                                         <AnimatedPopoverContent
                                           align="end"
                                           side="bottom"
-                                          className="w-[420px] p-0"
+                                          className="w-[90vw] md:w-[800px] p-0"
                                         >
                                           {/* Header with close button */}
                                           <div className="flex items-start justify-between p-4 pb-3 border-b border-border/50">
@@ -569,13 +569,16 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
                                                 handleNoteChange(key, e.target.value)
                                               }
                                               placeholder="Escreva suas anotações, dúvidas ou insights..."
-                                              className="bg-background border-border text-foreground min-h-[160px] resize-y text-sm placeholder:text-muted-foreground/50"
+                                              className="bg-background border-border text-foreground min-h-[320px] resize-y text-sm placeholder:text-muted-foreground/50"
                                             />
                                           </div>
 
                                           {/* Footer with save button */}
                                           <div className="p-4 pt-0">
-                                            <AnimatedPopoverClose asChild>
+                                            <AnimatedPopoverClose
+                                              asChild
+                                              className="static w-full top-auto right-auto"
+                                            >
                                               <Button
                                                 type="button"
                                                 size="default"

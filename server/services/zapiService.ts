@@ -239,12 +239,111 @@ export function phonesMatch(phone1: string, phone2: string): boolean {
   return last8_1 === last8_2 && ddd1 === ddd2;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// INTEGRATOR API FUNCTIONS
+// For managing instances programmatically via the Z-API Integrator Partner program
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface ZApiCreateInstanceResponse {
+  id: string;
+  token: string;
+  due: string;
+}
+
+export interface ZApiInstanceInfo {
+  id: string;
+  name: string;
+  token: string;
+  due: string;
+  status: string;
+}
+
+const getIntegratorHeaders = () => {
+  const token = process.env.ZAPI_INTEGRATOR_TOKEN;
+  if (!token) {
+    throw new Error("ZAPI_INTEGRATOR_TOKEN not configured");
+  }
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+};
+
+export const isIntegratorModeAvailable = () => {
+  return !!process.env.ZAPI_INTEGRATOR_TOKEN;
+};
+
+export async function createInstance(name: string): Promise<ZApiCreateInstanceResponse> {
+  const response = await fetch("https://api.z-api.io/instances/integrator/on-demand", {
+    method: "POST",
+    headers: getIntegratorHeaders(),
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to create instance: ${error}`);
+  }
+
+  return response.json() as Promise<ZApiCreateInstanceResponse>;
+}
+
+export async function subscribeInstance(instanceId: string, token: string): Promise<void> {
+  const response = await fetch(
+    `https://api.z-api.io/instances/${instanceId}/token/${token}/subscription`,
+    {
+      method: "POST",
+      headers: getIntegratorHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to subscribe instance");
+  }
+}
+
+export async function cancelInstance(instanceId: string, token: string): Promise<void> {
+  const response = await fetch(
+    `https://api.z-api.io/instances/${instanceId}/token/${token}/cancel`,
+    {
+      method: "POST",
+      headers: getIntegratorHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to cancel instance");
+  }
+}
+
+export async function listIntegratorInstances(): Promise<ZApiInstanceInfo[]> {
+  const response = await fetch("https://api.z-api.io/instances/integrator/instances", {
+    headers: getIntegratorHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to list instances");
+  }
+
+  return response.json() as Promise<ZApiInstanceInfo[]>;
+}
+
 export const zapiService = {
+  // Connection & Messaging
   getQRCode,
   getConnectionStatus,
   disconnect,
   sendTextMessage,
+
+  // Phone utilities
   normalizePhoneNumber,
   formatPhoneForDisplay,
   phonesMatch,
+
+  // Integrator API (Partner mode)
+  isIntegratorModeAvailable,
+  createInstance,
+  subscribeInstance,
+  cancelInstance,
+  listIntegratorInstances,
 };

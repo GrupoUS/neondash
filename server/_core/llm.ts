@@ -202,17 +202,20 @@ const normalizeToolChoice = (
 };
 
 const resolveApiUrl = () => {
+  // Check for GEMINI_API_KEY first for Google's OpenAI-compatible endpoint
+  if (ENV.geminiApiKey) {
+    return "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+  }
+
   if (!ENV.llmApiUrl || ENV.llmApiUrl.trim().length === 0) {
-    throw new Error("LLM_API_URL is required. Configure an OpenAI-compatible LLM provider URL.");
+    throw new Error("LLM configuration missing. Set GEMINI_API_KEY or LLM_API_URL.");
   }
   return `${ENV.llmApiUrl.replace(/\/$/, "")}/v1/chat/completions`;
 };
 
 const assertApiKey = () => {
-  if (!ENV.llmApiKey) {
-    throw new Error(
-      "LLM_API_KEY is required. Configure an OpenAI-compatible LLM provider API key."
-    );
+  if (!ENV.llmApiKey && !ENV.geminiApiKey) {
+    throw new Error("API Key missing. Configure GEMINI_API_KEY or LLM_API_KEY.");
   }
 };
 
@@ -256,6 +259,7 @@ const normalizeResponseFormat = ({
   };
 };
 
+// ... inside invokeLLM ...
 export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   assertApiKey();
 
@@ -269,11 +273,16 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     responseFormat,
     response_format,
   } = params;
+  // Determine model based on available config
+  const isGemini = !!ENV.geminiApiKey;
+  const model = isGemini ? "gemini-3-flash-preview" : ENV.llmModel || "gpt-4o";
 
   const payload: Record<string, unknown> = {
-    model: "gemini-3-flash-preview",
+    model,
     messages: messages.map(normalizeMessage),
   };
+
+  // ... rest of payload construction ...
 
   if (tools && tools.length > 0) {
     payload.tools = tools;
@@ -284,11 +293,8 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.tool_choice = normalizedToolChoice;
   }
 
+  // Gemini via OpenAI compat might have different max tokens limits, but keeping high for now
   payload.max_tokens = 32768;
-  // payload.thinking is not supported by Gemini's OpenAI-compatible endpoint
-  // payload.thinking = {
-  //   budget_tokens: 128,
-  // };
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,
@@ -301,11 +307,14 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     payload.response_format = normalizedResponseFormat;
   }
 
-  const response = await fetch(resolveApiUrl(), {
+  const apiUrl = resolveApiUrl();
+  const apiKey = ENV.geminiApiKey || ENV.llmApiKey;
+
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${ENV.llmApiKey}`,
+      authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(payload),
   });

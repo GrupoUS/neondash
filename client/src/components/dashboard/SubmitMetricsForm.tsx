@@ -1,5 +1,5 @@
 import { Check, CheckCircle2, Instagram, Loader2, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ function AutoSaveInput({
   onChange: (value: string) => void;
   isLoading: boolean;
   isSaved: boolean;
-  onBlur: (value: number) => void;
+  onBlur: (value: number, isEmpty?: boolean) => void;
   type?: string;
   step?: string;
   placeholder?: string;
@@ -60,10 +60,10 @@ function AutoSaveInput({
   previousType?: "currency" | "number";
 }) {
   const handleBlur = () => {
-    const numValue = type === "number" ? parseFloat(value) || 0 : parseInt(value, 10) || 0;
-    if (!Number.isNaN(numValue)) {
-      onBlur(numValue);
-    }
+    const isEmpty = value.trim() === "";
+    const numValue = type === "number" ? parseFloat(value) : parseInt(value, 10);
+    // Pass isEmpty flag to prevent saving empty fields as 0
+    onBlur(numValue, isEmpty);
   };
 
   return (
@@ -122,17 +122,101 @@ export function SubmitMetricsForm({
   const [showSuggestion, setShowSuggestion] = useState(suggestNextMonth);
   const [showInstagramModal, setShowInstagramModal] = useState(false);
 
+  // Track whether the form has been hydrated from server data
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Track manual edits to prevent Instagram auto-fill from clobbering user input
+  const manuallyEditedRef = useRef<Set<string>>(new Set());
+
   const utils = trpc.useUtils();
   const { data: me } = trpc.mentorados.me.useQuery();
   const mentoradoId = me?.id;
 
-  // Auto-save hooks for each field
-  const faturamentoSave = useAutoSave({ fieldName: "faturamento", ano, mes });
-  const lucroSave = useAutoSave({ fieldName: "lucro", ano, mes });
-  const leadsSave = useAutoSave({ fieldName: "leads", ano, mes });
-  const procedimentosSave = useAutoSave({ fieldName: "procedimentos", ano, mes });
-  const postsFeedSave = useAutoSave({ fieldName: "postsFeed", ano, mes });
-  const storiesSave = useAutoSave({ fieldName: "stories", ano, mes });
+  // Load current metrics for selected ano/mes
+  const { data: currentMetrics, isLoading: isLoadingMetrics } = trpc.mentorados.metricaMes.useQuery(
+    { ano, mes },
+    {
+      enabled: !!mentoradoId,
+      staleTime: 0, // Always fetch fresh data on month change
+    }
+  );
+
+  // Hydrate form state when current metrics are loaded or when ano/mes changes
+  useEffect(() => {
+    // Reset hydration state when period changes
+    setIsHydrated(false);
+    manuallyEditedRef.current.clear();
+
+    // Wait for query to complete (not loading)
+    if (isLoadingMetrics) return;
+
+    // Hydrate from server data (may be undefined for new month)
+    if (currentMetrics) {
+      setFaturamento(currentMetrics.faturamento?.toString() || "");
+      setLucro(currentMetrics.lucro?.toString() || "");
+      setPostsFeed(currentMetrics.postsFeed?.toString() || "");
+      setStories(currentMetrics.stories?.toString() || "");
+      setLeads(currentMetrics.leads?.toString() || "");
+      setProcedimentos(currentMetrics.procedimentos?.toString() || "");
+      setObservacoes(currentMetrics.observacoes || "");
+    } else {
+      // Reset to empty for new month (no existing data)
+      setFaturamento("");
+      setLucro("");
+      setPostsFeed("");
+      setStories("");
+      setLeads("");
+      setProcedimentos("");
+      setObservacoes("");
+    }
+
+    // Mark as hydrated after state is set
+    setIsHydrated(true);
+  }, [currentMetrics, isLoadingMetrics]);
+
+  // Auto-save hooks for each field (now with isHydrated and lastServerValue)
+  const faturamentoSave = useAutoSave({
+    fieldName: "faturamento",
+    ano,
+    mes,
+    isHydrated,
+    lastServerValue: currentMetrics?.faturamento,
+  });
+  const lucroSave = useAutoSave({
+    fieldName: "lucro",
+    ano,
+    mes,
+    isHydrated,
+    lastServerValue: currentMetrics?.lucro,
+  });
+  const leadsSave = useAutoSave({
+    fieldName: "leads",
+    ano,
+    mes,
+    isHydrated,
+    lastServerValue: currentMetrics?.leads,
+  });
+  const procedimentosSave = useAutoSave({
+    fieldName: "procedimentos",
+    ano,
+    mes,
+    isHydrated,
+    lastServerValue: currentMetrics?.procedimentos,
+  });
+  const postsFeedSave = useAutoSave({
+    fieldName: "postsFeed",
+    ano,
+    mes,
+    isHydrated,
+    lastServerValue: currentMetrics?.postsFeed,
+  });
+  const storiesSave = useAutoSave({
+    fieldName: "stories",
+    ano,
+    mes,
+    isHydrated,
+    lastServerValue: currentMetrics?.stories,
+  });
 
   // Previous month data
   const { previousMetrics } = usePreviousMonthMetrics({ ano, mes, enabled: true });
@@ -143,6 +227,44 @@ export function SubmitMetricsForm({
     mes,
     enabled: true,
   });
+
+  // Auto-fill Instagram data when it arrives (only if user hasn't manually edited)
+  useEffect(() => {
+    if (!instagramData || !isHydrated) return;
+
+    // Auto-fill posts if user hasn't manually edited
+    if (!manuallyEditedRef.current.has("postsFeed") && instagramData.posts !== undefined) {
+      const newValue = instagramData.posts.toString();
+      // Only update if different from current value
+      if (postsFeed !== newValue) {
+        setPostsFeed(newValue);
+        // Trigger auto-save for the Instagram value
+        postsFeedSave.handleBlur(instagramData.posts, false);
+      }
+    }
+
+    // Auto-fill stories if user hasn't manually edited
+    if (!manuallyEditedRef.current.has("stories") && instagramData.stories !== undefined) {
+      const newValue = instagramData.stories.toString();
+      // Only update if different from current value
+      if (stories !== newValue) {
+        setStories(newValue);
+        // Trigger auto-save for the Instagram value
+        storiesSave.handleBlur(instagramData.stories, false);
+      }
+    }
+  }, [instagramData, isHydrated, postsFeed, stories, postsFeedSave, storiesSave]);
+
+  // Track manual edits to prevent Instagram auto-fill from overwriting
+  const handlePostsFeedChange = (value: string) => {
+    manuallyEditedRef.current.add("postsFeed");
+    setPostsFeed(value);
+  };
+
+  const handleStoriesChange = (value: string) => {
+    manuallyEditedRef.current.add("stories");
+    setStories(value);
+  };
 
   // Update defaults when suggestNextMonth changes
   useEffect(() => {
@@ -168,6 +290,7 @@ export function SubmitMetricsForm({
       setProcedimentos("");
       setObservacoes("");
       setShowSuggestion(false);
+      manuallyEditedRef.current.clear();
 
       // Invalidate queries to refresh dashboard data
       utils.mentorados.invalidate();
@@ -303,12 +426,12 @@ export function SubmitMetricsForm({
           {instagramData ? (
             <div className="flex gap-2">
               <InstagramBadge
-                count={instagramData.postsCount}
+                count={instagramData.posts}
                 syncedAt={instagramData.syncedAt}
                 type="posts"
               />
               <InstagramBadge
-                count={instagramData.storiesCount}
+                count={instagramData.stories}
                 syncedAt={instagramData.syncedAt}
                 type="stories"
               />
@@ -331,7 +454,7 @@ export function SubmitMetricsForm({
             id="postsFeed"
             label="Posts Feed"
             value={postsFeed}
-            onChange={setPostsFeed}
+            onChange={handlePostsFeedChange}
             isLoading={postsFeedSave.isLoading}
             isSaved={postsFeedSave.isSaved}
             onBlur={postsFeedSave.handleBlur}
@@ -343,7 +466,7 @@ export function SubmitMetricsForm({
             id="stories"
             label="Stories"
             value={stories}
-            onChange={setStories}
+            onChange={handleStoriesChange}
             isLoading={storiesSave.isLoading}
             isSaved={storiesSave.isSaved}
             onBlur={storiesSave.handleBlur}

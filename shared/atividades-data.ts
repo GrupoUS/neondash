@@ -1,14 +1,6 @@
 /**
  * Dados estáticos das atividades do PLAY NEON
  * Reestruturado em 6 Fases com base na pesquisa de dores de profissionais de estética
- *
- * Fases:
- * 1. Fundamentos (semanas 1-4)
- * 2. Posicionamento (semanas 5-8)
- * 3. Marketing Digital (semanas 9-12)
- * 4. Vendas e Atendimento (semanas 13-16)
- * 5. Gestão e Escala (semanas 17-20)
- * 6. Mindset e Rotinas (contínuo)
  */
 
 export interface AtividadeStep {
@@ -25,6 +17,59 @@ export interface Atividade {
   descricao?: string;
   steps: AtividadeStep[];
 }
+
+export interface Fase {
+  id: number;
+  title: string;
+  description: string;
+  etapaKey: string;
+  icon: string;
+}
+
+export const FASES: Fase[] = [
+  {
+    id: 1,
+    title: "Fase 1: Fundamentos",
+    etapaKey: "Fase 1: Fundamentos",
+    description: "Estruture as bases do seu negócio, desde a legalização até as finanças.",
+    icon: "🏠",
+  },
+  {
+    id: 2,
+    title: "Fase 2: Posicionamento",
+    etapaKey: "Fase 2: Posicionamento",
+    description: "Defina sua identidade, nicho e como você se apresenta ao mercado.",
+    icon: "🎯",
+  },
+  {
+    id: 3,
+    title: "Fase 3: Marketing",
+    etapaKey: "Fase 3: Marketing",
+    description: "Atraia clientes ideais com estratégias de conteúdo e tráfego.",
+    icon: "🚀",
+  },
+  {
+    id: 4,
+    title: "Fase 4: Vendas",
+    etapaKey: "Fase 4: Vendas",
+    description: "Converta leads em pacientes fiéis com processos comerciais eficientes.",
+    icon: "💰",
+  },
+  {
+    id: 5,
+    title: "Fase 5: Gestão",
+    etapaKey: "Fase 5: Gestão",
+    description: "Organize processos e equipe para escalar seu negócio com saúde.",
+    icon: "📊",
+  },
+  {
+    id: 6,
+    title: "Fase 6: Mindset",
+    etapaKey: "Fase 6: Mindset",
+    description: "Desenvolva a mentalidade e rotinas de uma empresária de sucesso.",
+    icon: "🧠",
+  },
+];
 
 export const ATIVIDADES: Atividade[] = [
   // ═══════════════════════════════════════════════════════════════════════════

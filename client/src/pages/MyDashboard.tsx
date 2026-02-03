@@ -1,5 +1,7 @@
-import { AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
 import DashboardLayout from "@/components/DashboardLayout";
 import { AtividadesContent } from "@/components/dashboard/AtividadesContent";
 import { DiagnosticoForm } from "@/components/dashboard/DiagnosticoForm";
@@ -8,6 +10,7 @@ import { InstagramAnalyticsView } from "@/components/dashboard/InstagramAnalytic
 import { MenteeOverview } from "@/components/dashboard/MenteeOverview";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { FloatingDock } from "@/components/ui/floating-dock";
 import { NeonCard } from "@/components/ui/neon-card";
 import {
@@ -23,10 +26,21 @@ import { trpc } from "@/lib/trpc";
 export default function MyDashboard() {
   const _isMobile = useIsMobile();
   const [selectedMentoradoId, setSelectedMentoradoId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("visao-geral");
 
   // 1. Get current user to check role
-  const { data: user } = trpc.auth.me.useQuery();
+  const { data: user, isLoading: isLoadingUser, error: userError } = trpc.auth.me.useQuery();
   const isAdmin = user?.role === "admin";
+
+  // DEBUG: Log estado do user
+  // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+  console.log("[DASHBOARD] Estado auth.me:", {
+    hasUser: !!user,
+    userId: user?.id,
+    userRole: user?.role,
+    isLoadingUser,
+    userError: userError?.message,
+  });
 
   // 2. If admin, fetch all mentorados for the selector
   const { data: allMentorados } = trpc.mentorados.list.useQuery(undefined, {
@@ -39,9 +53,21 @@ export default function MyDashboard() {
     data: mentoradoMe,
     isLoading: isLoadingMe,
     error: errorMe,
+    refetch: refetchMentorado,
   } = trpc.mentorados.me.useQuery(undefined, {
     enabled: !isAdmin,
     retry: false,
+  });
+
+  // DEBUG: Log estado do mentorado
+  // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+  console.log("[DASHBOARD] Estado mentorados.me:", {
+    isAdmin,
+    enabled: !isAdmin,
+    hasMentorado: !!mentoradoMe,
+    mentoradoId: mentoradoMe?.id,
+    isLoadingMe,
+    errorMe: errorMe?.message,
   });
 
   // If admin and selected -> fetch by ID
@@ -57,6 +83,39 @@ export default function MyDashboard() {
   const currentMentorado = isAdmin ? mentoradoById : mentoradoMe;
   const isLoading = isAdmin ? (selectedMentoradoId ? isLoadingById : !allMentorados) : isLoadingMe;
   const error = isAdmin ? errorById : errorMe;
+
+  // DEBUG: Log estado final
+  // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+  console.log("[DASHBOARD] Estado final:", {
+    isAdmin,
+    isLoading,
+    isLoadingMe,
+    hasCurrentMentorado: !!currentMentorado,
+    hasError: !!error,
+    errorMessage: error?.message,
+  });
+
+  // FIX: Auto-retry mechanism for race condition between ensureMentorado and mentorados.me
+  const retryCount = useRef(0);
+  const maxRetries = 5;
+
+  useEffect(() => {
+    // If we're not loading, have no mentorado, no error, and haven't exceeded retries
+    if (!isAdmin && !isLoadingMe && !mentoradoMe && !errorMe && retryCount.current < maxRetries) {
+      retryCount.current += 1;
+      // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+      console.log(`[DASHBOARD] Auto-retry ${retryCount.current}/${maxRetries} for mentorados.me`);
+
+      // Wait and then refetch
+      const timer = setTimeout(() => {
+        // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+        console.log("[DASHBOARD] Executing refetch...");
+        void refetchMentorado();
+      }, 2000 * retryCount.current); // Progressive delay: 2s, 4s, 6s, 8s, 10s
+
+      return () => clearTimeout(timer);
+    }
+  }, [isAdmin, isLoadingMe, mentoradoMe, errorMe, refetchMentorado]);
 
   // Derived ID for child components
   const targetMentoradoId =
@@ -85,20 +144,54 @@ export default function MyDashboard() {
   }
 
   if (error || (!currentMentorado && !isAdmin)) {
-    // If not admin and no mentorado, show restricted access
+    // AT-008: Enhanced error state with retry button
     return (
       <DashboardLayout>
-        <Alert
-          variant="destructive"
-          className="bg-destructive/10 border-destructive/20 text-destructive"
-        >
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Acesso Restrito</AlertTitle>
-          <AlertDescription>
-            Este dashboard é exclusivo para mentorados oficiais. Se você é um mentorado e está vendo
-            esta mensagem, entre em contato com o suporte.
-          </AlertDescription>
-        </Alert>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+          <Alert
+            variant="destructive"
+            className="bg-destructive/10 border-destructive/20 text-destructive max-w-lg"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Perfil não encontrado</AlertTitle>
+            <AlertDescription className="space-y-4">
+              <p>
+                Não conseguimos carregar seu perfil de mentorado. Isso pode acontecer se você acabou
+                de fazer login ou se houve um problema temporário.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    toast.loading("Tentando novamente...", { id: "retry" });
+                    await refetchMentorado();
+                    toast.dismiss("retry");
+                  }}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Tentar novamente
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    window.open("https://wa.me/5511999999999", "_blank");
+                  }}
+                  className="gap-2"
+                >
+                  Contatar suporte
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          {/* Hidden legacy message for debugging */}
+          <p className="text-xs text-muted-foreground">
+            Código: {error ? "MENTORADO_ERROR" : "MENTORADO_NOT_FOUND"}
+          </p>
+        </div>
       </DashboardLayout>
     );
   }
@@ -152,7 +245,7 @@ export default function MyDashboard() {
           </div>
         </div>
 
-        <NeonTabs defaultValue="visao-geral" className="w-full">
+        <NeonTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex justify-center mb-6">
             <NeonTabsList>
               <NeonTabsTrigger value="visao-geral">Visão Geral</NeonTabsTrigger>
@@ -164,11 +257,15 @@ export default function MyDashboard() {
           </div>
 
           <NeonTabsContent value="visao-geral" className="space-y-6">
-            <MenteeOverview mentoradoId={targetMentoradoId} isAdmin={isAdmin} />
+            <MenteeOverview
+              mentoradoId={isAdmin ? targetMentoradoId : undefined}
+              isAdmin={isAdmin}
+              onNavigateToTab={setActiveTab}
+            />
           </NeonTabsContent>
 
-          <NeonTabsContent value="diagnostico">
-            <div className="grid grid-cols-1 max-w-4xl mx-auto w-full">
+          <NeonTabsContent value="diagnostico" className="w-full">
+            <div className="w-full">
               {isAdmin ? <DiagnosticoForm mentoradoId={targetMentoradoId} /> : <DiagnosticoForm />}
             </div>
           </NeonTabsContent>

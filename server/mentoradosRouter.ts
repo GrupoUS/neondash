@@ -58,9 +58,27 @@ const disconnectInstagramSchema = z.object({
   mentoradoId: z.number().positive("ID do mentorado deve ser positivo"),
 });
 
+import { createLogger } from "./_core/logger";
+
 export const mentoradosRouter = router({
   // Get current user's mentorado profile
   me: protectedProcedure.query(async ({ ctx }) => {
+    const logger = createLogger({ service: "mentorados", userId: ctx.user?.clerkId });
+
+    logger.info("mentorados_me_query_called", {
+      hasUser: !!ctx.user,
+      userId: ctx.user?.id,
+      hasMentorado: !!ctx.mentorado,
+      mentoradoId: ctx.mentorado?.id,
+    });
+
+    if (!ctx.mentorado) {
+      logger.warn("mentorados_me_no_mentorado_in_context", {
+        userId: ctx.user?.id,
+        userEmail: ctx.user?.email,
+      });
+    }
+
     return ctx.mentorado || null;
   }),
 
@@ -108,13 +126,14 @@ export const mentoradosRouter = router({
   }),
 
   // Get metrics history sorted ASC for charts
-  evolution: mentoradoProcedure
+  evolution: protectedProcedure
     .input(z.object({ mentoradoId: z.number().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      let targetId = ctx.mentorado.id;
+      // Determine target mentorado ID
+      let targetId: number;
 
-      // If requested specific ID, verify access
       if (input?.mentoradoId) {
+        // Admin requesting specific mentorado
         if (ctx.user?.role !== "admin") {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -122,6 +141,14 @@ export const mentoradosRouter = router({
           });
         }
         targetId = input.mentoradoId;
+      } else if (ctx.mentorado) {
+        // Regular user viewing their own stats
+        targetId = ctx.mentorado.id;
+      } else {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Perfil de mentorado não encontrado",
+        });
       }
 
       return await getMetricasEvolution(targetId);
@@ -633,30 +660,42 @@ export const mentoradosRouter = router({
    * const { authUrl } = await trpc.mentorados.connectInstagram.mutate({ mentoradoId: 123 });
    * window.location.href = authUrl;
    */
-  connectInstagram: protectedProcedure.input(connectInstagramSchema).mutation(async ({ input }) => {
-    try {
-      // Check if Instagram OAuth is configured
-      if (!instagramService.isInstagramConfigured()) {
+  connectInstagram: protectedProcedure
+    .input(connectInstagramSchema)
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check: admins can target any mentorado, users must match their own ID
+      if (ctx.user?.role !== "admin" && ctx.mentorado?.id !== input.mentoradoId) {
         throw new TRPCError({
-          code: "PRECONDITION_FAILED",
-          message:
-            "Instagram OAuth não está configurado. Configure INSTAGRAM_APP_ID e INSTAGRAM_APP_SECRET.",
+          code: "FORBIDDEN",
+          message: "Você não tem permissão para conectar o Instagram deste mentorado",
         });
       }
 
-      // Generate authorization URL
-      const authUrl = instagramService.getAuthUrl(input.mentoradoId);
+      try {
+        // Check if Instagram OAuth is configured
+        if (!instagramService.isInstagramConfigured()) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "Instagram OAuth não está configurado. Configure INSTAGRAM_APP_ID e INSTAGRAM_APP_SECRET.",
+          });
+        }
 
-      return { authUrl };
-    } catch (error) {
-      if (error instanceof TRPCError) throw error;
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message:
-          error instanceof Error ? error.message : "Erro ao gerar URL de autorização do Instagram",
-      });
-    }
-  }),
+        // Generate authorization URL
+        const authUrl = instagramService.getAuthUrl(input.mentoradoId);
+
+        return { authUrl };
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Erro ao gerar URL de autorização do Instagram",
+        });
+      }
+    }),
 
   /**
    * Process Instagram OAuth callback and store tokens
@@ -673,7 +712,15 @@ export const mentoradosRouter = router({
    */
   instagramCallback: protectedProcedure
     .input(instagramCallbackSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      // Authorization check: admins can target any mentorado, users must match their own ID
+      if (ctx.user?.role !== "admin" && ctx.mentorado?.id !== input.mentoradoId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Você não tem permissão para conectar o Instagram deste mentorado",
+        });
+      }
+
       try {
         // Exchange authorization code for short-lived token
         const shortLivedResponse = await instagramService.exchangeCodeForTokens(input.code);
@@ -742,10 +789,8 @@ export const mentoradosRouter = router({
 
       const [syncLog] = await db
         .select({
-          postsCount: instagramSyncLog.postsCount,
-          storiesCount: instagramSyncLog.storiesCount,
-          syncStatus: instagramSyncLog.syncStatus,
-          errorMessage: instagramSyncLog.errorMessage,
+          posts: instagramSyncLog.postsCount,
+          stories: instagramSyncLog.storiesCount,
           syncedAt: instagramSyncLog.syncedAt,
         })
         .from(instagramSyncLog)

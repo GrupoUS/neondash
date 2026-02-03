@@ -1,3 +1,4 @@
+import { calcularProgresso } from "@shared/atividades-data";
 import {
   Award,
   Camera,
@@ -28,7 +29,6 @@ import {
   BentoCardHeader,
   BentoGrid,
 } from "@/components/ui/bento-grid";
-import { calcularProgresso } from "@/data/atividades-data";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 

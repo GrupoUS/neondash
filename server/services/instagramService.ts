@@ -6,7 +6,7 @@
  * @module instagramService
  */
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   type InsertInstagramSyncLog,
   type InsertInstagramToken,
@@ -27,8 +27,14 @@ const INSTAGRAM_APP_ID = ENV.instagramAppId;
 const INSTAGRAM_APP_SECRET = ENV.instagramAppSecret;
 const INSTAGRAM_REDIRECT_URI = ENV.instagramRedirectUri;
 
-// Instagram OAuth scopes required for business insights
-const SCOPES = ["instagram_basic", "instagram_manage_insights", "pages_show_list"];
+// Facebook Login OAuth scopes required for Instagram Business/Graph API
+// These scopes authorize /me/accounts and Instagram insights calls
+const SCOPES = [
+  "instagram_basic",
+  "instagram_manage_insights",
+  "pages_show_list",
+  "pages_read_engagement",
+];
 
 // Instagram Graph API version
 const GRAPH_API_VERSION = "v18.0";
@@ -150,6 +156,8 @@ export function getAuthUrl(mentoradoId: number): string {
     throw new Error("INSTAGRAM_APP_ID not configured");
   }
 
+  // Use Facebook Login dialog for Instagram Graph API access
+  // This is required for business scopes (instagram_manage_insights, pages_*)
   const params = new URLSearchParams({
     client_id: INSTAGRAM_APP_ID,
     redirect_uri: INSTAGRAM_REDIRECT_URI,
@@ -158,7 +166,7 @@ export function getAuthUrl(mentoradoId: number): string {
     state: String(mentoradoId), // Pass mentoradoId for callback handling
   });
 
-  return `https://api.instagram.com/oauth/authorize?${params.toString()}`;
+  return `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth?${params.toString()}`;
 }
 
 /**
@@ -173,47 +181,56 @@ export async function exchangeCodeForTokens(code: string): Promise<TokenResponse
     throw new Error("Instagram OAuth not configured");
   }
 
-  const response = await fetch("https://api.instagram.com/oauth/access_token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: INSTAGRAM_APP_ID,
-      client_secret: INSTAGRAM_APP_SECRET,
-      grant_type: "authorization_code",
-      redirect_uri: INSTAGRAM_REDIRECT_URI,
-      code,
-    }),
+  // Exchange code via Facebook Graph API (not api.instagram.com)
+  // This returns a Facebook User access token that can call /me/accounts
+  const params = new URLSearchParams({
+    client_id: INSTAGRAM_APP_ID,
+    client_secret: INSTAGRAM_APP_SECRET,
+    redirect_uri: INSTAGRAM_REDIRECT_URI,
+    code,
   });
+
+  const response = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/oauth/access_token?${params.toString()}`
+  );
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Instagram token exchange failed: ${error}`);
+    throw new Error(`Facebook token exchange failed: ${error}`);
   }
 
   return response.json();
 }
 
 /**
- * Exchange short-lived token for long-lived token (60 days)
+ * Exchange short-lived Facebook User token for long-lived token (60 days)
  *
- * @param shortLivedToken - Short-lived access token from initial exchange
+ * Uses Facebook Graph API endpoint (not graph.instagram.com) because we're
+ * working with Facebook Login tokens that authorize Instagram Graph API access.
+ *
+ * @param shortLivedToken - Short-lived Facebook User access token from initial exchange
  * @returns Long-lived token response with expires_in
  * @throws Error if exchange fails
  */
 export async function exchangeForLongLivedToken(
   shortLivedToken: string
 ): Promise<LongLivedTokenResponse> {
-  if (!INSTAGRAM_APP_SECRET) {
+  if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
     throw new Error("Instagram OAuth not configured");
   }
 
+  // Use Facebook Graph endpoint for long-lived user tokens
+  // This is required when using Facebook Login flow
   const params = new URLSearchParams({
-    grant_type: "ig_exchange_token",
+    grant_type: "fb_exchange_token",
+    client_id: INSTAGRAM_APP_ID,
     client_secret: INSTAGRAM_APP_SECRET,
-    access_token: shortLivedToken,
+    fb_exchange_token: shortLivedToken,
   });
 
-  const response = await fetch(`https://graph.instagram.com/access_token?${params.toString()}`);
+  const response = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/oauth/access_token?${params.toString()}`
+  );
 
   if (!response.ok) {
     const error = await response.text();
@@ -224,20 +241,31 @@ export async function exchangeForLongLivedToken(
 }
 
 /**
- * Refresh a long-lived access token before expiration
+ * Refresh a long-lived Facebook User access token before expiration
+ *
+ * Note: Long-lived Facebook User tokens obtained via Facebook Login can be
+ * refreshed by exchanging them again with the fb_exchange_token grant type.
+ * This extends the token validity for another 60 days.
  *
  * @param accessToken - Current long-lived access token (must be valid, not expired)
  * @returns New token response with updated expires_in
  * @throws Error if refresh fails (token may be expired or invalid)
  */
 export async function refreshAccessToken(accessToken: string): Promise<RefreshTokenResponse> {
+  if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
+    throw new Error("Instagram OAuth not configured");
+  }
+
+  // For Facebook Login tokens, refresh by re-exchanging with fb_exchange_token
   const params = new URLSearchParams({
-    grant_type: "ig_refresh_token",
-    access_token: accessToken,
+    grant_type: "fb_exchange_token",
+    client_id: INSTAGRAM_APP_ID,
+    client_secret: INSTAGRAM_APP_SECRET,
+    fb_exchange_token: accessToken,
   });
 
   const response = await fetch(
-    `https://graph.instagram.com/refresh_access_token?${params.toString()}`
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/oauth/access_token?${params.toString()}`
   );
 
   if (!response.ok) {
@@ -624,23 +652,49 @@ export async function syncMentoradoMetrics(
       const postsCount = media.filter((m) => m.mediaType !== "REEL").length;
       const storiesCount = stories.length;
 
-      // 7. Update metricasMensais with synced counts
-      await db
-        .update(metricasMensais)
-        .set({
-          postsFeed: postsCount,
-          stories: storiesCount,
-          instagramSynced: "sim",
-          instagramSyncDate: new Date(),
-          updatedAt: new Date(),
-        })
+      // 7. Upsert metricasMensais with synced counts
+      // First check if the row exists, if not create it with default values
+      const [existingMetrics] = await db
+        .select({ id: metricasMensais.id })
+        .from(metricasMensais)
         .where(
           and(
             eq(metricasMensais.mentoradoId, mentoradoId),
             eq(metricasMensais.ano, ano),
             eq(metricasMensais.mes, mes)
           )
-        );
+        )
+        .limit(1);
+
+      if (existingMetrics) {
+        // Update existing row
+        await db
+          .update(metricasMensais)
+          .set({
+            postsFeed: postsCount,
+            stories: storiesCount,
+            instagramSynced: "sim",
+            instagramSyncDate: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(metricasMensais.id, existingMetrics.id));
+      } else {
+        // Insert new row with default values for other fields
+        await db.insert(metricasMensais).values({
+          mentoradoId,
+          ano,
+          mes,
+          postsFeed: postsCount,
+          stories: storiesCount,
+          instagramSynced: "sim",
+          instagramSyncDate: new Date(),
+          // Default values for non-Instagram fields
+          faturamento: 0,
+          lucro: 0,
+          leads: 0,
+          procedimentos: 0,
+        });
+      }
 
       // 8. Log success
       const result: SyncResult = {
@@ -813,6 +867,7 @@ export async function upsertInstagramToken(data: InsertInstagramToken) {
         expiresAt: data.expiresAt,
         scope: data.scope,
         instagramBusinessAccountId: data.instagramBusinessAccountId,
+        instagramUsername: data.instagramUsername,
         updatedAt: new Date(),
       })
       .where(eq(instagramTokens.mentoradoId, data.mentoradoId))
@@ -996,6 +1051,8 @@ async function getMetricsHistory(
   }>
 > {
   const db = getDb();
+
+  // Order by DESC to get the LAST N months, then reverse for ascending display
   const syncLogs = await db
     .select({
       ano: instagramSyncLog.ano,
@@ -1005,10 +1062,15 @@ async function getMetricsHistory(
     })
     .from(instagramSyncLog)
     .where(eq(instagramSyncLog.mentoradoId, mentoradoId))
-    .orderBy(instagramSyncLog.ano, instagramSyncLog.mes)
+    .orderBy(
+      // Order by DESC to get most recent months first
+      sql`${instagramSyncLog.ano} DESC`,
+      sql`${instagramSyncLog.mes} DESC`
+    )
     .limit(months);
 
-  return syncLogs.map((log) => ({
+  // Reverse to return in ascending order (oldest to newest) for charts
+  return syncLogs.reverse().map((log) => ({
     ano: log.ano,
     mes: log.mes,
     postsFeed: log.postsCount,

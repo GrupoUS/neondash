@@ -1,12 +1,14 @@
 /**
  * WhatsApp Connection Card Component
- * Simplified setup: user configures Z-API externally, then pastes credentials here
+ * Supports both Integrator mode (one-click) and manual credential mode (legacy)
  */
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  Clock,
   ExternalLink,
   Loader2,
   MessageCircle,
@@ -16,12 +18,14 @@ import {
   Unlink,
   Wifi,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +51,14 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrError, setQrError] = useState<string | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
+  const [showManualMode, setShowManualMode] = useState(false);
+
+  // Check if integrator mode is available
+  const { data: integratorInfo } = trpc.zapi.isIntegratorAvailable.useQuery();
+  const isIntegratorAvailable = integratorInfo?.available ?? false;
+
+  // Get lifecycle info for integrator-managed instances
+  const { data: lifecycle, refetch: refetchLifecycle } = trpc.zapi.getInstanceLifecycle.useQuery();
 
   // Get current connection status
   const { data: connectionStatus, refetch: refetchStatus } = trpc.zapi.getStatus.useQuery(
@@ -80,7 +92,7 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
     }
   }, [qrQueryError]);
 
-  // Mutations
+  // Manual configuration mutation (legacy mode)
   const configureMutation = trpc.zapi.configure.useMutation({
     onSuccess: () => {
       setConfigError(null);
@@ -89,6 +101,19 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
     },
     onError: (error) => {
       setConfigError(error.message || "Erro ao salvar credenciais");
+    },
+  });
+
+  // One-click instance creation (integrator mode)
+  const createInstanceMutation = trpc.zapi.createAndConnectInstance.useMutation({
+    onSuccess: () => {
+      setConfigError(null);
+      setStatus("connecting");
+      refetchLifecycle();
+      refetchQr();
+    },
+    onError: (error) => {
+      setConfigError(error.message || "Erro ao criar instância");
     },
   });
 
@@ -134,6 +159,13 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
     setStatus("disconnected");
   };
 
+  // One-click instance creation handler (integrator mode)
+  const handleOneClickConnect = () => {
+    setQrError(null);
+    setConfigError(null);
+    createInstanceMutation.mutate();
+  };
+
   const getStatusBadge = () => {
     switch (status) {
       case "connected":
@@ -167,6 +199,50 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
           </Badge>
         );
     }
+  };
+
+  // Get instance lifecycle status badge
+  const getLifecycleBadge = () => {
+    if (!lifecycle?.hasInstance || !lifecycle?.managedByIntegrator) return null;
+
+    const statusConfig = {
+      trial: {
+        label: "Trial",
+        icon: Clock,
+        className: "border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-950/30",
+      },
+      active: {
+        label: "Ativo",
+        icon: CheckCircle2,
+        className: "border-green-500 text-green-600 bg-green-50 dark:bg-green-950/30",
+      },
+      suspended: {
+        label: "Suspenso",
+        icon: AlertCircle,
+        className: "border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/30",
+      },
+      canceled: {
+        label: "Cancelado",
+        icon: XCircle,
+        className: "border-red-500 text-red-600 bg-red-50 dark:bg-red-950/30",
+      },
+    } as const;
+
+    const status = lifecycle.status ?? "trial";
+    const config = statusConfig[status] ?? statusConfig.trial;
+    const Icon = config.icon;
+
+    return (
+      <Badge variant="outline" className={config.className}>
+        <Icon className="w-3 h-3 mr-1" />
+        {config.label}
+        {lifecycle.dueDate && (
+          <span className="ml-1 text-xs opacity-75">
+            (até {new Date(lifecycle.dueDate).toLocaleDateString("pt-BR")})
+          </span>
+        )}
+      </Badge>
+    );
   };
 
   return (
@@ -324,7 +400,7 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
             </motion.div>
           )}
 
-          {/* Disconnected State - Show Connection Form */}
+          {/* Disconnected State - Show Connection Options */}
           {status === "disconnected" && (
             <motion.div
               key="disconnected"
@@ -333,46 +409,6 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              {/* Setup Instructions */}
-              <Alert className="border-primary/20 bg-primary/5">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Como configurar o Z-API</AlertTitle>
-                <AlertDescription className="mt-2 space-y-3">
-                  <ol className="list-decimal list-inside text-sm space-y-2">
-                    <li>
-                      <strong>Crie sua conta:</strong> Acesse{" "}
-                      <a
-                        href="https://www.z-api.io/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline inline-flex items-center gap-1"
-                      >
-                        www.z-api.io <ExternalLink className="w-3 h-3" />
-                      </a>{" "}
-                      e clique em "Criar conta grátis"
-                    </li>
-                    <li>
-                      <strong>Faça login:</strong> Após cadastrar, acesse o painel Z-API
-                    </li>
-                    <li>
-                      <strong>Crie uma instância:</strong> No menu lateral, clique em "Minhas
-                      Instâncias" → "Nova Instância" → Escolha um nome e clique em "Criar"
-                    </li>
-                    <li>
-                      <strong>Copie as credenciais:</strong> Na tela da instância, copie o{" "}
-                      <strong>Instance ID</strong> e o <strong>Token</strong>
-                    </li>
-                    <li>
-                      <strong>Cole abaixo:</strong> Preencha os campos e clique em "Conectar
-                      WhatsApp"
-                    </li>
-                  </ol>
-                  <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-                    💡 Dica: O Z-API oferece período de teste gratuito para novos usuários.
-                  </p>
-                </AlertDescription>
-              </Alert>
-
               {/* Error Alert */}
               {configError && (
                 <Alert variant="destructive">
@@ -382,71 +418,151 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
                 </Alert>
               )}
 
-              {/* Credentials Form */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="instanceId">Instance ID</Label>
-                  <Input
-                    id="instanceId"
-                    placeholder="Ex: 3EE2B8773C6FD20BCB499A5378BD59DA"
-                    value={instanceId}
-                    onChange={(e) => setInstanceId(e.target.value)}
-                    className="font-mono text-sm"
-                  />
+              {/* Integrator Mode - One-Click Flow */}
+              {isIntegratorAvailable && (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center gap-4 p-6 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <Zap className="w-8 h-8 text-primary" />
+                    </div>
+                    <div className="text-center">
+                      <h3 className="font-semibold text-lg">Conexão Rápida</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Conecte seu WhatsApp em poucos segundos.
+                        <br />
+                        <span className="text-primary font-medium">Grátis por 2 dias</span>, depois
+                        incluído na sua mentoria.
+                      </p>
+                    </div>
+                    <Button
+                      size="lg"
+                      onClick={handleOneClickConnect}
+                      disabled={createInstanceMutation.isPending}
+                      className="w-full max-w-xs"
+                    >
+                      {createInstanceMutation.isPending && (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      )}
+                      <Smartphone className="w-4 h-4 mr-2" />
+                      Conectar meu WhatsApp
+                    </Button>
+                  </div>
+
+                  {/* Lifecycle Badge (show if instance exists) */}
+                  {getLifecycleBadge() && (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-xs text-muted-foreground">Status:</span>
+                      {getLifecycleBadge()}
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="token">Token da Instância</Label>
-                  <Input
-                    id="token"
-                    type="password"
-                    placeholder="Ex: B1BE74099777CBBAB6DEA8E3"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    className="font-mono text-sm"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientToken">
-                    Token de Segurança{" "}
-                    <span className="text-muted-foreground text-xs">
-                      (obrigatório se ativado no Z-API)
+              )}
+
+              {/* Manual Mode - Collapsible for Legacy Users */}
+              <Collapsible open={showManualMode} onOpenChange={setShowManualMode}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full flex items-center justify-between text-muted-foreground hover:text-foreground"
+                  >
+                    <span className="text-sm">
+                      {isIntegratorAvailable
+                        ? "Já possui uma conta Z-API? Configurar manualmente"
+                        : "Configurar credenciais Z-API"}
                     </span>
-                  </Label>
-                  <Input
-                    id="clientToken"
-                    type="password"
-                    placeholder="Ex: Ff61b3cb067054f178dea7749d4910c31S"
-                    value={clientToken}
-                    onChange={(e) => setClientToken(e.target.value)}
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Encontre em: Z-API → Segurança → Token de segurança da conta
-                  </p>
-                </div>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${showManualMode ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  {/* Setup Instructions */}
+                  <Alert className="border-primary/20 bg-primary/5">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Como configurar o Z-API</AlertTitle>
+                    <AlertDescription className="mt-2 space-y-3">
+                      <ol className="list-decimal list-inside text-sm space-y-2">
+                        <li>
+                          <strong>Crie sua conta:</strong> Acesse{" "}
+                          <a
+                            href="https://www.z-api.io/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline inline-flex items-center gap-1"
+                          >
+                            www.z-api.io <ExternalLink className="w-3 h-3" />
+                          </a>{" "}
+                          e clique em "Criar conta grátis"
+                        </li>
+                        <li>
+                          <strong>Faça login:</strong> Após cadastrar, acesse o painel Z-API
+                        </li>
+                        <li>
+                          <strong>Crie uma instância:</strong> No menu lateral, clique em "Minhas
+                          Instâncias" → "Nova Instância"
+                        </li>
+                        <li>
+                          <strong>Copie as credenciais:</strong> Na tela da instância, copie o{" "}
+                          <strong>Instance ID</strong> e o <strong>Token</strong>
+                        </li>
+                      </ol>
+                    </AlertDescription>
+                  </Alert>
 
-                <Button
-                  onClick={handleConnect}
-                  disabled={!instanceId.trim() || !token.trim() || configureMutation.isPending}
-                  className="w-full"
-                >
-                  {configureMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  <QrCode className="w-4 h-4 mr-2" />
-                  Conectar WhatsApp
-                </Button>
-              </div>
+                  {/* Credentials Form */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="instanceId">Instance ID</Label>
+                      <Input
+                        id="instanceId"
+                        placeholder="Ex: 3EE2B8773C6FD20BCB499A5378BD59DA"
+                        value={instanceId}
+                        onChange={(e) => setInstanceId(e.target.value)}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="token">Token da Instância</Label>
+                      <Input
+                        id="token"
+                        type="password"
+                        placeholder="Ex: B1BE74099777CBBAB6DEA8E3"
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="clientToken">
+                        Token de Segurança{" "}
+                        <span className="text-muted-foreground text-xs">
+                          (obrigatório se ativado no Z-API)
+                        </span>
+                      </Label>
+                      <Input
+                        id="clientToken"
+                        type="password"
+                        placeholder="Ex: Ff61b3cb067054f178dea7749d4910c31S"
+                        value={clientToken}
+                        onChange={(e) => setClientToken(e.target.value)}
+                        className="font-mono text-sm"
+                      />
+                    </div>
 
-              <p className="text-xs text-muted-foreground text-center">
-                Você precisa de uma assinatura Z-API para conectar.{" "}
-                <a
-                  href="https://www.z-api.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  Saiba mais
-                </a>
-              </p>
+                    <Button
+                      onClick={handleConnect}
+                      disabled={!instanceId.trim() || !token.trim() || configureMutation.isPending}
+                      className="w-full"
+                    >
+                      {configureMutation.isPending && (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      )}
+                      <QrCode className="w-4 h-4 mr-2" />
+                      Conectar WhatsApp
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </motion.div>
           )}
         </AnimatePresence>

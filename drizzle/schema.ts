@@ -77,6 +77,7 @@ export const temperaturaLeadEnum = pgEnum("temperatura_lead", ["frio", "morno", 
 // WhatsApp / Z-API enums
 export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "outbound"]);
 export const messageStatusEnum = pgEnum("message_status", ["pending", "sent", "delivered", "read", "failed"]);
+export const zapiInstanceStatusEnum = pgEnum("zapi_instance_status", ["trial", "active", "suspended", "canceled"]);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLES
@@ -136,6 +137,11 @@ export const mentorados = pgTable(
     zapiConnected: simNaoEnum("zapi_connected").default("nao"),
     zapiConnectedAt: timestamp("zapi_connected_at"),
     zapiPhone: varchar("zapi_phone", { length: 20 }),
+    // Z-API Integrator Lifecycle Management
+    zapiInstanceStatus: zapiInstanceStatusEnum("zapi_instance_status"),
+    zapiInstanceDueDate: timestamp("zapi_instance_due_date"), // Trial expiry or next billing date
+    zapiInstanceCreatedAt: timestamp("zapi_instance_created_at"), // When instance was provisioned
+    zapiManagedByIntegrator: simNaoEnum("zapi_managed_by_integrator").default("nao"), // Distinguishes managed vs legacy
     // Instagram Integration
     instagramConnected: simNaoEnum("instagram_connected").default("nao"),
     instagramBusinessAccountId: varchar("instagram_business_account_id", { length: 100 }),
@@ -145,6 +151,7 @@ export const mentorados = pgTable(
   },
   (table) => [
     index("mentorados_user_id_idx").on(table.userId),
+    uniqueIndex("mentorados_user_id_unique_idx").on(table.userId),
     index("mentorados_email_idx").on(table.email),
     index("mentorados_turma_idx").on(table.turma),
     index("mentorados_turma_ativo_idx").on(table.turma, table.ativo),
@@ -787,6 +794,23 @@ export const googleTokens = pgTable(
 
 export type GoogleToken = typeof googleTokens.$inferSelect;
 export type InsertGoogleToken = typeof googleTokens.$inferInsert;
+
+
+/**
+ * System Settings - Global configuration (Prompts, etc.)
+ */
+export const systemSettings = pgTable(
+  "system_settings",
+  {
+    key: varchar("key", { length: 100 }).primaryKey(),
+    value: text("value").notNull(),
+    description: text("description"),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  }
+);
+
+export type SystemSetting = typeof systemSettings.$inferSelect;
+export type InsertSystemSetting = typeof systemSettings.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // WHATSAPP / Z-API INTEGRATION TABLES

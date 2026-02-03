@@ -303,4 +303,200 @@ export const zapiRouter = router({
 
     return counts;
   }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INTEGRATOR API PROCEDURES
+  // For managing instances via the Z-API Integrator Partner program
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Check if integrator mode is available
+   */
+  isIntegratorAvailable: protectedProcedure.query(() => {
+    return { available: zapiService.isIntegratorModeAvailable() };
+  }),
+
+  /**
+   * Create and connect a new instance (one-click flow)
+   * This provision a new Z-API instance and automatically configures it
+   */
+  createAndConnectInstance: protectedProcedure.mutation(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      throw new Error("Mentorado não encontrado");
+    }
+
+    // Check if already has an active instance
+    if (mentorado.zapiInstanceId && mentorado.zapiManagedByIntegrator === "sim") {
+      throw new Error("Você já possui uma instância WhatsApp ativa");
+    }
+
+    // Verify integrator mode is available
+    if (!zapiService.isIntegratorModeAvailable()) {
+      throw new Error("Modo integrador não está configurado. Entre em contato com o suporte.");
+    }
+
+    // Create new instance via Integrator API
+    const instanceName = `neondash-${mentorado.id}-${mentorado.nomeCompleto.split(" ")[0]}`;
+    const result = await zapiService.createInstance(instanceName);
+
+    // Encrypt token before storing
+    const encryptedToken = encrypt(result.token);
+    const dueDate = result.due ? new Date(result.due) : null;
+
+    // Update mentorado with the new instance credentials
+    const db = getDb();
+    await db
+      .update(mentorados)
+      .set({
+        zapiInstanceId: result.id,
+        zapiToken: encryptedToken,
+        zapiClientToken: null, // Clean up any old client token
+        zapiConnected: "nao",
+        zapiInstanceStatus: "trial",
+        zapiInstanceDueDate: dueDate,
+        zapiInstanceCreatedAt: new Date(),
+        zapiManagedByIntegrator: "sim",
+        updatedAt: new Date(),
+      })
+      .where(eq(mentorados.id, mentorado.id));
+
+    return {
+      success: true,
+      instanceId: result.id,
+      status: "trial",
+      dueDate: dueDate?.toISOString() ?? null,
+      message: "Instância criada com sucesso! Agora escaneie o QR code para conectar.",
+    };
+  }),
+
+  /**
+   * Get instance lifecycle information
+   */
+  getInstanceLifecycle: protectedProcedure.query(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      return { hasInstance: false };
+    }
+
+    if (!mentorado.zapiInstanceId) {
+      return { hasInstance: false };
+    }
+
+    return {
+      hasInstance: true,
+      instanceId: mentorado.zapiInstanceId,
+      status: mentorado.zapiInstanceStatus,
+      dueDate: mentorado.zapiInstanceDueDate?.toISOString() ?? null,
+      createdAt: mentorado.zapiInstanceCreatedAt?.toISOString() ?? null,
+      managedByIntegrator: mentorado.zapiManagedByIntegrator === "sim",
+      connected: mentorado.zapiConnected === "sim",
+      phone: mentorado.zapiPhone,
+    };
+  }),
+
+  /**
+   * Activate instance (convert trial to paid)
+   * Admin-only procedure
+   */
+  activateInstance: protectedProcedure
+    .input(
+      z.object({
+        mentoradoId: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Admin-only: verify user role before proceeding
+      if (ctx.user.role !== "admin") {
+        throw new Error("Apenas administradores podem ativar instâncias");
+      }
+
+      const db = getDb();
+      const [mentorado] = await db
+        .select()
+        .from(mentorados)
+        .where(eq(mentorados.id, input.mentoradoId))
+        .limit(1);
+
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      if (!mentorado.zapiInstanceId || !mentorado.zapiToken) {
+        throw new Error("Mentorado não possui instância Z-API configurada");
+      }
+
+      const decryptedToken = safeDecrypt(mentorado.zapiToken);
+      if (!decryptedToken) {
+        throw new Error("Erro ao descriptografar token");
+      }
+
+      // Subscribe to the instance via Integrator API
+      await zapiService.subscribeInstance(mentorado.zapiInstanceId, decryptedToken);
+
+      // Update status in database
+      await db
+        .update(mentorados)
+        .set({
+          zapiInstanceStatus: "active",
+          updatedAt: new Date(),
+        })
+        .where(eq(mentorados.id, mentorado.id));
+
+      return { success: true, message: "Instância ativada com sucesso" };
+    }),
+
+  /**
+   * Cancel instance subscription
+   * Admin-only procedure
+   */
+  cancelInstance: protectedProcedure
+    .input(
+      z.object({
+        mentoradoId: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Admin-only: verify user role before proceeding
+      if (ctx.user.role !== "admin") {
+        throw new Error("Apenas administradores podem cancelar instâncias");
+      }
+
+      const db = getDb();
+      const [mentorado] = await db
+        .select()
+        .from(mentorados)
+        .where(eq(mentorados.id, input.mentoradoId))
+        .limit(1);
+
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      if (!mentorado.zapiInstanceId || !mentorado.zapiToken) {
+        throw new Error("Mentorado não possui instância Z-API configurada");
+      }
+
+      const decryptedToken = safeDecrypt(mentorado.zapiToken);
+      if (!decryptedToken) {
+        throw new Error("Erro ao descriptografar token");
+      }
+
+      // Cancel the instance via Integrator API
+      await zapiService.cancelInstance(mentorado.zapiInstanceId, decryptedToken);
+
+      // Update status in database
+      await db
+        .update(mentorados)
+        .set({
+          zapiInstanceStatus: "canceled",
+          updatedAt: new Date(),
+        })
+        .where(eq(mentorados.id, mentorado.id));
+
+      return {
+        success: true,
+        message: "Instância cancelada. Permanece ativa até o fim do período.",
+      };
+    }),
 });

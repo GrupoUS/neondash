@@ -246,265 +246,275 @@ export function DiagnosticoForm({ mentoradoId }: { mentoradoId?: number }) {
           </div>
         </motion.div>
 
-        {/* Form Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Form Sections - Responsive Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-6 transition-all duration-300 ease-in-out">
           {/* Section 1: Ponto de Partida */}
-          <SectionCard section={SECTIONS[0]} delay={0.1}>
-            <FormField
-              control={form.control}
-              name="atuacaoSaude"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qual sua formação ou área de atuação?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Biomédica, Enfermeira, Esteticista..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="tempoLivre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quanto tempo livre você tem por semana?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: 10 horas, Apenas finais de semana..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="jaAtuaEstetica"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Você já atua na estética?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Sim/Não/Iniciando" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="temClinica"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Possui clínica ou consultório?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Sim, Próprio / Alugado / Atendo a domicílio" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SectionCard>
+          <div className="h-full">
+            <SectionCard section={SECTIONS[0]} delay={0.1}>
+              <FormField
+                control={form.control}
+                name="atuacaoSaude"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qual sua formação ou área de atuação?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Biomédica, Enfermeira, Esteticista..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tempoLivre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quanto tempo livre você tem por semana?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 10 horas, Apenas finais de semana..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="jaAtuaEstetica"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Você já atua na estética?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Sim/Não/Iniciando" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="temClinica"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Possui clínica ou consultório?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Sim, Próprio / Alugado / Atendo a domicílio" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SectionCard>
+          </div>
 
           {/* Section 2: Realidade Financeira */}
-          <SectionCard section={SECTIONS[1]} delay={0.15}>
-            <FormField
-              control={form.control}
-              name="rendaMensal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qual sua renda mensal atual (aprox)?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="R$ 0,00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="faturaEstetica"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quanto você já fatura com estética?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="R$ 0,00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="contas"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor das contas mensais (fixo + variável)?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="R$ 0,00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="custoVida"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qual seria seu custo de vida ideal?</FormLabel>
-                  <FormControl>
-                    <Input placeholder="R$ 0,00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="capacidadeInvestimento"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Capacidade de investimento mensal?</FormLabel>
-                  <FormDescription>Quanto você pode investir no seu negócio</FormDescription>
-                  <FormControl>
-                    <Input placeholder="R$ 0,00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SectionCard>
+          <div className="h-full">
+            <SectionCard section={SECTIONS[1]} delay={0.15}>
+              <FormField
+                control={form.control}
+                name="rendaMensal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qual sua renda mensal atual (aprox)?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="R$ 0,00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="faturaEstetica"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quanto você já fatura com estética?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="R$ 0,00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="contas"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor das contas mensais (fixo + variável)?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="R$ 0,00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="custoVida"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qual seria seu custo de vida ideal?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="R$ 0,00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="capacidadeInvestimento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Capacidade de investimento mensal?</FormLabel>
+                    <FormDescription>Quanto você pode investir no seu negócio</FormDescription>
+                    <FormControl>
+                      <Input placeholder="R$ 0,00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SectionCard>
+          </div>
 
           {/* Section 3: Desafios Atuais */}
-          <SectionCard section={SECTIONS[2]} delay={0.2}>
-            <FormField
-              control={form.control}
-              name="incomodaRotina"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qual seu maior desafio neste momento?</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva o que mais te incomoda na sua rotina hoje..."
-                      className="min-h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="dificuldadeCrescer"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qual sua maior dificuldade para crescer?</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Ex: Falta de clientes, Gestão, Vendas..."
-                      className="min-h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="tentativasAnteriores"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>O que você já tentou que não funcionou?</FormLabel>
-                  <FormDescription>Cursos, mentorias, estratégias anteriores</FormDescription>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva suas tentativas anteriores..."
-                      className="min-h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SectionCard>
+          <div className="h-full">
+            <SectionCard section={SECTIONS[2]} delay={0.2}>
+              <FormField
+                control={form.control}
+                name="incomodaRotina"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qual seu maior desafio neste momento?</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva o que mais te incomoda na sua rotina hoje..."
+                        className="min-h-24 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="dificuldadeCrescer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qual sua maior dificuldade para crescer?</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Ex: Falta de clientes, Gestão, Vendas..."
+                        className="min-h-24 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="tentativasAnteriores"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>O que você já tentou que não funcionou?</FormLabel>
+                    <FormDescription>Cursos, mentorias, estratégias anteriores</FormDescription>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva suas tentativas anteriores..."
+                        className="min-h-24 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SectionCard>
+          </div>
 
           {/* Section 4: Visão de Sucesso */}
-          <SectionCard section={SECTIONS[3]} delay={0.25}>
-            <FormField
-              control={form.control}
-              name="objetivo6Meses"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qual seu principal objetivo para os próximos 6 meses?</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="O que você quer conquistar?"
-                      className="min-h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="resultadoTransformador"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Se a mentoria fosse um sucesso total, como seria sua vida?</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva seu cenário ideal..."
-                      className="min-h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="visaoUmAno"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Onde você se vê daqui a 1 ano?</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Descreva sua visão de 1 ano..."
-                      className="min-h-20 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="porqueAgora"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Por que agora é o momento certo?</FormLabel>
-                  <FormDescription>O que te fez decidir buscar ajuda agora?</FormDescription>
-                  <FormControl>
-                    <Textarea
-                      placeholder="O que mudou para você agir agora..."
-                      className="min-h-20 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </SectionCard>
+          <div className="h-full">
+            <SectionCard section={SECTIONS[3]} delay={0.25}>
+              <FormField
+                control={form.control}
+                name="objetivo6Meses"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qual seu principal objetivo para os próximos 6 meses?</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="O que você quer conquistar?"
+                        className="min-h-24 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="resultadoTransformador"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Se a mentoria fosse um sucesso total, como seria sua vida?
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva seu cenário ideal..."
+                        className="min-h-24 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="visaoUmAno"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Onde você se vê daqui a 1 ano?</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Descreva sua visão de 1 ano..."
+                        className="min-h-20 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="porqueAgora"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Por que agora é o momento certo?</FormLabel>
+                    <FormDescription>O que te fez decidir buscar ajuda agora?</FormDescription>
+                    <FormControl>
+                      <Textarea
+                        placeholder="O que mudou para você agir agora..."
+                        className="min-h-20 resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SectionCard>
+          </div>
 
-          {/* Section 5: Compromisso - Full Width */}
-          <div className="lg:col-span-2">
+          {/* Section 5: Compromisso */}
+          <div className="h-full">
             <SectionCard section={SECTIONS[4]} delay={0.3}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
@@ -624,10 +634,11 @@ function SectionCard({ section, delay = 0, children }: SectionCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
+      className="h-full"
     >
       <Card
         className={cn(
-          "transition-all duration-200 hover:shadow-md",
+          "h-full transition-all duration-300 ease-in-out hover:shadow-md",
           section.bgClass,
           section.borderClass
         )}

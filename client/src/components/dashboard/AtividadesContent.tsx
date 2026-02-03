@@ -21,6 +21,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { AnimatedCheckbox } from "@/components/ui/animated-checkbox";
+import { AnimatedItem } from "@/components/ui/animated-list";
 import {
   AnimatedPopover,
   AnimatedPopoverClose,
@@ -447,19 +448,19 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
                                   toggleMutation.variables?.stepCodigo === step.codigo;
 
                                 return (
-                                  <motion.div
+                                  <AnimatedItem
                                     key={step.codigo}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.2, delay: 0.03 * stepIndex }}
+                                    index={stepIndex}
+                                    delay={0.03 * stepIndex}
                                     className={cn(
-                                      "flex items-start gap-3 py-3 px-3 rounded-lg group transition-colors",
-                                      "hover:bg-muted/50",
-                                      isCompleted && "bg-primary/5"
+                                      "flex items-start gap-4 py-4 px-4 rounded-xl group transition-all duration-300 mb-0 cursor-default",
+                                      "bg-card/50 hover:bg-muted/60 border border-transparent hover:border-primary/10",
+                                      isCompleted &&
+                                        "bg-primary/5 hover:bg-primary/10 border-primary/10"
                                     )}
                                   >
                                     {/* Checkbox */}
-                                    <div className="pt-0.5 flex-shrink-0">
+                                    <div className="pt-1 flex-shrink-0">
                                       <AnimatedCheckbox
                                         id={key}
                                         checked={isCompleted}
@@ -476,16 +477,16 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
                                       <label
                                         htmlFor={key}
                                         className={cn(
-                                          "text-sm cursor-pointer select-none block transition-all",
+                                          "text-base font-medium cursor-pointer select-none block transition-all leading-relaxed",
                                           isCompleted
-                                            ? "text-muted-foreground line-through"
+                                            ? "text-muted-foreground line-through opacity-70"
                                             : "text-foreground"
                                         )}
                                       >
                                         {step.label}
                                       </label>
                                       {step.descricao && (
-                                        <p className="text-xs text-muted-foreground/70 mt-0.5 line-clamp-2">
+                                        <p className="text-sm text-muted-foreground/80 mt-1 line-clamp-2">
                                           {step.descricao}
                                         </p>
                                       )}
@@ -558,29 +559,31 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
                                               placeholder="Escreva suas anotações, dúvidas ou insights..."
                                               className="bg-background border-border text-foreground min-h-[140px] resize-y text-sm placeholder:text-muted-foreground/50"
                                             />
-                                            <div className="flex gap-3">
+                                            <div className="grid grid-cols-2 gap-3 pt-2">
                                               <AnimatedPopoverClose asChild>
                                                 <Button
-                                                  variant="ghost"
+                                                  type="button"
+                                                  variant="outline"
                                                   size="sm"
-                                                  className="flex-1 cursor-pointer"
+                                                  className="w-full cursor-pointer hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
                                                 >
                                                   Cancelar
                                                 </Button>
                                               </AnimatedPopoverClose>
                                               <AnimatedPopoverClose asChild>
                                                 <Button
+                                                  type="button"
                                                   size="sm"
                                                   onClick={() =>
                                                     saveNote(atividade.codigo, step.codigo)
                                                   }
                                                   disabled={updateNoteMutation.isPending}
-                                                  className="flex-1 bg-primary hover:bg-primary/90 cursor-pointer"
+                                                  className="w-full bg-primary hover:bg-primary/90 cursor-pointer shadow-sm"
                                                 >
                                                   {updateNoteMutation.isPending ? (
                                                     <Loader2 className="w-4 h-4 animate-spin" />
                                                   ) : (
-                                                    "Salvar Nota"
+                                                    "Salvar"
                                                   )}
                                                 </Button>
                                               </AnimatedPopoverClose>
@@ -603,7 +606,7 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
                                     {isPending && (
                                       <Loader2 className="w-4 h-4 animate-spin text-muted-foreground flex-shrink-0" />
                                     )}
-                                  </motion.div>
+                                  </AnimatedItem>
                                 );
                               })}
                             </AnimatePresence>

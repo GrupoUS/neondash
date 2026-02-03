@@ -537,3 +537,117 @@ export function calcularProgresso(progressMap: Record<string, boolean>): {
     percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
   };
 }
+
+/**
+ * Color mapping for etapa categories
+ * Returns Tailwind border color class for left accent
+ */
+export function getEtapaColor(etapa: string): {
+  border: string;
+  bg: string;
+  text: string;
+  ring: string;
+} {
+  const colorMap: Record<string, { border: string; bg: string; text: string; ring: string }> = {
+    "Módulo 1": {
+      border: "border-l-amber-500",
+      bg: "bg-amber-500/10",
+      text: "text-amber-500",
+      ring: "ring-amber-500/30",
+    },
+    "Módulo 2": {
+      border: "border-l-emerald-500",
+      bg: "bg-emerald-500/10",
+      text: "text-emerald-500",
+      ring: "ring-emerald-500/30",
+    },
+    Posicionamento: {
+      border: "border-l-blue-500",
+      bg: "bg-blue-500/10",
+      text: "text-blue-500",
+      ring: "ring-blue-500/30",
+    },
+    Autoconhecimento: {
+      border: "border-l-violet-500",
+      bg: "bg-violet-500/10",
+      text: "text-violet-500",
+      ring: "ring-violet-500/30",
+    },
+    Mentoria: {
+      border: "border-l-rose-500",
+      bg: "bg-rose-500/10",
+      text: "text-rose-500",
+      ring: "ring-rose-500/30",
+    },
+    Planejamento: {
+      border: "border-l-orange-500",
+      bg: "bg-orange-500/10",
+      text: "text-orange-500",
+      ring: "ring-orange-500/30",
+    },
+    Mindset: {
+      border: "border-l-teal-500",
+      bg: "bg-teal-500/10",
+      text: "text-teal-500",
+      ring: "ring-teal-500/30",
+    },
+    Gestão: {
+      border: "border-l-slate-500",
+      bg: "bg-slate-500/10",
+      text: "text-slate-500",
+      ring: "ring-slate-500/30",
+    },
+    Marketing: {
+      border: "border-l-pink-500",
+      bg: "bg-pink-500/10",
+      text: "text-pink-500",
+      ring: "ring-pink-500/30",
+    },
+    Vendas: {
+      border: "border-l-orange-600",
+      bg: "bg-orange-600/10",
+      text: "text-orange-600",
+      ring: "ring-orange-600/30",
+    },
+    Hábitos: {
+      border: "border-l-cyan-500",
+      bg: "bg-cyan-500/10",
+      text: "text-cyan-500",
+      ring: "ring-cyan-500/30",
+    },
+  };
+
+  return (
+    colorMap[etapa] ?? {
+      border: "border-l-primary",
+      bg: "bg-primary/10",
+      text: "text-primary",
+      ring: "ring-primary/30",
+    }
+  );
+}
+
+/**
+ * Get motivational message based on progress percentage
+ */
+export function getMotivationalMessage(percentage: number): {
+  message: string;
+  emoji: string;
+} {
+  if (percentage === 100) {
+    return { message: "Parabéns! Jornada completa! 🎉", emoji: "🏆" };
+  }
+  if (percentage >= 75) {
+    return { message: "Quase lá! Você está arrasando!", emoji: "🔥" };
+  }
+  if (percentage >= 50) {
+    return { message: "Metade do caminho! Continue assim!", emoji: "💪" };
+  }
+  if (percentage >= 25) {
+    return { message: "Ótimo progresso! Mantenha o ritmo!", emoji: "⚡" };
+  }
+  if (percentage > 0) {
+    return { message: "Bom começo! O primeiro passo é o mais importante.", emoji: "🚀" };
+  }
+  return { message: "Sua jornada começa agora!", emoji: "✨" };
+}

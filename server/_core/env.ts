@@ -20,4 +20,10 @@ export const ENV = {
 
   // Brave Search API (optional, for web search tool)
   braveSearchApiKey: process.env.BRAVE_SEARCH_API_KEY,
+
+  // Instagram Business API OAuth (optional, for Instagram metrics sync)
+  instagramAppId: process.env.INSTAGRAM_APP_ID,
+  instagramAppSecret: process.env.INSTAGRAM_APP_SECRET,
+  instagramRedirectUri:
+    process.env.INSTAGRAM_REDIRECT_URI ?? "http://localhost:3000/api/instagram/callback",
 };

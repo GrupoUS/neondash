@@ -50,12 +50,13 @@ export interface ZApiWebhookPayload {
 }
 
 /**
- * Build authorization headers for Z-API requests
+ * Build headers for Z-API requests
+ * Note: Authentication is done via URL path (token in URL), not via headers.
+ * Client-Token header is only required when "Account Security Token" is enabled in Z-API dashboard.
  */
-function buildHeaders(credentials: ZApiCredentials): HeadersInit {
+function buildHeaders(): HeadersInit {
   return {
     "Content-Type": "application/json",
-    "Client-Token": credentials.token,
   };
 }
 
@@ -78,7 +79,7 @@ async function zapiRequest<T>(
   const url = buildUrl(credentials, endpoint);
   const options: RequestInit = {
     method,
-    headers: buildHeaders(credentials),
+    headers: buildHeaders(),
   };
 
   if (body) {

@@ -151,6 +151,7 @@ export const mentorados = pgTable(
   },
   (table) => [
     index("mentorados_user_id_idx").on(table.userId),
+    uniqueIndex("mentorados_user_id_unique_idx").on(table.userId),
     index("mentorados_email_idx").on(table.email),
     index("mentorados_turma_idx").on(table.turma),
     index("mentorados_turma_ativo_idx").on(table.turma, table.ativo),

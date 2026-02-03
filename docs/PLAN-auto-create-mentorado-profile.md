@@ -354,18 +354,59 @@
 - **priority**: high
 - **dependencies**: [AT-003]
 - **parallel_safe**: false
-- **files_to_modify**: 
+- **files_to_modify**:
   - `client/src/components/auth/AuthSync.tsx`
-- **validation**: 
+- **implementation_notes**: |
+  Usar TanStack Query's built-in retry com exponential backoff:
+  
+  ```typescript
+  export function AuthSync() {
+    const { isAuthenticated } = useAuth();
+    const hasSynced = useRef(false);
+    const utils = trpc.useUtils();
+    
+    const { mutate: ensureMentorado, isPending } = trpc.auth.ensureMentorado.useMutation({
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // 1s, 2s, 4s
+      onSuccess: (data) => {
+        if (data.created) {
+          toast.success("Perfil criado com sucesso!");
+        }
+        // Invalidar queries para forçar refetch
+        utils.mentorados.me.invalidate();
+        utils.auth.me.invalidate();
+      },
+      onError: (error) => {
+        toast.error("Erro ao preparar seu perfil. Tente recarregar a página.");
+        console.error("ensureMentorado failed:", error);
+      },
+    });
+    
+    useEffect(() => {
+      if (isAuthenticated && !hasSynced.current) {
+        hasSynced.current = true;
+        ensureMentorado();
+      }
+    }, [isAuthenticated, ensureMentorado]);
+    
+    // Opcional: Mostrar loading indicator
+    if (isPending) {
+      return <LoadingToast message="Preparando seu perfil..." />;
+    }
+    
+    return null;
+  }
+  ```
+- **validation**:
   - Testar login com usuário novo
-  - Verificar retry em caso de falha
+  - Verificar retry em caso de falha simulada
   - Confirmar que toast aparece apenas quando apropriado
 - **rollback**: Reverter para `syncUser`
 - **acceptance_criteria**:
   - [ ] Usa `ensureMentorado` em vez de `syncUser`
-  - [ ] Implementa retry com backoff (3 tentativas)
-  - [ ] Mostra erro amigável se falhar após retries
+  - [ ] Implementa retry com exponential backoff (3 tentativas: 1s, 2s, 4s)
   - [ ] Invalida queries do TanStack em sucesso
+  - [ ] Mostra feedback visual durante criação
 
 #### AT-005: Adicionar query invalidation após criação
 - **id**: AT-005
@@ -394,17 +435,57 @@
 - **priority**: high
 - **dependencies**: [AT-003]
 - **parallel_safe**: false
-- **files_to_modify**: 
+- **files_to_modify**:
   - `drizzle/schema.ts`
-- **validation**: 
-  - Gerar migração
-  - Verificar que não há duplicados existentes
-  - Aplicar em staging
-- **rollback**: Remover índice, reverter migração
+- **implementation_notes**: |
+  Modificar schema em `drizzle/schema.ts`:
+  
+  ```typescript
+  export const mentorados = pgTable(
+    "mentorados",
+    {
+      id: serial("id").primaryKey(),
+      userId: integer("user_id")
+        .references(() => users.id, { onDelete: "set null" })
+        .unique(), // ADD THIS
+      // ... resto dos campos
+    },
+    (table) => [
+      index("mentorados_user_id_idx").on(table.userId),
+      uniqueIndex("mentorados_user_id_unique_idx").on(table.userId), // EXPLICIT INDEX
+      // ... outros índices
+    ]
+  );
+  ```
+  
+  **Antes de aplicar em produção:**
+  ```sql
+  -- Verificar duplicados existentes
+  SELECT user_id, COUNT(*)
+  FROM mentorados
+  WHERE user_id IS NOT NULL
+  GROUP BY user_id
+  HAVING COUNT(*) > 1;
+  ```
+  
+  Gerar migração:
+  ```bash
+  bun run db:generate
+  bun run db:push
+  ```
+- **validation**:
+  - Verificar que não há duplicados existentes (query acima)
+  - Gerar migração com `bun run db:generate`
+  - Aplicar em staging e testar criação de mentorado
+- **rollback**:
+  ```bash
+  bun run db:migrate:down
+  ```
 - **acceptance_criteria**:
-  - [ ] Índice único em `mentorados.userId`
-  - [ ] Migração trata dados existentes
-  - [ ] Testes passam com constraint
+  - [ ] Constraint UNIQUE em `mentorados.userId`
+  - [ ] Migração gerada e testada em staging
+  - [ ] Não há duplicados na base de dados
+  - [ ] Testes de carga passam (criação simultânea)
 
 #### AT-007: Adicionar logs estruturados para monitoramento
 - **id**: AT-007

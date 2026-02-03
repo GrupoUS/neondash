@@ -1,5 +1,6 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import { AtividadesContent } from "@/components/dashboard/AtividadesContent";
 import { DiagnosticoForm } from "@/components/dashboard/DiagnosticoForm";
@@ -8,6 +9,7 @@ import { InstagramAnalyticsView } from "@/components/dashboard/InstagramAnalytic
 import { MenteeOverview } from "@/components/dashboard/MenteeOverview";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { FloatingDock } from "@/components/ui/floating-dock";
 import { NeonCard } from "@/components/ui/neon-card";
 import {
@@ -86,20 +88,53 @@ export default function MyDashboard() {
   }
 
   if (error || (!currentMentorado && !isAdmin)) {
-    // If not admin and no mentorado, show restricted access
+    // AT-008: Enhanced error state with retry button
     return (
       <DashboardLayout>
-        <Alert
-          variant="destructive"
-          className="bg-destructive/10 border-destructive/20 text-destructive"
-        >
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Acesso Restrito</AlertTitle>
-          <AlertDescription>
-            Este dashboard é exclusivo para mentorados oficiais. Se você é um mentorado e está vendo
-            esta mensagem, entre em contato com o suporte.
-          </AlertDescription>
-        </Alert>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+          <Alert
+            variant="destructive"
+            className="bg-destructive/10 border-destructive/20 text-destructive max-w-lg"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Perfil não encontrado</AlertTitle>
+            <AlertDescription className="space-y-4">
+              <p>
+                Não conseguimos carregar seu perfil de mentorado. Isso pode acontecer se você acabou
+                de fazer login ou se houve um problema temporário.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    toast.loading("Tentando novamente...", { duration: 2000 });
+                    window.location.reload();
+                  }}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Tentar novamente
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    window.open("https://wa.me/5511999999999", "_blank");
+                  }}
+                  className="gap-2"
+                >
+                  Contatar suporte
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+
+          {/* Hidden legacy message for debugging */}
+          <p className="text-xs text-muted-foreground">
+            Código: {error ? "MENTORADO_ERROR" : "MENTORADO_NOT_FOUND"}
+          </p>
+        </div>
       </DashboardLayout>
     );
   }

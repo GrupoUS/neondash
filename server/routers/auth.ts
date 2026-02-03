@@ -1,5 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { mentorados } from "../../drizzle/schema";
+import { createLogger } from "../_core/logger";
+import { invalidateSession } from "../_core/sessionCache";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 
@@ -142,5 +144,89 @@ export const authRouter = router({
       mentoradoId,
       message: linked ? "Linked successfully" : "No matching unlinked mentorado found",
     };
+  }),
+
+  /**
+   * AT-003: Ensure mentorado exists for the current user.
+   * Creates mentorado if not exists using idempotent upsert pattern.
+   * Returns existing mentorado if already present.
+   */
+  ensureMentorado: protectedProcedure.mutation(async ({ ctx }) => {
+    const logger = createLogger({ service: "auth", userId: ctx.user?.clerkId });
+
+    // If mentorado already exists in context, return it
+    if (ctx.mentorado) {
+      logger.info("ensureMentorado_already_exists", {
+        mentoradoId: ctx.mentorado.id,
+        userId: ctx.user?.id,
+      });
+      return { success: true, mentorado: ctx.mentorado, created: false };
+    }
+
+    const user = ctx.user!;
+    const db = getDb();
+
+    logger.info("ensureMentorado_start", {
+      userId: user.id,
+      email: user.email,
+    });
+
+    try {
+      // Use onConflictDoNothing for idempotent insert (race condition safe)
+      await db
+        .insert(mentorados)
+        .values({
+          userId: user.id,
+          nomeCompleto: user.name || "Novo Usuário",
+          email: user.email,
+          fotoUrl: user.imageUrl,
+          turma: "neon",
+          ativo: "sim",
+          metaFaturamento: 16000,
+          metaLeads: 50,
+          metaProcedimentos: 10,
+          metaPosts: 12,
+          metaStories: 60,
+        })
+        .onConflictDoNothing({ target: mentorados.userId });
+
+      logger.info("ensureMentorado_upsert_completed", {
+        userId: user.id,
+      });
+
+      // Fetch the mentorado (existing or newly created)
+      const mentorado = await db.query.mentorados.findFirst({
+        where: eq(mentorados.userId, user.id),
+      });
+
+      if (!mentorado) {
+        logger.error("ensureMentorado_fetch_failed", null, {
+          userId: user.id,
+        });
+        throw new Error("Failed to fetch mentorado after upsert");
+      }
+
+      const wasCreated = !ctx.mentorado;
+
+      logger.info("ensureMentorado_success", {
+        mentoradoId: mentorado.id,
+        userId: user.id,
+        created: wasCreated,
+      });
+
+      // Invalidate cache so next request gets fresh context
+      await invalidateSession(user.clerkId);
+      logger.info("ensureMentorado_cache_invalidated", {
+        clerkId: user.clerkId,
+      });
+
+      return { success: true, mentorado, created: wasCreated };
+    } catch (error) {
+      logger.error("ensureMentorado_failed", error, {
+        userId: user.id,
+        email: user.email,
+      });
+      throw error;
+    }
   }),
 });

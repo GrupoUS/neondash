@@ -303,12 +303,12 @@ export function SubmitMetricsForm({
           {instagramData ? (
             <div className="flex gap-2">
               <InstagramBadge
-                count={instagramData.postsCount}
+                count={instagramData.posts}
                 syncedAt={instagramData.syncedAt}
                 type="posts"
               />
               <InstagramBadge
-                count={instagramData.storiesCount}
+                count={instagramData.stories}
                 syncedAt={instagramData.syncedAt}
                 type="stories"
               />

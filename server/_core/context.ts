@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { type Mentorado, mentorados, type User, users } from "../../drizzle/schema";
 import { getDb, upsertUserFromClerk } from "../db";
 import { createLogger, generateRequestId } from "./logger";
-import { getCachedSession, setCachedSession } from "./sessionCache";
+import { getCachedSession, invalidateSession, setCachedSession } from "./sessionCache";
 
 // Initialize Clerk client for backend API calls
 const clerkClient = createClerkClient({
@@ -56,6 +56,52 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
     if (result[0]) {
       user = result[0].user;
       mentorado = result[0].mentorado;
+    }
+
+    // AT-002: Verify mentorado exists even on cache hit
+    if (user && !mentorado) {
+      logger.info("cache_hit_no_mentorado", {
+        userId: user.id,
+        clerkId: auth.userId,
+      });
+
+      // Try to auto-create mentorado for cache hit with missing mentorado
+      try {
+        const [newMentorado] = await db
+          .insert(mentorados)
+          .values({
+            userId: user.id,
+            nomeCompleto: user.name || "Novo Usuário",
+            email: user.email,
+            fotoUrl: user.imageUrl,
+            turma: "neon",
+            ativo: "sim",
+            metaFaturamento: 16000,
+            metaLeads: 50,
+            metaProcedimentos: 10,
+            metaPosts: 12,
+            metaStories: 60,
+          })
+          .returning();
+
+        mentorado = newMentorado;
+        logger.info("mentorado_created_cache_hit", {
+          mentoradoId: newMentorado?.id,
+          userId: user.id,
+        });
+
+        // AT-001: Invalidate cache after creating mentorado
+        await invalidateSession(auth.userId);
+        logger.info("session_cache_invalidated", {
+          clerkId: auth.userId,
+          reason: "mentorado_created",
+        });
+      } catch (error) {
+        logger.error("mentorado_creation_failed_cache_hit", error, {
+          userId: user.id,
+          email: user.email,
+        });
+      }
     }
   } else {
     // Cache miss: fetch from Clerk and sync
@@ -138,6 +184,13 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
             logger.info("mentorado_created", {
               mentoradoId: newMentorado?.id,
               userId: user.id,
+            });
+
+            // AT-001: Invalidate cache after creating mentorado
+            await invalidateSession(auth.userId);
+            logger.info("session_cache_invalidated", {
+              clerkId: auth.userId,
+              reason: "mentorado_created",
             });
           } catch (error) {
             logger.error("mentorado_creation_failed", error, {

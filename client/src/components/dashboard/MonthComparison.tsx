@@ -42,7 +42,7 @@ function MetricCard({
   const isNeutral = variation === 0;
 
   return (
-    <div className="flex flex-col gap-2 p-4 rounded-lg bg-black/20 border border-white/5">
+    <div className="flex flex-col gap-2 p-4 rounded-lg bg-muted/50 dark:bg-black/20 border border-border/50 dark:border-white/5">
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">{title}</span>
         {isPositive ? (
@@ -52,7 +52,9 @@ function MetricCard({
         )}
       </div>
       <div className="flex items-end justify-between">
-        <span className="text-2xl font-bold">{isCurrency ? formatCurrency(current) : current}</span>
+        <span className="text-2xl font-bold text-foreground">
+          {isCurrency ? formatCurrency(current) : current}
+        </span>
         <div
           className={cn(
             "flex items-center gap-1 text-sm font-medium",
@@ -112,7 +114,12 @@ export function MonthComparison({ currentMonth, previousMonth, className }: Mont
   };
 
   return (
-    <Card className={cn("bg-black/40 border-white/5", className)}>
+    <Card
+      className={cn(
+        "bg-card dark:bg-black/40 border-border dark:border-white/5 shadow-sm",
+        className
+      )}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
           <span className="text-primary">📊</span>

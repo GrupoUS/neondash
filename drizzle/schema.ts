@@ -39,6 +39,7 @@ export const tipoNotificacaoEnum = pgEnum("tipo_notificacao", [
   "ranking",
 ]);
 export const simNaoEnum = pgEnum("sim_nao", ["sim", "nao"]);
+export const syncStatusEnum = pgEnum("sync_status", ["success", "failed", "partial"]);
 export const channelTypeEnum = pgEnum("channel_type", ["webchat", "whatsapp", "telegram", "slack"]);
 
 export const origemLeadEnum = pgEnum("origem_lead", [
@@ -135,6 +136,10 @@ export const mentorados = pgTable(
     zapiConnected: simNaoEnum("zapi_connected").default("nao"),
     zapiConnectedAt: timestamp("zapi_connected_at"),
     zapiPhone: varchar("zapi_phone", { length: 20 }),
+    // Instagram Integration
+    instagramConnected: simNaoEnum("instagram_connected").default("nao"),
+    instagramBusinessAccountId: varchar("instagram_business_account_id", { length: 100 }),
+    lastMetricsReminder: timestamp("last_metrics_reminder"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -168,6 +173,9 @@ export const metricasMensais = pgTable(
     leads: integer("leads").notNull().default(0),
     procedimentos: integer("procedimentos").notNull().default(0),
     observacoes: text("observacoes"),
+    // Instagram Sync Tracking
+    instagramSynced: simNaoEnum("instagram_synced").default("nao"),
+    instagramSyncDate: timestamp("instagram_sync_date"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -830,3 +838,98 @@ export const aiAgentConfig = pgTable(
 
 export type AiAgentConfig = typeof aiAgentConfig.$inferSelect;
 export type InsertAiAgentConfig = typeof aiAgentConfig.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INSTAGRAM INTEGRATION TABLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Instagram Tokens - OAuth tokens for Instagram API integration
+ * Modeled after googleTokens but references mentorados instead of users
+ */
+export const instagramTokens = pgTable(
+  "instagram_tokens",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" })
+      .unique(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token"),
+    expiresAt: timestamp("expires_at").notNull(),
+    scope: text("scope").notNull(),
+    instagramBusinessAccountId: varchar("instagram_business_account_id", { length: 100 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("instagram_tokens_mentorado_idx").on(table.mentoradoId),
+    index("instagram_tokens_expires_idx").on(table.expiresAt),
+  ]
+);
+
+export type InstagramToken = typeof instagramTokens.$inferSelect;
+export type InsertInstagramToken = typeof instagramTokens.$inferInsert;
+
+/**
+ * Instagram Sync Log - Tracks Instagram content sync history
+ */
+export const instagramSyncLog = pgTable(
+  "instagram_sync_log",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    ano: integer("ano").notNull(),
+    mes: integer("mes").notNull(),
+    postsCount: integer("posts_count").notNull().default(0),
+    storiesCount: integer("stories_count").notNull().default(0),
+    syncStatus: syncStatusEnum("sync_status").notNull(),
+    errorMessage: text("error_message"),
+    syncedAt: timestamp("synced_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("instagram_sync_mentorado_periodo_idx").on(table.mentoradoId, table.ano, table.mes),
+    index("instagram_sync_mentorado_idx").on(table.mentoradoId),
+    index("instagram_sync_periodo_idx").on(table.ano, table.mes),
+    index("instagram_sync_status_idx").on(table.syncStatus),
+    index("instagram_sync_date_idx").on(table.syncedAt),
+  ]
+);
+
+export type InstagramSyncLog = typeof instagramSyncLog.$inferSelect;
+export type InsertInstagramSyncLog = typeof instagramSyncLog.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALL NOTES TABLE
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Call Notes - Records from mentor-mentee calls
+ */
+export const callNotes = pgTable(
+  "call_notes",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    dataCall: timestamp("data_call").notNull(),
+    principaisInsights: text("principais_insights").notNull(),
+    acoesAcordadas: text("acoes_acordadas").notNull(),
+    proximosPassos: text("proximos_passos").notNull(),
+    duracaoMinutos: integer("duracao_minutos"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("call_notes_mentorado_idx").on(table.mentoradoId),
+    index("call_notes_data_idx").on(table.dataCall),
+    index("call_notes_mentorado_data_idx").on(table.mentoradoId, table.dataCall),
+  ]
+);
+
+export type CallNote = typeof callNotes.$inferSelect;
+export type InsertCallNote = typeof callNotes.$inferInsert;

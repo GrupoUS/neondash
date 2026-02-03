@@ -2,7 +2,10 @@ import { relations } from "drizzle-orm";
 import {
   aiAgentConfig,
   badges,
+  callNotes,
   feedbacks,
+  instagramSyncLog,
+  instagramTokens,
   interacoes,
   leads,
   mentoradoBadges,
@@ -43,6 +46,11 @@ export const mentoradosRelations = relations(mentorados, ({ one, many }) => ({
   notificacoes: many(notificacoes),
   leads: many(leads),
   interacoes: many(interacoes),
+  // Instagram Integration
+  instagramTokens: one(instagramTokens),
+  instagramSyncLogs: many(instagramSyncLog),
+  // Call Notes
+  callNotes: many(callNotes),
 }));
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -172,6 +180,39 @@ export const whatsappMessagesRelations = relations(whatsappMessages, ({ one }) =
 export const aiAgentConfigRelations = relations(aiAgentConfig, ({ one }) => ({
   mentorado: one(mentorados, {
     fields: [aiAgentConfig.mentoradoId],
+    references: [mentorados.id],
+  }),
+}));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INSTAGRAM TOKENS RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const instagramTokensRelations = relations(instagramTokens, ({ one }) => ({
+  mentorado: one(mentorados, {
+    fields: [instagramTokens.mentoradoId],
+    references: [mentorados.id],
+  }),
+}));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INSTAGRAM SYNC LOG RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const instagramSyncLogRelations = relations(instagramSyncLog, ({ one }) => ({
+  mentorado: one(mentorados, {
+    fields: [instagramSyncLog.mentoradoId],
+    references: [mentorados.id],
+  }),
+}));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALL NOTES RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const callNotesRelations = relations(callNotes, ({ one }) => ({
+  mentorado: one(mentorados, {
+    fields: [callNotes.mentoradoId],
     references: [mentorados.id],
   }),
 }));

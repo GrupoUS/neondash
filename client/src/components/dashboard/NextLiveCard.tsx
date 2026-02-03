@@ -86,7 +86,7 @@ export function NextLiveCard({ isAdmin = false }: NextLiveCardProps) {
   };
 
   if (isLoading) {
-    return <div className="h-48 w-full bg-slate-800/50 animate-pulse rounded-2xl" />;
+    return <div className="h-48 w-full bg-muted dark:bg-slate-800/50 animate-pulse rounded-2xl" />;
   }
 
   // If no session and not admin, show nothing or placeholder
@@ -99,15 +99,15 @@ export function NextLiveCard({ isAdmin = false }: NextLiveCardProps) {
     new Date() <= new Date(sessionDate.getTime() + 1000 * 60 * 90); // Assumes 90 min duration
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-[#D4AF37]/20 bg-gradient-to-br from-slate-900 via-slate-900 to-black shadow-xl">
+    <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-muted via-muted to-background dark:from-slate-900 dark:via-slate-900 dark:to-black shadow-xl">
       {/* Background Glow */}
-      <div className="absolute top-0 right-0 -m-16 h-64 w-64 rounded-full bg-[#D4AF37]/5 blur-3xl" />
+      <div className="absolute top-0 right-0 -m-16 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
 
       <div className="relative flex flex-col md:flex-row gap-6 p-6">
         {/* Left: Image/Thumbnail */}
-        <div className="relative shrink-0 w-full md:w-32 h-32 rounded-xl overflow-hidden bg-slate-800 flex items-center justify-center border border-slate-700">
+        <div className="relative shrink-0 w-full md:w-32 h-32 rounded-xl overflow-hidden bg-muted dark:bg-slate-800 flex items-center justify-center border border-border dark:border-slate-700">
           {/* Placeholder or Image */}
-          <Video className="w-12 h-12 text-[#D4AF37]" />
+          <Video className="w-12 h-12 text-primary" />
           {/* If we had an image URL properly stored: 
                <img src={session.imageUrl} className="absolute inset-0 w-full h-full object-cover" /> 
            */}
@@ -122,20 +122,20 @@ export function NextLiveCard({ isAdmin = false }: NextLiveCardProps) {
         {/* Content */}
         <div className="flex-1 flex flex-col justify-center gap-2">
           {sessionDate && (
-            <div className="flex items-center gap-2 text-[#D4AF37] font-medium text-sm">
+            <div className="flex items-center gap-2 text-primary font-medium text-sm">
               <Calendar className="w-4 h-4" />
               {format(sessionDate, "dd/MM/yyyy", { locale: ptBR })}
-              <span className="w-1 h-1 rounded-full bg-slate-600" />
+              <span className="w-1 h-1 rounded-full bg-muted-foreground" />
               <Clock className="w-4 h-4" />
               {format(sessionDate, "HH:mm")}
             </div>
           )}
 
-          <h3 className="text-xl md:text-2xl font-bold text-white leading-tight">
+          <h3 className="text-xl md:text-2xl font-bold text-foreground leading-tight">
             {session?.title || "Nenhuma aula agendada"}
           </h3>
 
-          <p className="text-slate-400 text-sm line-clamp-2">
+          <p className="text-muted-foreground text-sm line-clamp-2">
             {session?.description ||
               (isAdmin ? "Configure a próxima aula..." : "Aguarde novidades!")}
           </p>
@@ -166,13 +166,13 @@ export function NextLiveCard({ isAdmin = false }: NextLiveCardProps) {
                   variant="outline"
                   size="sm"
                   onClick={handleEditClick}
-                  className="w-full border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800"
+                  className="w-full border-border dark:border-slate-700 text-muted-foreground hover:text-foreground hover:bg-accent dark:hover:bg-slate-800"
                 >
                   <Edit2 className="w-4 h-4 mr-2" />
                   Editar
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-white">
+              <DialogContent className="sm:max-w-md bg-card dark:bg-slate-900 border-border dark:border-slate-800 text-foreground">
                 <DialogHeader>
                   <DialogTitle>Configurar Próxima Aula</DialogTitle>
                 </DialogHeader>

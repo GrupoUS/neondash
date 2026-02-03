@@ -42,9 +42,9 @@ export function FinancialHistoryChart({ data }: FinancialHistoryChartProps) {
   }));
 
   return (
-    <Card className="bg-slate-900/50 border-slate-700 shadow-lg">
+    <Card className="bg-card dark:bg-slate-900/50 border-border dark:border-slate-700 shadow-lg">
       <CardHeader>
-        <CardTitle className="text-slate-200 text-sm font-medium">
+        <CardTitle className="text-foreground dark:text-slate-200 text-sm font-medium">
           Receita Mensal dos Últimos 12 Meses
         </CardTitle>
       </CardHeader>

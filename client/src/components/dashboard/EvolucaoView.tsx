@@ -79,7 +79,7 @@ export function EvolucaoView({ mentoradoId }: EvolucaoViewProps) {
 
       <EvolutionChart mentoradoId={mentoradoId} />
 
-      <Card className="col-span-4 bg-black/40 border-white/5">
+      <Card className="col-span-4 bg-card dark:bg-black/40 border-border dark:border-white/5 shadow-sm">
         <CardHeader>
           <CardTitle>Lançar Métricas Mensais</CardTitle>
           <CardDescription>

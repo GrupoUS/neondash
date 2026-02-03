@@ -77,6 +77,7 @@ export const temperaturaLeadEnum = pgEnum("temperatura_lead", ["frio", "morno", 
 // WhatsApp / Z-API enums
 export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "outbound"]);
 export const messageStatusEnum = pgEnum("message_status", ["pending", "sent", "delivered", "read", "failed"]);
+export const zapiInstanceStatusEnum = pgEnum("zapi_instance_status", ["trial", "active", "suspended", "canceled"]);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLES
@@ -136,6 +137,11 @@ export const mentorados = pgTable(
     zapiConnected: simNaoEnum("zapi_connected").default("nao"),
     zapiConnectedAt: timestamp("zapi_connected_at"),
     zapiPhone: varchar("zapi_phone", { length: 20 }),
+    // Z-API Integrator Lifecycle Management
+    zapiInstanceStatus: zapiInstanceStatusEnum("zapi_instance_status"),
+    zapiInstanceDueDate: timestamp("zapi_instance_due_date"), // Trial expiry or next billing date
+    zapiInstanceCreatedAt: timestamp("zapi_instance_created_at"), // When instance was provisioned
+    zapiManagedByIntegrator: simNaoEnum("zapi_managed_by_integrator").default("nao"), // Distinguishes managed vs legacy
     // Instagram Integration
     instagramConnected: simNaoEnum("instagram_connected").default("nao"),
     instagramBusinessAccountId: varchar("instagram_business_account_id", { length: 100 }),

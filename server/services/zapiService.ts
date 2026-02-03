@@ -239,12 +239,176 @@ export function phonesMatch(phone1: string, phone2: string): boolean {
   return last8_1 === last8_2 && ddd1 === ddd2;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// INTEGRATOR API FUNCTIONS
+// For managing instances programmatically via the Z-API Integrator Partner program
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ZAPI_INTEGRATOR_URL = "https://api.z-api.io/instances/integrator";
+
+export interface ZApiCreateInstanceResponse {
+  id: string;
+  token: string;
+  due?: string; // Trial expiration date
+}
+
+export interface ZApiInstanceInfo {
+  id: string;
+  token: string;
+  phone?: string;
+  connected?: boolean;
+  due?: string;
+}
+
+/**
+ * Get the Integrator Token from environment variables
+ * @throws Error if token is not configured
+ */
+export function getIntegratorToken(): string {
+  const token = process.env.ZAPI_INTEGRATOR_TOKEN;
+  if (!token) {
+    throw new Error(
+      "ZAPI_INTEGRATOR_TOKEN not configured. Contact Z-API to become an Integrator partner."
+    );
+  }
+  return token;
+}
+
+/**
+ * Check if integrator mode is available (token is configured)
+ */
+export function isIntegratorModeAvailable(): boolean {
+  return Boolean(process.env.ZAPI_INTEGRATOR_TOKEN);
+}
+
+/**
+ * Build headers for Integrator API requests
+ */
+function buildIntegratorHeaders(): HeadersInit {
+  return {
+    "Content-Type": "application/json",
+    "Integrator-Token": getIntegratorToken(),
+  };
+}
+
+/**
+ * Create a new Z-API instance via the Integrator API
+ * The instance starts in trial mode (2 days free)
+ *
+ * @param name - Name for the new instance (visible in Z-API dashboard)
+ * @param options - Optional configuration for webhooks and device type
+ */
+export async function createInstance(
+  name: string,
+  options?: {
+    sessionName?: string;
+    deliveryCallbackUrl?: string;
+    receivedCallbackUrl?: string;
+    disconnectedCallbackUrl?: string;
+    connectedCallbackUrl?: string;
+    messageStatusCallbackUrl?: string;
+    isDevice?: boolean;
+    businessDevice?: boolean;
+  }
+): Promise<ZApiCreateInstanceResponse> {
+  const response = await fetch(`${ZAPI_INTEGRATOR_URL}/on-demand`, {
+    method: "POST",
+    headers: buildIntegratorHeaders(),
+    body: JSON.stringify({
+      name,
+      ...options,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create Z-API instance (${response.status}): ${errorText}`);
+  }
+
+  return response.json() as Promise<ZApiCreateInstanceResponse>;
+}
+
+/**
+ * Subscribe to an instance (convert trial to paid)
+ * This activates billing through the Integrator's account
+ *
+ * @param instanceId - The instance ID to subscribe
+ * @param token - The instance token
+ */
+export async function subscribeInstance(instanceId: string, token: string): Promise<boolean> {
+  const url = `${ZAPI_BASE_URL}/instances/${instanceId}/token/${token}/subscription`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: buildIntegratorHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to subscribe Z-API instance (${response.status}): ${errorText}`);
+  }
+
+  return true;
+}
+
+/**
+ * Cancel an instance subscription
+ * The instance remains active until the end of the current billing period
+ *
+ * @param instanceId - The instance ID to cancel
+ * @param token - The instance token
+ */
+export async function cancelInstance(instanceId: string, token: string): Promise<boolean> {
+  const url = `${ZAPI_BASE_URL}/instances/${instanceId}/token/${token}/cancel`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: buildIntegratorHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to cancel Z-API instance (${response.status}): ${errorText}`);
+  }
+
+  return true;
+}
+
+/**
+ * List all instances managed by this Integrator account
+ */
+export async function listIntegratorInstances(): Promise<ZApiInstanceInfo[]> {
+  const response = await fetch(`${ZAPI_INTEGRATOR_URL}/list`, {
+    method: "GET",
+    headers: buildIntegratorHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to list Z-API instances (${response.status}): ${errorText}`);
+  }
+
+  const data = (await response.json()) as { instances?: ZApiInstanceInfo[] };
+  return data.instances ?? [];
+}
+
 export const zapiService = {
+  // Connection & Messaging
   getQRCode,
   getConnectionStatus,
   disconnect,
   sendTextMessage,
+
+  // Phone utilities
   normalizePhoneNumber,
   formatPhoneForDisplay,
   phonesMatch,
+
+  // Integrator API (Partner mode)
+  getIntegratorToken,
+  isIntegratorModeAvailable,
+  createInstance,
+  subscribeInstance,
+  cancelInstance,
+  listIntegratorInstances,
 };

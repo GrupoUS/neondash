@@ -63,14 +63,65 @@ export function createLogger(context: Partial<LogContext> = {}): Logger {
   };
 
   return {
-    info: (_action: string, _data?: Record<string, unknown>) => {},
+    info: (action: string, data?: Record<string, unknown>) => {
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        level: "INFO",
+        service,
+        requestId,
+        userId: context.userId ?? undefined,
+        action,
+        ...data,
+      };
+      // biome-ignore lint/suspicious/noConsole: logger implementation requires console output
+      console.log(JSON.stringify(logEntry));
+    },
 
-    warn: (_action: string, _error?: unknown, _data?: Record<string, unknown>) => {},
+    warn: (action: string, error?: unknown, data?: Record<string, unknown>) => {
+      const formattedError = error ? _formatError(error) : undefined;
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        level: "WARN",
+        service,
+        requestId,
+        userId: context.userId ?? undefined,
+        action,
+        error: formattedError,
+        ...data,
+      };
+      // biome-ignore lint/suspicious/noConsole: logger implementation requires console output
+      console.warn(JSON.stringify(logEntry));
+    },
 
-    error: (_action: string, _error: unknown, _data?: Record<string, unknown>) => {},
+    error: (action: string, error: unknown, data?: Record<string, unknown>) => {
+      const formattedError = _formatError(error);
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR",
+        service,
+        requestId,
+        userId: context.userId ?? undefined,
+        action,
+        error: formattedError,
+        ...data,
+      };
+      // biome-ignore lint/suspicious/noConsole: logger implementation requires console output
+      console.error(JSON.stringify(logEntry));
+    },
 
-    debug: (_action: string, _data?: Record<string, unknown>) => {
+    debug: (action: string, data?: Record<string, unknown>) => {
       if (process.env.NODE_ENV === "development") {
+        const logEntry = {
+          timestamp: new Date().toISOString(),
+          level: "DEBUG",
+          service,
+          requestId,
+          userId: context.userId ?? undefined,
+          action,
+          ...data,
+        };
+        // biome-ignore lint/suspicious/noConsole: logger implementation requires console output
+        console.debug(JSON.stringify(logEntry));
       }
     },
   };

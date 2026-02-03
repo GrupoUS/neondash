@@ -1,5 +1,5 @@
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import DashboardLayout from "@/components/DashboardLayout";
@@ -29,8 +29,18 @@ export default function MyDashboard() {
   const [activeTab, setActiveTab] = useState("visao-geral");
 
   // 1. Get current user to check role
-  const { data: user } = trpc.auth.me.useQuery();
+  const { data: user, isLoading: isLoadingUser, error: userError } = trpc.auth.me.useQuery();
   const isAdmin = user?.role === "admin";
+
+  // DEBUG: Log estado do user
+  // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+  console.log("[DASHBOARD] Estado auth.me:", {
+    hasUser: !!user,
+    userId: user?.id,
+    userRole: user?.role,
+    isLoadingUser,
+    userError: userError?.message,
+  });
 
   // 2. If admin, fetch all mentorados for the selector
   const { data: allMentorados } = trpc.mentorados.list.useQuery(undefined, {
@@ -43,9 +53,21 @@ export default function MyDashboard() {
     data: mentoradoMe,
     isLoading: isLoadingMe,
     error: errorMe,
+    refetch: refetchMentorado,
   } = trpc.mentorados.me.useQuery(undefined, {
     enabled: !isAdmin,
     retry: false,
+  });
+
+  // DEBUG: Log estado do mentorado
+  // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+  console.log("[DASHBOARD] Estado mentorados.me:", {
+    isAdmin,
+    enabled: !isAdmin,
+    hasMentorado: !!mentoradoMe,
+    mentoradoId: mentoradoMe?.id,
+    isLoadingMe,
+    errorMe: errorMe?.message,
   });
 
   // If admin and selected -> fetch by ID
@@ -61,6 +83,39 @@ export default function MyDashboard() {
   const currentMentorado = isAdmin ? mentoradoById : mentoradoMe;
   const isLoading = isAdmin ? (selectedMentoradoId ? isLoadingById : !allMentorados) : isLoadingMe;
   const error = isAdmin ? errorById : errorMe;
+
+  // DEBUG: Log estado final
+  // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+  console.log("[DASHBOARD] Estado final:", {
+    isAdmin,
+    isLoading,
+    isLoadingMe,
+    hasCurrentMentorado: !!currentMentorado,
+    hasError: !!error,
+    errorMessage: error?.message,
+  });
+
+  // FIX: Auto-retry mechanism for race condition between ensureMentorado and mentorados.me
+  const retryCount = useRef(0);
+  const maxRetries = 5;
+
+  useEffect(() => {
+    // If we're not loading, have no mentorado, no error, and haven't exceeded retries
+    if (!isAdmin && !isLoadingMe && !mentoradoMe && !errorMe && retryCount.current < maxRetries) {
+      retryCount.current += 1;
+      // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+      console.log(`[DASHBOARD] Auto-retry ${retryCount.current}/${maxRetries} for mentorados.me`);
+
+      // Wait and then refetch
+      const timer = setTimeout(() => {
+        // biome-ignore lint/suspicious/noConsole: debug logging for dashboard
+        console.log("[DASHBOARD] Executing refetch...");
+        void refetchMentorado();
+      }, 2000 * retryCount.current); // Progressive delay: 2s, 4s, 6s, 8s, 10s
+
+      return () => clearTimeout(timer);
+    }
+  }, [isAdmin, isLoadingMe, mentoradoMe, errorMe, refetchMentorado]);
 
   // Derived ID for child components
   const targetMentoradoId =
@@ -202,7 +257,7 @@ export default function MyDashboard() {
 
           <NeonTabsContent value="visao-geral" className="space-y-6">
             <MenteeOverview
-              mentoradoId={targetMentoradoId}
+              mentoradoId={isAdmin ? targetMentoradoId : undefined}
               isAdmin={isAdmin}
               onNavigateToTab={setActiveTab}
             />

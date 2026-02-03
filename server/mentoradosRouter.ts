@@ -58,9 +58,27 @@ const disconnectInstagramSchema = z.object({
   mentoradoId: z.number().positive("ID do mentorado deve ser positivo"),
 });
 
+import { createLogger } from "./_core/logger";
+
 export const mentoradosRouter = router({
   // Get current user's mentorado profile
   me: protectedProcedure.query(async ({ ctx }) => {
+    const logger = createLogger({ service: "mentorados", userId: ctx.user?.clerkId });
+
+    logger.info("mentorados_me_query_called", {
+      hasUser: !!ctx.user,
+      userId: ctx.user?.id,
+      hasMentorado: !!ctx.mentorado,
+      mentoradoId: ctx.mentorado?.id,
+    });
+
+    if (!ctx.mentorado) {
+      logger.warn("mentorados_me_no_mentorado_in_context", {
+        userId: ctx.user?.id,
+        userEmail: ctx.user?.email,
+      });
+    }
+
     return ctx.mentorado || null;
   }),
 

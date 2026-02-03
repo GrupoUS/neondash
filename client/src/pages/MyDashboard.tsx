@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { AtividadesContent } from "@/components/dashboard/AtividadesContent";
 import { DiagnosticoForm } from "@/components/dashboard/DiagnosticoForm";
 import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
+import { InstagramAnalyticsView } from "@/components/dashboard/InstagramAnalyticsView";
 import { MenteeOverview } from "@/components/dashboard/MenteeOverview";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -158,6 +159,7 @@ export default function MyDashboard() {
               <NeonTabsTrigger value="diagnostico">Diagnóstico</NeonTabsTrigger>
               <NeonTabsTrigger value="evolucao">Evolução</NeonTabsTrigger>
               <NeonTabsTrigger value="atividades">Atividades</NeonTabsTrigger>
+              <NeonTabsTrigger value="instagram">Instagram</NeonTabsTrigger>
             </NeonTabsList>
           </div>
 
@@ -183,6 +185,14 @@ export default function MyDashboard() {
             <div className="grid grid-cols-1">
               <NeonCard className="p-6 bg-black/40 border-white/5">
                 <AtividadesContent />
+              </NeonCard>
+            </div>
+          </NeonTabsContent>
+
+          <NeonTabsContent value="instagram">
+            <div className="grid grid-cols-1">
+              <NeonCard className="p-6 bg-black/40 border-white/5">
+                <InstagramAnalyticsView mentoradoId={targetMentoradoId} />
               </NeonCard>
             </div>
           </NeonTabsContent>

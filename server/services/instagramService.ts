@@ -975,6 +975,49 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Get Instagram metrics history for a mentorado (last N months)
+ *
+ * @param mentoradoId - The mentorado ID
+ * @param months - Number of months to fetch (default 6)
+ * @returns Array of metrics ordered by date ascending
+ */
+async function getMetricsHistory(
+  mentoradoId: number,
+  months = 6
+): Promise<
+  Array<{
+    ano: number;
+    mes: number;
+    postsFeed: number;
+    stories: number;
+    followers: number;
+    engagement: number;
+  }>
+> {
+  const db = getDb();
+  const syncLogs = await db
+    .select({
+      ano: instagramSyncLog.ano,
+      mes: instagramSyncLog.mes,
+      postsCount: instagramSyncLog.postsCount,
+      storiesCount: instagramSyncLog.storiesCount,
+    })
+    .from(instagramSyncLog)
+    .where(eq(instagramSyncLog.mentoradoId, mentoradoId))
+    .orderBy(instagramSyncLog.ano, instagramSyncLog.mes)
+    .limit(months);
+
+  return syncLogs.map((log) => ({
+    ano: log.ano,
+    mes: log.mes,
+    postsFeed: log.postsCount,
+    stories: log.storiesCount,
+    followers: 0, // TODO: Add followers tracking
+    engagement: 0, // TODO: Add engagement calculation
+  }));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SERVICE EXPORT
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1004,4 +1047,5 @@ export const instagramService = {
   getInstagramToken,
   upsertInstagramToken,
   deleteInstagramToken,
+  getMetricsHistory,
 };

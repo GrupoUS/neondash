@@ -201,4 +201,39 @@ export const instagramRouter = router({
         stories: result.storiesCount,
       };
     }),
+
+  /**
+   * Get metrics history for the last 6 months
+   */
+  getMetricsHistory: protectedProcedure
+    .input(z.object({ mentoradoId: z.number() }))
+    .query(async ({ input }) => {
+      const history = await instagramService.getMetricsHistory(input.mentoradoId, 6);
+
+      // Format with month labels
+      const months = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+      ];
+
+      return history.map((h) => ({
+        ano: h.ano,
+        mes: h.mes,
+        label: `${months[h.mes - 1]}/${h.ano.toString().slice(-2)}`,
+        postsFeed: h.postsFeed,
+        stories: h.stories,
+        followers: h.followers,
+        engagement: h.engagement,
+      }));
+    }),
 });

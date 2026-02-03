@@ -14,7 +14,6 @@ import {
   googleTokens,
   leads,
   type Mentorado,
-  mentorados,
   metricasMensais,
   tasks,
 } from "../../drizzle/schema";
@@ -633,6 +632,7 @@ export async function chat(messages: AIMessage[], context: ChatContext): Promise
       toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
     };
   } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: Intentional error logging for debugging
     console.error("[AI Assistant] Error:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";

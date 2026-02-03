@@ -41,6 +41,7 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
   const [token, setToken] = useState("");
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
+  const [qrError, setQrError] = useState<string | null>(null);
 
   // Get current connection status
   const { data: connectionStatus, refetch: refetchStatus } = trpc.zapi.getStatus.useQuery(
@@ -53,10 +54,27 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
     data: qrData,
     refetch: refetchQr,
     isLoading: isLoadingQr,
+    error: qrQueryError,
   } = trpc.zapi.getQRCode.useQuery(undefined, {
     enabled: status === "connecting",
-    refetchInterval: status === "connecting" ? 15000 : false,
+    refetchInterval: status === "connecting" && !qrError ? 15000 : false,
+    retry: false,
   });
+
+  // Track QR code errors
+  useEffect(() => {
+    if (qrQueryError) {
+      const errorMessage = qrQueryError.message || "Erro desconhecido";
+      // Parse common Z-API errors
+      if (errorMessage.includes("Instance not found")) {
+        setQrError("Instância Z-API não encontrada. Verifique o Instance ID.");
+      } else if (errorMessage.includes("Unauthorized") || errorMessage.includes("401")) {
+        setQrError("Token Z-API inválido. Verifique suas credenciais.");
+      } else {
+        setQrError(`Falha ao obter QR Code: ${errorMessage}`);
+      }
+    }
+  }, [qrQueryError]);
 
   // Mutations
   const configureMutation = trpc.zapi.configure.useMutation({
@@ -89,11 +107,17 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
 
   const handleConnect = () => {
     if (!instanceId.trim() || !token.trim()) return;
+    setQrError(null);
     configureMutation.mutate({ instanceId: instanceId.trim(), token: token.trim() });
   };
 
   const handleDisconnect = () => {
     disconnectMutation.mutate();
+  };
+
+  const handleReconfigure = () => {
+    setQrError(null);
+    setStatus("disconnected");
   };
 
   const getStatusBadge = () => {
@@ -222,38 +246,66 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
               className="space-y-4"
             >
               <div className="flex flex-col items-center gap-4 p-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  Escaneie o QR code com o WhatsApp do seu celular
-                </p>
-
-                <div className="relative p-4 bg-white rounded-xl shadow-inner border">
-                  {isLoadingQr ? (
-                    <div className="w-48 h-48 flex items-center justify-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                {/* Error State */}
+                {qrError ? (
+                  <>
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 w-full">
+                      <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="font-medium text-red-700 dark:text-red-400">
+                          Erro de Conexão
+                        </p>
+                        <p className="text-sm text-red-600 dark:text-red-500">{qrError}</p>
+                      </div>
                     </div>
-                  ) : qrData?.qrCode ? (
-                    <img
-                      src={`data:image/png;base64,${qrData.qrCode}`}
-                      alt="QR Code"
-                      className="w-48 h-48"
-                      data-testid="qr-code-image"
-                    />
-                  ) : (
-                    <div className="w-48 h-48 flex items-center justify-center">
-                      <QrCode className="w-16 h-16 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
+                    <Button variant="outline" onClick={handleReconfigure} className="w-full">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Reconfigurar Credenciais
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground text-center">
+                      Escaneie o QR code com o WhatsApp do seu celular
+                    </p>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => refetchQr()}
-                  disabled={isLoadingQr}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingQr ? "animate-spin" : ""}`} />
-                  Atualizar QR Code
-                </Button>
+                    <div className="relative p-4 bg-white rounded-xl shadow-inner border">
+                      {isLoadingQr ? (
+                        <div className="w-48 h-48 flex items-center justify-center">
+                          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : qrData?.qrCode ? (
+                        <img
+                          src={`data:image/png;base64,${qrData.qrCode}`}
+                          alt="QR Code"
+                          className="w-48 h-48"
+                          data-testid="qr-code-image"
+                        />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center">
+                          <QrCode className="w-16 h-16 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => refetchQr()}
+                        disabled={isLoadingQr}
+                      >
+                        <RefreshCw
+                          className={`w-4 h-4 mr-2 ${isLoadingQr ? "animate-spin" : ""}`}
+                        />
+                        Atualizar QR Code
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleReconfigure}>
+                        Alterar Credenciais
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           )}

@@ -378,22 +378,23 @@ export async function seedDezembroData() {
   console.log("📊 Processando Neon Estrutura...");
   for (const [nome, dados] of Object.entries(dadosDezembro.neon_estrutura)) {
     try {
-      let mentorado = await findMentoradoByName(db, nome);
-      let isNew = false;
+      const existingMentorado = await findMentoradoByName(db, nome);
+      let mentoradoId: number;
 
-      if (!mentorado) {
-        const id = await createMentorado(db, nome, 16000);
-        mentorado = { id } as typeof mentorado;
-        isNew = true;
+      if (!existingMentorado) {
+        mentoradoId = await createMentorado(db, nome, 16000);
         results.created.push(nome);
-        console.log(`  ✨ Criado: ${nome} (ID: ${id})`);
+        console.log(`  ✨ Criado: ${nome} (ID: ${mentoradoId})`);
       } else {
-        results.mapped.push(`${nome} → ${mentorado.nomeCompleto}`);
-        console.log(`  🔗 Mapeado: ${nome} → ${mentorado.nomeCompleto} (ID: ${mentorado.id})`);
+        mentoradoId = existingMentorado.id;
+        results.mapped.push(`${nome} → ${existingMentorado.nomeCompleto}`);
+        console.log(
+          `  🔗 Mapeado: ${nome} → ${existingMentorado.nomeCompleto} (ID: ${mentoradoId})`
+        );
       }
 
-      await insertMetricas(db, mentorado.id, dados);
-      await insertFeedback(db, mentorado.id, dados.feedback);
+      await insertMetricas(db, mentoradoId, dados);
+      await insertFeedback(db, mentoradoId, dados.feedback);
       console.log(`  ✅ Métricas e feedback inseridos para ${nome}`);
     } catch (error) {
       results.errors.push(`${nome}: ${error}`);
@@ -405,22 +406,23 @@ export async function seedDezembroData() {
   console.log("\n📊 Processando Neon Escala...");
   for (const [nome, dados] of Object.entries(dadosDezembro.neon_escala)) {
     try {
-      let mentorado = await findMentoradoByName(db, nome);
-      let isNew = false;
+      const existingMentorado = await findMentoradoByName(db, nome);
+      let mentoradoId: number;
 
-      if (!mentorado) {
-        const id = await createMentorado(db, nome, 50000);
-        mentorado = { id } as typeof mentorado;
-        isNew = true;
+      if (!existingMentorado) {
+        mentoradoId = await createMentorado(db, nome, 50000);
         results.created.push(nome);
-        console.log(`  ✨ Criado: ${nome} (ID: ${id})`);
+        console.log(`  ✨ Criado: ${nome} (ID: ${mentoradoId})`);
       } else {
-        results.mapped.push(`${nome} → ${mentorado.nomeCompleto}`);
-        console.log(`  🔗 Mapeado: ${nome} → ${mentorado.nomeCompleto} (ID: ${mentorado.id})`);
+        mentoradoId = existingMentorado.id;
+        results.mapped.push(`${nome} → ${existingMentorado.nomeCompleto}`);
+        console.log(
+          `  🔗 Mapeado: ${nome} → ${existingMentorado.nomeCompleto} (ID: ${mentoradoId})`
+        );
       }
 
-      await insertMetricas(db, mentorado.id, dados);
-      await insertFeedback(db, mentorado.id, dados.feedback);
+      await insertMetricas(db, mentoradoId, dados);
+      await insertFeedback(db, mentoradoId, dados.feedback);
       console.log(`  ✅ Métricas e feedback inseridos para ${nome}`);
     } catch (error) {
       results.errors.push(`${nome}: ${error}`);

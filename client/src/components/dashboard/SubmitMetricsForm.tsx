@@ -1,6 +1,7 @@
-import { CheckCircle2, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,13 +18,23 @@ import { trpc } from "@/lib/trpc";
 interface SubmitMetricsFormProps {
   onSuccess?: () => void;
   className?: string;
+  /** When true, suggests next month (January 2026) if user has December data */
+  suggestNextMonth?: boolean;
 }
 
-export function SubmitMetricsForm({ onSuccess, className }: SubmitMetricsFormProps) {
+export function SubmitMetricsForm({
+  onSuccess,
+  className,
+  suggestNextMonth = false,
+}: SubmitMetricsFormProps) {
   const currentDate = new Date();
 
-  const [ano, setAno] = useState(currentDate.getFullYear());
-  const [mes, setMes] = useState(currentDate.getMonth() + 1);
+  // If suggestNextMonth is true, default to January 2026
+  const defaultYear = suggestNextMonth ? 2026 : currentDate.getFullYear();
+  const defaultMonth = suggestNextMonth ? 1 : currentDate.getMonth() + 1;
+
+  const [ano, setAno] = useState(defaultYear);
+  const [mes, setMes] = useState(defaultMonth);
   const [faturamento, setFaturamento] = useState("");
   const [lucro, setLucro] = useState("");
   const [postsFeed, setPostsFeed] = useState("");
@@ -31,8 +42,18 @@ export function SubmitMetricsForm({ onSuccess, className }: SubmitMetricsFormPro
   const [leads, setLeads] = useState("");
   const [procedimentos, setProcedimentos] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [showSuggestion, setShowSuggestion] = useState(suggestNextMonth);
 
   const utils = trpc.useUtils();
+
+  // Update defaults when suggestNextMonth changes
+  useEffect(() => {
+    if (suggestNextMonth) {
+      setAno(2026);
+      setMes(1);
+      setShowSuggestion(true);
+    }
+  }, [suggestNextMonth]);
 
   const submitMutation = trpc.mentorados.submitMetricas.useMutation({
     onSuccess: () => {
@@ -48,6 +69,7 @@ export function SubmitMetricsForm({ onSuccess, className }: SubmitMetricsFormPro
       setLeads("");
       setProcedimentos("");
       setObservacoes("");
+      setShowSuggestion(false);
 
       // Invalidate queries to refresh dashboard data
       utils.mentorados.invalidate();
@@ -97,6 +119,17 @@ export function SubmitMetricsForm({ onSuccess, className }: SubmitMetricsFormPro
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-6 ${className}`}>
+      {/* Suggestion Alert */}
+      {showSuggestion && (
+        <Alert className="bg-primary/10 border-primary/20">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-sm">
+            <strong>Hora de lançar Janeiro/2026!</strong> Você já tem dados de Dezembro/2025.
+            Compare seu progresso mês-a-mês preenchendo as métricas do novo mês.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Período */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">

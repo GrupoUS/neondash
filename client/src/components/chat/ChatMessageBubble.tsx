@@ -1,6 +1,7 @@
 /**
  * Chat Message Bubble Component
  * Displays a single message with direction-based styling and status indicators
+ * WhatsApp-inspired design with high contrast colors
  */
 import { motion } from "framer-motion";
 import { AlertCircle, Check, CheckCheck, Clock, Sparkles } from "lucide-react";
@@ -44,15 +45,15 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
 
     switch (message.status) {
       case "read":
-        return <CheckCheck className="w-3.5 h-3.5 text-blue-500" />;
+        return <CheckCheck className="w-3.5 h-3.5 text-sky-400" />;
       case "delivered":
-        return <CheckCheck className="w-3.5 h-3.5 text-muted-foreground" />;
+        return <CheckCheck className="w-3.5 h-3.5 text-slate-500" />;
       case "sent":
-        return <Check className="w-3.5 h-3.5 text-muted-foreground" />;
+        return <Check className="w-3.5 h-3.5 text-slate-500" />;
       case "failed":
-        return <AlertCircle className="w-3.5 h-3.5 text-destructive" />;
+        return <AlertCircle className="w-3.5 h-3.5 text-red-500" />;
       default:
-        return <Clock className="w-3.5 h-3.5 text-muted-foreground" />;
+        return <Clock className="w-3.5 h-3.5 text-slate-500" />;
     }
   };
 
@@ -65,31 +66,45 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
     >
       <div
         className={cn(
-          "max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm",
+          "max-w-[80%] rounded-2xl px-4 py-2.5 shadow-md",
           isOutbound
-            ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-muted text-foreground rounded-bl-md"
+            ? // Outbound: Gold/Amber background with dark text for high contrast
+              "bg-gradient-to-br from-amber-500 to-amber-600 text-slate-900 rounded-br-sm"
+            : // Inbound: Dark card background with light text
+              "bg-slate-800 dark:bg-slate-700/80 text-slate-100 rounded-bl-sm border border-slate-700/50"
         )}
       >
         {/* AI Badge */}
         {isFromAi && isOutbound && (
-          <div className="flex items-center gap-1 mb-1 text-xs opacity-80">
+          <div className="flex items-center gap-1 mb-1.5 text-xs text-slate-700/80">
             <Sparkles className="w-3 h-3" />
-            <span>AI</span>
+            <span className="font-medium">AI</span>
           </div>
         )}
 
         {/* Message Content */}
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+        <p
+          className={cn(
+            "text-sm whitespace-pre-wrap break-words leading-relaxed",
+            isOutbound ? "text-slate-900" : "text-slate-100"
+          )}
+        >
+          {message.content}
+        </p>
 
         {/* Timestamp and Status */}
         <div
           className={cn(
-            "flex items-center gap-1.5 mt-1",
+            "flex items-center gap-1.5 mt-1.5",
             isOutbound ? "justify-end" : "justify-start"
           )}
         >
-          <span className={cn("text-[10px]", isOutbound ? "opacity-70" : "text-muted-foreground")}>
+          <span
+            className={cn(
+              "text-[11px] font-medium",
+              isOutbound ? "text-slate-700/70" : "text-slate-400"
+            )}
+          >
             {formatTime(message.createdAt)}
           </span>
           {getStatusIcon()}

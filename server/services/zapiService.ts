@@ -160,7 +160,7 @@ export async function sendTextMessage(
   // Normalize phone number (remove non-digits, ensure country code)
   const normalizedPhone = normalizePhoneNumber(phone);
 
-  return zapiRequest<ZApiSendMessageResponse>(credentials, "send-message-text", "POST", {
+  return zapiRequest<ZApiSendMessageResponse>(credentials, "send-text", "POST", {
     phone: normalizedPhone,
     message,
   });

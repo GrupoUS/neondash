@@ -179,29 +179,45 @@ export async function disconnect(credentials: ZApiCredentials): Promise<boolean>
 /**
  * Get all active chats from WhatsApp
  * Fetches conversations with metadata like name, unread count, and last message time
+ * Uses pagination (page/pageSize) per Z-API docs to fetch all chats
  * Endpoint: /chats per Z-API docs
  */
 export async function getChats(credentials: ZApiCredentials): Promise<ZApiChat[]> {
   try {
-    logger.info("[Z-API getChats] Calling /chats endpoint...");
-    const response = await zapiRequest<ZApiChat[]>(credentials, "chats");
+    logger.info("[Z-API getChats] Fetching all chats with pagination...");
 
-    // Debug: Log raw response count and first few items
-    logger.info(`[Z-API getChats] Raw response: ${response?.length ?? 0} total chats`);
-    if (response && response.length > 0) {
-      logger.info(
-        `[Z-API getChats] Sample chats: ${JSON.stringify(response.slice(0, 3).map((c) => ({ phone: c.phone, name: c.name, isGroup: c.phone.includes("@g.us") })))}`
-      );
+    const allChats: ZApiChat[] = [];
+    let page = 1;
+    const pageSize = 100;
+    let hasMore = true;
+
+    while (hasMore) {
+      const endpoint = `chats?page=${page}&pageSize=${pageSize}`;
+      logger.info(`[Z-API getChats] Page ${page}...`);
+
+      const response = await zapiRequest<ZApiChat[]>(credentials, endpoint);
+
+      if (!response || response.length === 0) {
+        hasMore = false;
+      } else {
+        allChats.push(...response);
+        logger.info(
+          `[Z-API getChats] Page ${page}: ${response.length} (total: ${allChats.length})`
+        );
+        hasMore = response.length >= pageSize;
+        page++;
+      }
     }
 
+    logger.info(`[Z-API getChats] Total: ${allChats.length} chats`);
+
     // Filter out group chats (groups have @g.us suffix)
-    const filtered = response.filter((chat) => !chat.phone.includes("@g.us"));
+    const filtered = allChats.filter((chat) => !chat.phone.includes("@g.us"));
     logger.info(`[Z-API getChats] After filtering groups: ${filtered.length} individual chats`);
 
     return filtered;
   } catch (error) {
     logger.error("[Z-API getChats] Failed:", error);
-    // Return empty array on failure to allow fallback to local data
     return [];
   }
 }

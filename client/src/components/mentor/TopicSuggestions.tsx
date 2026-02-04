@@ -26,8 +26,8 @@ export function TopicSuggestions({ mentoradoId }: TopicSuggestionsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {Array.from({ length: 4 }).map((_, ix) => (
-            <Skeleton key={`suggestion-skeleton-${ix}`} className="h-10 w-full" />
+          {["skel-1", "skel-2", "skel-3", "skel-4"].map((id) => (
+            <Skeleton key={id} className="h-10 w-full" />
           ))}
         </CardContent>
       </Card>

@@ -29,15 +29,22 @@ function CallPreparationSkeleton() {
 
       {/* Alerts skeleton */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, ix) => (
-          <Skeleton key={`alert-skeleton-${ix}`} className="h-20 w-full" />
+        {["alert-skel-1", "alert-skel-2", "alert-skel-3"].map((id) => (
+          <Skeleton key={id} className="h-20 w-full" />
         ))}
       </div>
 
       {/* Metrics skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, ix) => (
-          <Skeleton key={`metric-skeleton-${ix}`} className="h-24 w-full" />
+        {[
+          "metric-skel-1",
+          "metric-skel-2",
+          "metric-skel-3",
+          "metric-skel-4",
+          "metric-skel-5",
+          "metric-skel-6",
+        ].map((id) => (
+          <Skeleton key={id} className="h-24 w-full" />
         ))}
       </div>
 

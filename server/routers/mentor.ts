@@ -147,8 +147,6 @@ export const mentorRouter = router({
   getUpcomingCalls: adminProcedure.input(getUpcomingCallsInput).query(async ({ ctx, input }) => {
     const db = getDb();
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
 
     // Default date range
     const startDate = input.startDate ?? now;
@@ -194,10 +192,14 @@ export const mentorRouter = router({
           );
         }
 
-        // Calculate alerts if mentorado matched
+        // Calculate alerts if mentorado matched - use event date for context
         let alerts: Alert[] = [];
         if (matchedMentorado) {
-          const alertResult = await calculateAlerts(matchedMentorado.id, currentYear, currentMonth);
+          // Derive ano and mes from event's start date (Comment 2 fix)
+          const eventDate = new Date(event.start);
+          const eventYear = eventDate.getFullYear();
+          const eventMonth = eventDate.getMonth() + 1;
+          const alertResult = await calculateAlerts(matchedMentorado.id, eventYear, eventMonth);
           alerts = alertResult.alerts;
         }
 
@@ -237,57 +239,39 @@ export const mentorRouter = router({
       const currentYear = now.getFullYear();
 
       // 1. Parallel data fetching
-      const [mentorado, currentMetricsResult, evolutionMetrics, lastNotes, turmaMetricsResult] =
-        await Promise.all([
-          // Mentorado details
-          db
-            .select()
-            .from(mentorados)
-            .where(eq(mentorados.id, input.mentoradoId))
-            .limit(1)
-            .then((res) => res[0]),
+      const [mentorado, currentMetricsResult, evolutionMetrics, lastNotes] = await Promise.all([
+        // Mentorado details
+        db
+          .select()
+          .from(mentorados)
+          .where(eq(mentorados.id, input.mentoradoId))
+          .limit(1)
+          .then((res) => res[0]),
 
-          // Current month metrics
-          db
-            .select()
-            .from(metricasMensais)
-            .where(
-              and(
-                eq(metricasMensais.mentoradoId, input.mentoradoId),
-                eq(metricasMensais.ano, currentYear),
-                eq(metricasMensais.mes, currentMonth)
-              )
+        // Current month metrics
+        db
+          .select()
+          .from(metricasMensais)
+          .where(
+            and(
+              eq(metricasMensais.mentoradoId, input.mentoradoId),
+              eq(metricasMensais.ano, currentYear),
+              eq(metricasMensais.mes, currentMonth)
             )
-            .limit(1),
+          )
+          .limit(1),
 
-          // Last 6 months metrics for evolution
-          db
-            .select()
-            .from(metricasMensais)
-            .where(eq(metricasMensais.mentoradoId, input.mentoradoId))
-            .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
-            .limit(6),
+        // Last 6 months metrics for evolution
+        db
+          .select()
+          .from(metricasMensais)
+          .where(eq(metricasMensais.mentoradoId, input.mentoradoId))
+          .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
+          .limit(6),
 
-          // Last call notes
-          getLastCallNotes(input.mentoradoId),
-
-          // Turma metrics for comparison (will filter by turma after mentorado fetch)
-          db
-            .select({
-              mentoradoId: metricasMensais.mentoradoId,
-              faturamento: metricasMensais.faturamento,
-              leads: metricasMensais.leads,
-              procedimentos: metricasMensais.procedimentos,
-              lucro: metricasMensais.lucro,
-              postsFeed: metricasMensais.postsFeed,
-              stories: metricasMensais.stories,
-            })
-            .from(metricasMensais)
-            .innerJoin(mentorados, eq(mentorados.id, metricasMensais.mentoradoId))
-            .where(
-              and(eq(metricasMensais.ano, currentYear), eq(metricasMensais.mes, currentMonth))
-            ),
-        ]);
+        // Last call notes
+        getLastCallNotes(input.mentoradoId),
+      ]);
 
       if (!mentorado) {
         throw new TRPCError({
@@ -296,7 +280,28 @@ export const mentorRouter = router({
         });
       }
 
-      // Filter turma metrics by mentorado's turma
+      // Now fetch turma metrics filtered by mentorado's turma and excluding current mentorado
+      const turmaMetricsResult = await db
+        .select({
+          mentoradoId: metricasMensais.mentoradoId,
+          faturamento: metricasMensais.faturamento,
+          leads: metricasMensais.leads,
+          procedimentos: metricasMensais.procedimentos,
+          lucro: metricasMensais.lucro,
+          postsFeed: metricasMensais.postsFeed,
+          stories: metricasMensais.stories,
+        })
+        .from(metricasMensais)
+        .innerJoin(mentorados, eq(mentorados.id, metricasMensais.mentoradoId))
+        .where(
+          and(
+            eq(metricasMensais.ano, currentYear),
+            eq(metricasMensais.mes, currentMonth),
+            eq(mentorados.turma, mentorado.turma)
+          )
+        );
+
+      // Filter out current mentorado from comparison
       const turmaMetrics = turmaMetricsResult.filter((m) => m.mentoradoId !== input.mentoradoId);
 
       // 2. Calculate alerts

@@ -92,6 +92,7 @@ export function MonthlyGoalsAdmin() {
   });
 
   // Reset forms when month changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentional - reset forms when month selection changes
   useEffect(() => {
     setGlobalGoals(emptyGoals);
     setIndividualGoals(emptyGoals);

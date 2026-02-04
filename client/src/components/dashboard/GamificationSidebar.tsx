@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Flame, Lock, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import Confetti from "react-confetti";
+import { BadgeIcon } from "@/components/dashboard/BadgeIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -188,7 +189,7 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                             "bg-purple-500/20 ring-1 ring-purple-500/50"
                         )}
                       >
-                        {earned.badge.icone}
+                        <BadgeIcon code={earned.badge.codigo} size={20} />
                       </motion.div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -229,8 +230,8 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                 {lockedBadges.slice(0, 8).map((badge: Badge) => (
                   <Tooltip key={badge.id}>
                     <TooltipTrigger asChild>
-                      <div className="flex size-10 items-center justify-center rounded-full bg-muted/50 text-muted-foreground/50 cursor-pointer grayscale">
-                        {badge.icone}
+                      <div className="flex size-10 items-center justify-center rounded-full bg-muted/50 text-muted-foreground/50 cursor-pointer grayscale hover:grayscale-0 hover:bg-muted/80 transition-all">
+                        <BadgeIcon code={badge.codigo} size={20} />
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -259,8 +260,8 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-3">
-                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-2xl">
-                  {nextBadge.icone}
+                <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+                  <BadgeIcon code={nextBadge.codigo} size={24} className="text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold">{nextBadge.nome}</p>

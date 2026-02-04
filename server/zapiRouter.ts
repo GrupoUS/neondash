@@ -2,9 +2,9 @@
  * Z-API tRPC Router
  * Handles WhatsApp connection management and messaging
  */
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { mentorados, whatsappMessages } from "../drizzle/schema";
+import { leads, mentorados, whatsappMessages } from "../drizzle/schema";
 import { protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { encrypt, safeDecrypt } from "./services/crypto";
@@ -51,6 +51,47 @@ function buildCredentials(mentorado: {
     token: decryptedToken,
     clientToken: decryptedClientToken ?? undefined,
   };
+}
+
+/**
+ * Link orphan WhatsApp messages to existing CRM leads by matching phone numbers
+ * Uses phonesMatch() for flexible format matching (handles +55, 9th digit, etc.)
+ * Returns count of newly linked messages
+ */
+async function linkOrphanMessages(mentoradoId: number): Promise<number> {
+  const db = getDb();
+
+  // Get messages without a leadId
+  const orphanMessages = await db
+    .select()
+    .from(whatsappMessages)
+    .where(and(eq(whatsappMessages.mentoradoId, mentoradoId), isNull(whatsappMessages.leadId)));
+
+  if (orphanMessages.length === 0) return 0;
+
+  // Get all leads for this mentorado
+  const allLeads = await db.select().from(leads).where(eq(leads.mentoradoId, mentoradoId));
+
+  if (allLeads.length === 0) return 0;
+
+  let linkedCount = 0;
+
+  // Match orphan messages to leads
+  for (const msg of orphanMessages) {
+    const matchedLead = allLeads.find(
+      (lead) => lead.telefone && zapiService.phonesMatch(lead.telefone, msg.phone)
+    );
+
+    if (matchedLead) {
+      await db
+        .update(whatsappMessages)
+        .set({ leadId: matchedLead.id })
+        .where(eq(whatsappMessages.id, msg.id));
+      linkedCount++;
+    }
+  }
+
+  return linkedCount;
 }
 
 export const zapiRouter = router({
@@ -319,6 +360,7 @@ export const zapiRouter = router({
   /**
    * Get all conversations (unique phone numbers with last message)
    * For the Chat page inbox view
+   * Auto-links orphan messages to leads using phone matching
    */
   getAllConversations: protectedProcedure.query(async ({ ctx }) => {
     const mentorado = await getMentoradoWithZapi(ctx.user.id);
@@ -328,14 +370,20 @@ export const zapiRouter = router({
 
     const db = getDb();
 
-    // Get all messages grouped by phone
+    // Step 1: Auto-link orphan messages to existing leads
+    await linkOrphanMessages(mentorado.id);
+
+    // Step 2: Get all messages grouped by phone
     const allMessages = await db
       .select()
       .from(whatsappMessages)
       .where(eq(whatsappMessages.mentoradoId, mentorado.id))
       .orderBy(desc(whatsappMessages.createdAt));
 
-    // Group by phone and get conversation metadata
+    // Step 3: Get all leads for proactive matching
+    const allLeads = await db.select().from(leads).where(eq(leads.mentoradoId, mentorado.id));
+
+    // Group by NORMALIZED phone to merge duplicates with different formats
     const conversationMap = new Map<
       string,
       {
@@ -349,10 +397,13 @@ export const zapiRouter = router({
     >();
 
     for (const msg of allMessages) {
-      if (!conversationMap.has(msg.phone)) {
+      // Normalize phone for grouping (merges +5562... with 62...)
+      const normalizedPhone = zapiService.normalizePhoneNumber(msg.phone);
+
+      if (!conversationMap.has(normalizedPhone)) {
         // First occurrence = latest message for this phone
-        conversationMap.set(msg.phone, {
-          phone: msg.phone,
+        conversationMap.set(normalizedPhone, {
+          phone: msg.phone, // Keep original for display
           name: null, // Will be populated from lead if exists
           leadId: msg.leadId,
           lastMessage: msg.content,
@@ -361,7 +412,7 @@ export const zapiRouter = router({
         });
       }
       // Count inbound messages as unread
-      const conv = conversationMap.get(msg.phone)!;
+      const conv = conversationMap.get(normalizedPhone)!;
       if (msg.direction === "inbound") {
         conv.unreadCount += 1;
       }
@@ -371,24 +422,25 @@ export const zapiRouter = router({
       }
     }
 
-    // Get lead names for conversations
-    const { leads } = await import("../drizzle/schema");
-    const leadIds = [...conversationMap.values()]
-      .filter((c) => c.leadId)
-      .map((c) => c.leadId!) as number[];
+    // Step 4: Proactively match leads for conversations without leadId
+    for (const [normalizedPhone, conv] of conversationMap.entries()) {
+      if (!conv.leadId) {
+        // Try to find a lead with matching phone
+        const matchedLead = allLeads.find(
+          (lead) => lead.telefone && zapiService.phonesMatch(lead.telefone, normalizedPhone)
+        );
+        if (matchedLead) {
+          conv.leadId = matchedLead.id;
+          conv.name = matchedLead.nome;
+        }
+      }
+    }
 
-    if (leadIds.length > 0) {
-      const leadData = await db
-        .select({ id: leads.id, nome: leads.nome })
-        .from(leads)
-        .where(eq(leads.mentoradoId, mentorado.id));
-
-      for (const lead of leadData) {
-        // Find conversation with this leadId
-        for (const conv of conversationMap.values()) {
-          if (conv.leadId === lead.id) {
-            conv.name = lead.nome;
-          }
+    // Step 5: Get lead names for conversations with leadId
+    for (const lead of allLeads) {
+      for (const conv of conversationMap.values()) {
+        if (conv.leadId === lead.id && !conv.name) {
+          conv.name = lead.nome;
         }
       }
     }
@@ -399,6 +451,27 @@ export const zapiRouter = router({
       const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
       return bTime - aTime;
     });
+  }),
+
+  /**
+   * Manually trigger linking of orphan WhatsApp messages to CRM leads
+   * Useful when leads are added after messages were received
+   */
+  linkContacts: protectedProcedure.mutation(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      return { success: false, linkedCount: 0, message: "Mentorado não encontrado" };
+    }
+
+    const linkedCount = await linkOrphanMessages(mentorado.id);
+    return {
+      success: true,
+      linkedCount,
+      message:
+        linkedCount > 0
+          ? `${linkedCount} mensagem(ns) vinculada(s) a contatos do CRM`
+          : "Nenhuma mensagem nova para vincular",
+    };
   }),
 
   /**

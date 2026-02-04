@@ -13,7 +13,7 @@ import type { Lead } from "../../drizzle/schema";
 import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
 import { createLogger } from "../_core/logger";
 import { getDb } from "../db";
-import { phonesMatch } from "../services/zapiService";
+import { phonesMatch, zapiService } from "../services/zapiService";
 
 const logger = createLogger({ service: "zapiWebhook" });
 
@@ -94,15 +94,18 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   // Extract message content
   const content = payload.text?.message ?? "[Media message]";
 
-  // Find associated lead
-  const lead = await findLeadByPhone(mentorado.id, payload.phone);
+  // Normalize phone for consistent storage (handles +55, 9th digit, etc.)
+  const normalizedPhone = zapiService.normalizePhoneNumber(payload.phone);
 
-  // Store message
+  // Find associated lead using flexible matching
+  const lead = await findLeadByPhone(mentorado.id, normalizedPhone);
+
+  // Store message with normalized phone
   const db = getDb();
   await db.insert(whatsappMessages).values({
     mentoradoId: mentorado.id,
     leadId: lead?.id ?? null,
-    phone: payload.phone,
+    phone: normalizedPhone,
     direction: "inbound",
     content,
     zapiMessageId: payload.messageId,

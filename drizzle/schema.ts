@@ -1044,3 +1044,29 @@ export const weeklyPlanProgress = pgTable(
 
 export type WeeklyPlanProgress = typeof weeklyPlanProgress.$inferSelect;
 export type InsertWeeklyPlanProgress = typeof weeklyPlanProgress.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NOTIFICATION SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Notification Settings - Global admin-configurable notification settings
+ */
+export const notificationSettings = pgTable("notification_settings", {
+  id: serial("id").primaryKey(),
+  // Schedule config (which days of month to send reminders)
+  reminderDays: text("reminder_days").notNull().default("[1,3,6,11]"), // JSON array
+  // Enable/disable notification types
+  metricsRemindersEnabled: simNaoEnum("metrics_reminders_enabled").default("sim").notNull(),
+  badgeNotificationsEnabled: simNaoEnum("badge_notifications_enabled").default("sim").notNull(),
+  rankingNotificationsEnabled: simNaoEnum("ranking_notifications_enabled").default("sim").notNull(),
+  // Email templates (JSON with subject/body overrides per template)
+  emailTemplates: text("email_templates"), // JSON: { templateName: { subject, body } }
+  // In-app notification templates (JSON with title/message overrides)
+  inAppTemplates: text("in_app_templates"), // JSON: { templateName: { title, message } }
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => users.id),
+});
+
+export type NotificationSetting = typeof notificationSettings.$inferSelect;
+export type InsertNotificationSetting = typeof notificationSettings.$inferInsert;

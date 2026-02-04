@@ -298,40 +298,47 @@ async function instagramDailySyncTask(logger: Logger): Promise<void> {
 export async function initSchedulers(): Promise<void> {
   const logger = createLogger({ service: "scheduler" });
 
-  // Validate required environment variables
-  const requiredEnvVars = ["instagramAppId", "instagramAppSecret", "instagramRedirectUri"] as const;
-  const missingVars: string[] = [];
+  logger.info("scheduler_init_start");
 
-  for (const envVar of requiredEnvVars) {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INSTAGRAM SYNC (requires Instagram env vars)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const instagramEnvVars = [
+    "instagramAppId",
+    "instagramAppSecret",
+    "instagramRedirectUri",
+  ] as const;
+  const missingInstagramVars: string[] = [];
+
+  for (const envVar of instagramEnvVars) {
     if (!ENV[envVar]) {
-      missingVars.push(envVar);
+      missingInstagramVars.push(envVar);
     }
   }
 
-  if (missingVars.length > 0) {
-    logger.warn("scheduler_disabled", {
-      reason: "Missing environment variables",
-      missingVars,
+  if (missingInstagramVars.length > 0) {
+    logger.warn("instagram_sync_disabled", {
+      reason: "Missing Instagram environment variables",
+      missingVars: missingInstagramVars,
     });
+  } else {
+    // Run catch-up sync if needed (handles missed syncs from server downtime)
+    await runCatchUpSyncIfNeeded(logger);
 
-    return;
+    // Schedule daily Instagram sync at 6:00 AM
+    scheduleDaily(
+      "instagram_sync",
+      6, // Hour (6 AM)
+      0, // Minute
+      () => instagramDailySyncTask(logger),
+      logger
+    );
   }
 
-  logger.info("scheduler_init_start");
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MONTHLY METRICS REMINDERS (always run, no external dependencies)
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  // Run catch-up sync if needed (handles missed syncs from server downtime)
-  await runCatchUpSyncIfNeeded(logger);
-
-  // Schedule daily Instagram sync at 6:00 AM
-  scheduleDaily(
-    "instagram_sync",
-    6, // Hour (6 AM)
-    0, // Minute
-    () => instagramDailySyncTask(logger),
-    logger
-  );
-
-  // Schedule monthly metrics reminders
   // Day 1 at 8:00 AM - First reminder of the month
   scheduleMonthly(
     "metrics_reminder_day1",
@@ -382,7 +389,7 @@ export async function initSchedulers(): Promise<void> {
 
   logger.info("scheduler_init_complete", {
     scheduledTasks: [
-      "instagram_sync @ 06:00 daily",
+      ...(missingInstagramVars.length === 0 ? ["instagram_sync @ 06:00 daily"] : []),
       "metrics_reminder_day1 @ 08:00 monthly",
       "metrics_reminder_day3 @ 09:00 monthly",
       "metrics_reminder_day6 @ 10:00 monthly",

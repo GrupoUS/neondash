@@ -1,6 +1,7 @@
 import {
   Activity,
   Award,
+  Bell,
   Calendar,
   ClipboardList,
   DollarSign,
@@ -16,6 +17,7 @@ import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LinkEmailsView } from "@/components/admin/LinkEmailsView";
 import { MenteeManagementView } from "@/components/admin/MenteeManagementView";
+import { NotificationsSettingsView } from "@/components/admin/NotificationsSettingsView";
 import DashboardLayout from "@/components/DashboardLayout";
 import { AchievementsView } from "@/components/dashboard/AchievementsView";
 import { MonthlyGoalsAdmin } from "@/components/dashboard/MonthlyGoalsAdmin";
@@ -131,6 +133,11 @@ export default function GestaoMentorados() {
                   value: "planejamento",
                   label: "Planejamento",
                   icon: ClipboardList,
+                },
+                {
+                  value: "notificacoes",
+                  label: "Notificações",
+                  icon: Bell,
                 },
               ]}
               className="bg-muted/30 p-1 rounded-2xl border border-white/5 shadow-inner"
@@ -420,6 +427,11 @@ export default function GestaoMentorados() {
             <FloatingDockTabsContent value="planejamento" className="mt-0">
               <MonthlyGoalsAdmin />
               <WeeklyPlanningAdmin />
+            </FloatingDockTabsContent>
+
+            {/* NOTIFICAÇÕES TAB */}
+            <FloatingDockTabsContent value="notificacoes" className="mt-0">
+              <NotificationsSettingsView />
             </FloatingDockTabsContent>
           </FloatingDockTabs>
         </motion.div>

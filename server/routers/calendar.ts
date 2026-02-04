@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { googleTokens } from "../../drizzle/schema";
+import { createLogger } from "../_core/logger";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import {
@@ -20,6 +21,8 @@ import {
   updateEvent,
 } from "../services/googleCalendarService";
 import { clearICalCache, getNeonCalendarEvents, type ICalEvent } from "../services/icalService";
+
+const logger = createLogger({ service: "calendarRouter" });
 
 export const calendarRouter = router({
   /**
@@ -310,6 +313,14 @@ export const calendarRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      logger.debug("updateEvent called", {
+        userId: ctx.user?.id,
+        eventId: input.id,
+        hasStart: Boolean(input.start),
+        hasEnd: Boolean(input.end),
+        allDay: input.allDay,
+      });
+
       const db = getDb();
 
       if (!ctx.user) {
@@ -371,19 +382,61 @@ export const calendarRouter = router({
         }
       }
 
+      // Parse and validate dates
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+
+      if (input.start) {
+        startDate = new Date(input.start);
+        if (Number.isNaN(startDate.getTime())) {
+          logger.error("Invalid start date received", { start: input.start });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Data de início inválida: ${input.start}`,
+          });
+        }
+      }
+
+      if (input.end) {
+        endDate = new Date(input.end);
+        if (Number.isNaN(endDate.getTime())) {
+          logger.error("Invalid end date received", { end: input.end });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Data de término inválida: ${input.end}`,
+          });
+        }
+      }
+
+      // Validate that start < end if both are provided
+      if (startDate && endDate && startDate >= endDate) {
+        logger.error("Start date is after end date", { start: input.start, end: input.end });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "A data de início deve ser anterior à data de término.",
+        });
+      }
+
       try {
         const event = await updateEvent(accessToken, input.id, {
           title: input.title,
           description: input.description,
-          start: input.start ? new Date(input.start) : undefined,
-          end: input.end ? new Date(input.end) : undefined,
+          start: startDate,
+          end: endDate,
           allDay: input.allDay,
           location: input.location,
         });
+        logger.debug("Event updated successfully", { eventId: event.id, title: event.title });
         return { success: true, event };
       } catch (error) {
         // Check for scope/permission errors from Google API
         const errorMsg = error instanceof Error ? error.message : "";
+        logger.error("Failed to update event", {
+          error: errorMsg,
+          eventId: input.id,
+          userId: ctx.user.id,
+        });
+
         if (
           errorMsg.includes("403") ||
           errorMsg.includes("PERMISSION") ||
@@ -395,6 +448,15 @@ export const calendarRouter = router({
               "Permissão negada pelo Google. Desconecte e reconecte sua conta para atualizar permissões.",
           });
         }
+
+        // Check for invalid date/time errors
+        if (errorMsg.includes("Invalid start time") || errorMsg.includes("Invalid end time")) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Formato de data inválido para o Google Calendar. Detalhes: ${errorMsg}`,
+          });
+        }
+
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: error instanceof Error ? error.message : "Falha ao atualizar evento.",

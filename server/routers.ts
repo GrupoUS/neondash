@@ -11,6 +11,7 @@ import { interacoesRouter } from "./interacoesRouter";
 import { interactionTemplatesRouter } from "./interactionTemplatesRouter";
 import { leadsRouter } from "./leadsRouter";
 import { mentoradosRouter } from "./mentoradosRouter";
+import { notificationsRouter } from "./notificationsRouter";
 import { adminRouter } from "./routers/admin";
 import { authRouter } from "./routers/auth";
 import { calendarRouter } from "./routers/calendar";
@@ -41,6 +42,7 @@ export const appRouter = router({
   aiAgent: aiAgentRouter,
   instagram: instagramRouter,
   admin: adminRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

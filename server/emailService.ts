@@ -381,12 +381,11 @@ const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
 
 /**
- * Sends an email notification to a mentorado.
- * Uses the configured notification service to send emails.
+ * Sends an email notification using Resend API.
  * Includes retry logic with exponential backoff.
  *
  * @param payload - Email payload with to, subject, and body
- * @returns true if successful, false otherwise
+ * @returns true if Resend confirms delivery, false otherwise
  */
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   const logger = createLogger({ service: "email" });
@@ -401,17 +400,17 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
     return false;
   }
 
-  if (!ENV.llmApiUrl || !ENV.llmApiKey) {
-    logger.warn("email_not_configured", null, { reason: "Missing LLM API credentials" });
+  // Check for Resend API configuration
+  if (!ENV.resendApiKey) {
+    logger.warn("email_not_configured", null, {
+      reason: "Missing RESEND_API_KEY environment variable",
+    });
     return false;
   }
 
   // Retry loop with exponential backoff
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      // TODO: Replace with actual email sending logic
-      // For now, log the email attempt and return success
-      // In production, integrate with SendGrid, SES, or similar
       logger.info("email_attempt", {
         to,
         subject,
@@ -419,14 +418,32 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
         bodyLength: body.length,
       });
 
-      // Simulate successful send
-      // Replace this with actual API call:
-      // const response = await fetch(EMAIL_API_URL, { ... });
-      // if (!response.ok) throw new Error("Email API error");
+      // Call Resend API
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ENV.resendApiKey}`,
+        },
+        body: JSON.stringify({
+          from: ENV.resendFromEmail,
+          to: [to],
+          subject,
+          html: body,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Resend API error: ${response.status} - ${errorBody}`);
+      }
+
+      const result = (await response.json()) as { id: string };
 
       logger.info("email_sent", {
         to,
         subject,
+        resendId: result.id,
       });
 
       return true;

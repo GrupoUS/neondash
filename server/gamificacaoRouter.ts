@@ -16,7 +16,6 @@ import {
   getRanking,
   initializeBadges,
   markNotificationRead,
-  sendMetricsReminders,
   updateProgressiveGoals,
 } from "./gamificacao";
 import { notificationService } from "./services/notificationService";
@@ -147,10 +146,15 @@ export const gamificacaoRouter = router({
       return { success: true };
     }),
 
-  // Admin: Send metrics reminders (uses legacy function for compatibility)
+  // Admin: Send metrics reminders to all active mentorados
   sendReminders: adminProcedure.mutation(async () => {
-    await sendMetricsReminders();
-    return { success: true };
+    const summary = await notificationService.sendAllReminders("manual");
+    return {
+      success: true,
+      sent: summary.sent,
+      skipped: summary.skipped,
+      failed: summary.failed,
+    };
   }),
 
   /**

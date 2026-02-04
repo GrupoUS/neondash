@@ -273,10 +273,12 @@ export async function sendMetricsReminder(
   const result = await sendDualNotification(mentoradoId, "lembrete_metricas", payload, log);
 
   // Update lastMetricsReminder timestamp
+  // Use the target month date (not current date) so spam control checks the correct period
   if (result.inAppSuccess) {
+    const reminderMonthDate = new Date(ano, mes - 1, 1); // First day of target month
     await db
       .update(mentorados)
-      .set({ lastMetricsReminder: new Date(), updatedAt: new Date() })
+      .set({ lastMetricsReminder: reminderMonthDate, updatedAt: new Date() })
       .where(eq(mentorados.id, mentoradoId));
 
     log.info("reminder_sent", {

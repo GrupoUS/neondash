@@ -11,8 +11,11 @@ import { eq } from "drizzle-orm";
 import type { Router } from "express";
 import type { Lead } from "../../drizzle/schema";
 import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
+import { createLogger } from "../_core/logger";
 import { getDb } from "../db";
 import { phonesMatch } from "../services/zapiService";
+
+const logger = createLogger({ service: "zapiWebhook" });
 
 // Webhook payload types
 export interface ZApiMessageReceivedPayload {
@@ -78,6 +81,9 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   // Skip group messages
   if (payload.isGroup) return;
 
+  // Skip outgoing messages (isFromMe = true)
+  if (payload.isFromMe) return;
+
   // Find mentorado by instance
   const mentorado = await findMentoradoByInstance(payload.instanceId);
   if (!mentorado) {
@@ -97,15 +103,57 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
     mentoradoId: mentorado.id,
     leadId: lead?.id ?? null,
     phone: payload.phone,
-    direction: payload.isFromMe ? "outbound" : "inbound",
+    direction: "inbound",
     content,
     zapiMessageId: payload.messageId,
-    status: payload.isFromMe ? "sent" : "delivered",
+    status: "delivered",
     isFromAi: "nao",
   });
 
-  // TODO: If AI agent enabled, process and respond
-  // This will be handled by aiSdrService
+  // ─────────────────────────────────────────────────────────────────────────
+  // AI SDR: Process incoming message and generate automated response
+  // ─────────────────────────────────────────────────────────────────────────
+  try {
+    // Only process if mentorado has Z-API credentials configured
+    if (!mentorado.zapiInstanceId || !mentorado.zapiToken) {
+      return;
+    }
+
+    const { aiSdrService } = await import("../services/aiSdrService");
+    const { zapiService } = await import("../services/zapiService");
+
+    // Build credentials for Z-API
+    const credentials = {
+      instanceId: mentorado.zapiInstanceId,
+      token: mentorado.zapiToken,
+      clientToken: mentorado.zapiClientToken ?? undefined,
+    };
+
+    // If integrator mode, use admin token
+    const finalCredentials =
+      mentorado.zapiManagedByIntegrator === "sim"
+        ? { ...credentials, useIntegrator: true as const }
+        : credentials;
+
+    // Process with AI SDR (checks if enabled, within working hours, etc.)
+    const result = await aiSdrService.processIncomingMessage(
+      mentorado.id,
+      zapiService.normalizePhoneNumber(payload.phone),
+      content,
+      finalCredentials,
+      lead ?? undefined
+    );
+
+    if (result.responded) {
+      logger.info("AI SDR responded", {
+        phone: payload.phone,
+        responsePreview: result.response?.substring(0, 50),
+      });
+    }
+  } catch (error) {
+    // Don't fail the whole webhook if AI response fails
+    logger.error("AI SDR error processing incoming message", { error });
+  }
 }
 
 /**

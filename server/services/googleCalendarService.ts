@@ -260,6 +260,9 @@ export async function updateEvent(
       : { dateTime: event.end.toISOString(), timeZone: "America/Sao_Paulo" };
   }
 
+  // DEBUG: Log what we're sending to Google
+  console.log("[updateEvent] Sending to Google API:", JSON.stringify(resource, null, 2));
+
   const response = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
     {

@@ -31,7 +31,24 @@ interface CalendarEvent {
   allDay: boolean;
   location?: string;
   htmlLink?: string;
+  colorId?: string; // Google Calendar color ID (1-11)
+  color?: string; // Hex color for display
 }
+
+// Google Calendar event color palette (colorId 1-11)
+const GOOGLE_CALENDAR_COLORS: Record<string, string> = {
+  "1": "#7986CB", // Lavender
+  "2": "#33B679", // Sage
+  "3": "#8E24AA", // Grape
+  "4": "#E67C73", // Flamingo
+  "5": "#F6BF26", // Banana
+  "6": "#F4511E", // Tangerine
+  "7": "#039BE5", // Peacock
+  "8": "#616161", // Graphite
+  "9": "#3F51B5", // Blueberry
+  "10": "#0B8043", // Basil
+  "11": "#D50000", // Tomato
+};
 
 /**
  * Check if Google OAuth is configured
@@ -149,16 +166,23 @@ export async function getEvents(
 
   const data: calendar_v3.Schema$Events = await response.json();
 
-  return (data.items || []).map((event) => ({
-    id: event.id || "",
-    title: event.summary || "Sem título",
-    description: event.description || undefined,
-    start: new Date(event.start?.dateTime || event.start?.date || ""),
-    end: new Date(event.end?.dateTime || event.end?.date || ""),
-    allDay: Boolean(event.start?.date && !event.start?.dateTime),
-    location: event.location || undefined,
-    htmlLink: event.htmlLink || undefined,
-  }));
+  return (data.items || []).map((event) => {
+    const colorId = event.colorId || undefined;
+    const color = colorId ? GOOGLE_CALENDAR_COLORS[colorId] : undefined;
+
+    return {
+      id: event.id || "",
+      title: event.summary || "Sem título",
+      description: event.description || undefined,
+      start: new Date(event.start?.dateTime || event.start?.date || ""),
+      end: new Date(event.end?.dateTime || event.end?.date || ""),
+      allDay: Boolean(event.start?.date && !event.start?.dateTime),
+      location: event.location || undefined,
+      htmlLink: event.htmlLink || undefined,
+      colorId,
+      color,
+    };
+  });
 }
 
 /**

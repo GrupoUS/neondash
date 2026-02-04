@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Flame, Lock, Trophy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Confetti from "react-confetti";
+import { toast } from "sonner";
 import { BadgeIcon } from "@/components/dashboard/BadgeIcon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ interface Badge {
   cor: string;
   categoria: string;
   pontos: number;
+  criterio: string;
 }
 
 interface EarnedBadge {
@@ -35,21 +37,99 @@ interface EarnedBadge {
   mes: number;
 }
 
+// Helper to compute badge progress from criterio
+function computeBadgeProgress(
+  badge: Badge,
+  currentStreak: number
+): { progress: number; label: string } {
+  try {
+    const criterio = JSON.parse(badge.criterio);
+
+    switch (criterio.tipo) {
+      case "streak_consecutivo": {
+        const target = criterio.meses ?? 0;
+        const progress = target > 0 ? Math.min(100, Math.round((currentStreak / target) * 100)) : 0;
+        return { progress, label: `${currentStreak}/${target} meses` };
+      }
+      case "primeiro_registro":
+        // Can't compute without knowing if first registration happened
+        return { progress: 0, label: "Registre suas métricas" };
+      case "pontualidade": {
+        // Requires historical data, simplified
+        const months = criterio.meses ?? 3;
+        return { progress: 0, label: `${months} meses até dia ${criterio.dia ?? 5}` };
+      }
+      case "faturamento_meta":
+        return { progress: 0, label: "Atingir meta de faturamento" };
+      case "crescimento":
+        return { progress: 0, label: `Crescer ${criterio.percentual ?? criterio.valor ?? 25}%` };
+      case "faturamento_minimo": {
+        const valor = criterio.valor ?? 0;
+        return { progress: 0, label: `Faturar R$ ${(valor / 1000).toFixed(0)}k+` };
+      }
+      case "ranking_top": {
+        const pos = criterio.posicao ?? 1;
+        return { progress: 0, label: `Top ${pos} no ranking` };
+      }
+      case "acima_media":
+        return { progress: 0, label: `${criterio.meses ?? 3} meses acima da média` };
+      case "leads_minimo":
+        return { progress: 0, label: `${criterio.valor ?? 50}+ leads` };
+      case "conversao":
+        return { progress: 0, label: `Taxa >${criterio.percentual ?? 20}%` };
+      case "playbook_completo":
+        return { progress: 0, label: "Completar playbook" };
+      case "meses_mentoria":
+        return { progress: 0, label: `${criterio.valor ?? 6} meses de mentoria` };
+      default:
+        return { progress: 0, label: badge.descricao };
+    }
+  } catch {
+    return { progress: 0, label: badge.descricao };
+  }
+}
+
 export function GamificationSidebar({ mentoradoId, className }: GamificationSidebarProps) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
-  // Fetch streak data
-  const { data: streakData, isLoading: streakLoading } = trpc.gamificacao.getStreak.useQuery(
-    { mentoradoId: mentoradoId ?? 0 },
-    { enabled: !!mentoradoId }
+  // Track previous badge count with ref to persist across renders (Comment 4 fix)
+  const prevBadgeCountRef = useRef<number | null>(null);
+
+  // Comment 2 fix: Fetch streak data - use myStreak when no mentoradoId, getStreak when provided
+  const { data: selfStreakData, isLoading: selfStreakLoading } = trpc.gamificacao.myStreak.useQuery(
+    undefined,
+    { enabled: !mentoradoId }
   );
+
+  const { data: targetStreakData, isLoading: targetStreakLoading } =
+    trpc.gamificacao.getStreak.useQuery(
+      { mentoradoId: mentoradoId ?? 0 },
+      { enabled: !!mentoradoId }
+    );
+
+  // Combine streak data from whichever source is active
+  const streakData = mentoradoId ? targetStreakData : selfStreakData;
+  const streakLoading = mentoradoId ? targetStreakLoading : selfStreakLoading;
 
   // Fetch all badges
   const { data: allBadges, isLoading: allBadgesLoading } = trpc.gamificacao.allBadges.useQuery();
 
-  // Fetch earned badges
-  const { data: earnedBadges, isLoading: earnedLoading } = trpc.gamificacao.myBadges.useQuery();
+  // Comment 1 fix: Fetch earned badges - use mentoradoBadges when mentoradoId is provided
+  const { data: selfBadges, isLoading: selfBadgesLoading } = trpc.gamificacao.myBadges.useQuery(
+    undefined,
+    { enabled: !mentoradoId }
+  );
+
+  const { data: targetBadges, isLoading: targetBadgesLoading } =
+    trpc.gamificacao.mentoradoBadges.useQuery(
+      { mentoradoId: mentoradoId ?? 0 },
+      { enabled: !!mentoradoId }
+    );
+
+  // Combine badge data from whichever source is active
+  const earnedBadges = mentoradoId ? targetBadges : selfBadges;
+  const earnedLoading = mentoradoId ? targetBadgesLoading : selfBadgesLoading;
 
   // Set window size for confetti
   useEffect(() => {
@@ -60,30 +140,59 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Track new badges and show confetti
-  const [previousBadgeCount, setPreviousBadgeCount] = useState(0);
+  // Comment 4 fix: Track new badges and show confetti + toast (including from 0)
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    if (earnedBadges && earnedBadges.length > previousBadgeCount && previousBadgeCount > 0) {
-      setShowConfetti(true);
-      timeoutId = setTimeout(() => setShowConfetti(false), 5000);
-    }
+
     if (earnedBadges) {
-      setPreviousBadgeCount(earnedBadges.length);
+      const currentCount = earnedBadges.length;
+      const prevCount = prevBadgeCountRef.current;
+
+      // Fire confetti when badge count increases from ANY previous value (including 0 → 1)
+      if (prevCount !== null && currentCount > prevCount) {
+        setShowConfetti(true);
+        timeoutId = setTimeout(() => setShowConfetti(false), 5000);
+
+        // Show toast with the newest badge name
+        const newestBadge = earnedBadges[0]; // Most recent (ordered by conquistadoEm DESC)
+        if (newestBadge) {
+          toast.success(`🏆 Nova conquista: ${newestBadge.badge.nome}!`, {
+            description: newestBadge.badge.descricao,
+            duration: 5000,
+          });
+        }
+      }
+
+      // Always update the ref to current count
+      prevBadgeCountRef.current = currentCount;
     }
+
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [earnedBadges, previousBadgeCount]);
+  }, [earnedBadges]);
 
   const isLoading = streakLoading || allBadgesLoading || earnedLoading;
 
-  // Compute locked badges
+  // Comment 1 fix: Derive locked badges from the SAME source as earned badges
   const earnedBadgeIds = new Set((earnedBadges ?? []).map((b: EarnedBadge) => b.badge.id));
   const lockedBadges = (allBadges ?? []).filter((b: Badge) => !earnedBadgeIds.has(b.id));
 
-  // Get next badge to earn (first locked badge)
-  const nextBadge = lockedBadges[0] as Badge | undefined;
+  // Comment 3 fix: Compute progress for locked badges and pick the one with highest progress
+  const currentStreak = streakData?.currentStreak ?? 0;
+  const lockedWithProgress = lockedBadges.map((badge: Badge) => ({
+    badge,
+    ...computeBadgeProgress(badge, currentStreak),
+  }));
+
+  // Sort by progress (highest first), then by points (higher value = more prestigious)
+  lockedWithProgress.sort((a, b) => {
+    if (b.progress !== a.progress) return b.progress - a.progress;
+    return b.badge.pontos - a.badge.pontos;
+  });
+
+  // Get the best next badge (highest progress or highest points if tied at 0)
+  const nextBadgeWithProgress = lockedWithProgress[0];
 
   const sidebarContent = (
     <TooltipProvider>
@@ -131,13 +240,10 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                   Recorde: {streakData?.longestStreak ?? 0} meses
                 </p>
                 {(() => {
-                  // Compute nextMilestone and progressPercent locally (moved from API)
-                  const currentStreak = streakData?.currentStreak ?? 0;
-                  const nextMilestone = currentStreak < 3 ? 3 : currentStreak < 6 ? 6 : 12;
-                  const progressPercent = Math.min(
-                    100,
-                    Math.round((currentStreak / nextMilestone) * 100)
-                  );
+                  // Compute nextMilestone and progressPercent locally
+                  const streak = streakData?.currentStreak ?? 0;
+                  const nextMilestone = streak < 3 ? 3 : streak < 6 ? 6 : 12;
+                  const progressPercent = Math.min(100, Math.round((streak / nextMilestone) * 100));
                   return (
                     <div className="mt-3 space-y-1">
                       <div className="flex justify-between text-xs">
@@ -220,7 +326,7 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
           </CardContent>
         </Card>
 
-        {/* Locked Badges */}
+        {/* Locked Badges - Comment 3 fix: Show progress in tooltips */}
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg text-muted-foreground">
@@ -237,7 +343,7 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {lockedBadges.slice(0, 8).map((badge: Badge) => (
+                {lockedWithProgress.slice(0, 8).map(({ badge, progress, label }) => (
                   <Tooltip key={badge.id}>
                     <TooltipTrigger asChild>
                       <div className="flex size-10 items-center justify-center rounded-full bg-muted/50 text-muted-foreground/50 cursor-pointer grayscale hover:grayscale-0 hover:bg-muted/80 transition-all">
@@ -245,9 +351,18 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <div className="text-center">
+                      <div className="text-center max-w-[200px]">
                         <p className="font-semibold">{badge.nome}</p>
                         <p className="text-xs text-muted-foreground">{badge.descricao}</p>
+                        {/* Comment 3: Progress details in tooltip */}
+                        <div className="mt-2 space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Progresso:</span>
+                            <span className="font-medium">{progress}%</span>
+                          </div>
+                          <Progress value={progress} className="h-1" />
+                          <p className="text-xs text-primary">{label}</p>
+                        </div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -262,8 +377,8 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
           </CardContent>
         </Card>
 
-        {/* Next Badge Progress */}
-        {nextBadge && (
+        {/* Next Badge Progress - Comment 3 fix: Show badge with highest progress */}
+        {nextBadgeWithProgress && (
           <Card className="border-dashed border-primary/30 bg-primary/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Próxima Conquista</CardTitle>
@@ -271,13 +386,29 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
             <CardContent>
               <div className="flex items-center gap-3">
                 <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
-                  <BadgeIcon code={nextBadge.codigo} size={24} className="text-primary" />
+                  <BadgeIcon
+                    code={nextBadgeWithProgress.badge.codigo}
+                    size={24}
+                    className="text-primary"
+                  />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold">{nextBadge.nome}</p>
-                  <p className="text-xs text-muted-foreground">{nextBadge.descricao}</p>
-                  <p className="text-xs text-primary mt-1">+{nextBadge.pontos} pts</p>
+                  <p className="font-semibold">{nextBadgeWithProgress.badge.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {nextBadgeWithProgress.badge.descricao}
+                  </p>
+                  <p className="text-xs text-primary mt-1">
+                    +{nextBadgeWithProgress.badge.pontos} pts
+                  </p>
                 </div>
+              </div>
+              {/* Comment 3: Progress bar for next badge */}
+              <div className="mt-3 space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">{nextBadgeWithProgress.label}</span>
+                  <span className="font-medium">{nextBadgeWithProgress.progress}%</span>
+                </div>
+                <Progress value={nextBadgeWithProgress.progress} className="h-2" />
               </div>
             </CardContent>
           </Card>

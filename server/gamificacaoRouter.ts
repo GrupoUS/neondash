@@ -38,6 +38,15 @@ export const gamificacaoRouter = router({
     return await getMentoradoBadges(ctx.mentorado.id);
   }),
 
+  // Get current user's streak (Comment 2 fix: streak fallback for self-dashboard)
+  myStreak: mentoradoProcedure.query(async ({ ctx }) => {
+    const streak = await calculateStreak(ctx.mentorado.id);
+    return {
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+    };
+  }),
+
   // Get badges for a specific mentorado (admin or self)
   mentoradoBadges: mentoradoProcedure
     .input(z.object({ mentoradoId: z.number() }))

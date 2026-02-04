@@ -7,6 +7,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import withDragAndDrop, {
   type EventInteractionArgs,
 } from "react-big-calendar/lib/addons/dragAndDrop";
+import { CalendarSettingsCard } from "@/components/agenda/CalendarSettingsCard";
 import { NeonWeeklyCalendar } from "@/components/agenda/NeonWeeklyCalendar";
 import { NextPatientBanner } from "@/components/agenda/NextPatientBanner";
 
@@ -33,6 +34,7 @@ interface CalendarEvent extends Event {
   location?: string;
   htmlLink?: string;
   isNeonEvent?: boolean; // Flag to differentiate Neon events
+  color?: string; // Hex color from Google Calendar
 }
 
 // Custom styling for dark theme
@@ -50,6 +52,7 @@ export function Agenda() {
   const [selectedSlot, setSelectedSlot] = React.useState<
     { start: Date; end: Date; allDay?: boolean } | undefined
   >(undefined);
+  const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | undefined>(undefined);
 
   const statusQuery = trpc.calendar.getStatus.useQuery();
   const authUrlQuery = trpc.calendar.getAuthUrl.useQuery(undefined, {
@@ -131,6 +134,7 @@ export function Agenda() {
         location: event.location,
         htmlLink: event.htmlLink,
         isNeonEvent: false,
+        color: (event as { color?: string }).color, // Sync color from backend
       }));
       setMyEvents(formattedEvents);
     }
@@ -152,7 +156,7 @@ export function Agenda() {
     return [...myEvents, ...neonEvents];
   }, [myEvents, neonEventsQuery.data?.events]);
 
-  // Style getter for differentiating event sources
+  // Style getter for differentiating event sources and applying Google colors
   const eventPropGetter = React.useCallback((event: CalendarEvent) => {
     if (event.isNeonEvent) {
       return {
@@ -161,6 +165,17 @@ export function Agenda() {
           borderLeft: "3px solid hsl(39 60% 50%)",
           color: "hsl(211 49% 10%)", // Navy text
           fontWeight: 600,
+        },
+      };
+    }
+    // Apply Google Calendar color if present
+    if (event.color) {
+      return {
+        style: {
+          backgroundColor: event.color,
+          borderLeft: `3px solid ${event.color}`,
+          color: "#ffffff",
+          fontWeight: 500,
         },
       };
     }
@@ -372,16 +387,26 @@ export function Agenda() {
                   showMore: (total) => `+${total} mais`,
                 }}
                 onSelectEvent={(event: CalendarEvent) => {
-                  setSelectedSlot({ start: event.start, end: event.end, allDay: event.allDay });
-                  if (event.htmlLink) {
-                    window.open(event.htmlLink, "_blank");
+                  // Neon events are read-only, just open link
+                  if (event.isNeonEvent) {
+                    if (event.htmlLink) {
+                      window.open(event.htmlLink, "_blank");
+                    }
+                    return;
                   }
+                  // Personal events: open edit dialog
+                  setSelectedEvent(event);
+                  setSelectedSlot(undefined);
+                  setIsDialogOpen(true);
                 }}
               />
             )}
             <EventFormDialog
               open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) setSelectedEvent(undefined);
+              }}
               defaultDate={
                 selectedSlot
                   ? {
@@ -391,8 +416,12 @@ export function Agenda() {
                     }
                   : undefined
               }
+              event={selectedEvent}
             />
           </div>
+
+          {/* Settings Card at bottom */}
+          <CalendarSettingsCard onDisconnect={handleDisconnect} />
         </div>
 
         {/* Custom styles for Navy/Gold Theme */}

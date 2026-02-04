@@ -66,6 +66,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: UsersRound,
       adminOnly: true,
     },
+    {
+      href: "/admin/upcoming-calls",
+      label: "Próximas Calls",
+      icon: CalendarRange,
+      adminOnly: true,
+    },
   ];
 
   // Logic to prevent non-admins from accessing admin routes

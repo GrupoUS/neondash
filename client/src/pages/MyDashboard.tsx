@@ -8,6 +8,7 @@ import { DiagnosticoForm } from "@/components/dashboard/DiagnosticoForm";
 import { EvolucaoView } from "@/components/dashboard/EvolucaoView";
 import { InstagramAnalyticsView } from "@/components/dashboard/InstagramAnalyticsView";
 import { MenteeOverview } from "@/components/dashboard/MenteeOverview";
+import { MyMentorship } from "@/components/dashboard/MyMentorship";
 import { WeeklyPlanningView } from "@/components/dashboard/WeeklyPlanningView";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -324,6 +325,9 @@ export default function MyDashboard() {
               <LockedTab value="planejamento" isLocked={!isAdmin && !isDiagnosticoCompleted}>
                 Planejamento
               </LockedTab>
+              <LockedTab value="mentoria" isLocked={!isAdmin && !isDiagnosticoCompleted}>
+                Mentoria
+              </LockedTab>
             </NeonTabsList>
           </div>
 
@@ -367,6 +371,10 @@ export default function MyDashboard() {
 
           <NeonTabsContent value="planejamento">
             <WeeklyPlanningView />
+          </NeonTabsContent>
+
+          <NeonTabsContent value="mentoria">
+            <MyMentorship mentoradoId={targetMentoradoId} />
           </NeonTabsContent>
         </NeonTabs>
       </div>

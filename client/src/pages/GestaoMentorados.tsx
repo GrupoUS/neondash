@@ -7,6 +7,7 @@ import {
   DollarSign,
   LayoutDashboard,
   Medal,
+  MessageSquare,
   Target,
   TrendingUp,
   Trophy,
@@ -17,6 +18,7 @@ import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LinkEmailsView } from "@/components/admin/LinkEmailsView";
 import { MenteeManagementView } from "@/components/admin/MenteeManagementView";
+import { MentorshipAdmin } from "@/components/admin/MentorshipAdmin";
 import { NotificationsSettingsView } from "@/components/admin/NotificationsSettingsView";
 import DashboardLayout from "@/components/DashboardLayout";
 import { AchievementsView } from "@/components/dashboard/AchievementsView";
@@ -138,6 +140,11 @@ export default function GestaoMentorados() {
                   value: "notificacoes",
                   label: "Notificações",
                   icon: Bell,
+                },
+                {
+                  value: "mentoria",
+                  label: "Mentoria",
+                  icon: MessageSquare,
                 },
               ]}
               className="bg-muted/30 p-1 rounded-2xl border border-white/5 shadow-inner"
@@ -432,6 +439,11 @@ export default function GestaoMentorados() {
             {/* NOTIFICAÇÕES TAB */}
             <FloatingDockTabsContent value="notificacoes" className="mt-0">
               <NotificationsSettingsView />
+            </FloatingDockTabsContent>
+
+            {/* MENTORIA TAB */}
+            <FloatingDockTabsContent value="mentoria" className="mt-0">
+              <MentorshipAdmin />
             </FloatingDockTabsContent>
           </FloatingDockTabs>
         </motion.div>

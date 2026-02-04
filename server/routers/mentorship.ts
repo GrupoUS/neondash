@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { mentorados, mentorshipActionItems, mentorshipSessions, users } from "../drizzle/schema";
-import { protectedProcedure, router } from "./_core/trpc";
-import { getDb } from "./db";
+import { mentorados, mentorshipActionItems, mentorshipSessions, users } from "../../drizzle/schema";
+import { protectedProcedure, router } from "../_core/trpc";
+import { getDb } from "../db";
 
 export const mentorshipRouter = router({
   /**

@@ -17,6 +17,7 @@ import { authRouter } from "./routers/auth";
 import { calendarRouter } from "./routers/calendar";
 import { classesRouter } from "./routers/classes";
 import { mentorRouter } from "./routers/mentor";
+import { mentorshipRouter } from "./routers/mentorship";
 import { planejamentoRouter } from "./routers/planejamento";
 import { playbookRouter } from "./routers/playbook";
 import { tasksRouter } from "./routers/tasks";
@@ -45,6 +46,7 @@ export const appRouter = router({
   admin: adminRouter,
   notifications: notificationsRouter,
   mentor: mentorRouter,
+  mentorship: mentorshipRouter,
 });
 
 export type AppRouter = typeof appRouter;

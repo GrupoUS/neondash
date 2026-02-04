@@ -7,7 +7,6 @@ import { AITasksCard } from "./AITasksCard";
 import { FinancialHistoryChart } from "./FinancialHistoryChart";
 import { MeetingHistory } from "./MeetingHistory";
 import { MentorNotes } from "./MentorNotes";
-import { MonthlyGoalsCard } from "./MonthlyGoalsCard";
 import { NewMentoradoWelcome } from "./NewMentoradoWelcome";
 import { RoadmapView } from "./RoadmapView";
 import { UpcomingClassSection } from "./UpcomingClassSection";
@@ -182,11 +181,6 @@ export function MenteeOverview({ mentoradoId, isAdmin, onNavigateToTab }: Mentee
         <div className="space-y-8">
           {/* AI Tasks Section - Placed prominently at the TOP */}
           <AITasksCard mentoradoId={mentorado.id} isAdmin={isAdmin} />
-
-          {/* Monthly Goals (Admin Only) */}
-          {isAdmin && (
-            <MonthlyGoalsCard mentoradoId={mentorado.id} initialData={stats.financials.chartData} />
-          )}
 
           <div className="space-y-4">
             <h2 className="text-primary text-lg font-medium px-1">Principais Estatísticas</h2>

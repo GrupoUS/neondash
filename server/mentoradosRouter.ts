@@ -241,6 +241,42 @@ export const mentoradosRouter = router({
     }),
 
   /**
+   * Update monthly goals for ALL active mentorados (Admin)
+   */
+  updateGlobalMonthlyGoals: adminProcedure
+    .input(
+      z.object({
+        ano: z.number(),
+        mes: z.number().min(1).max(12),
+        metaFaturamento: z.number().optional(),
+        metaLeads: z.number().optional(),
+        metaProcedimentos: z.number().optional(),
+        metaPosts: z.number().optional(),
+        metaStories: z.number().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { ano, mes, ...goals } = input;
+      const db = getDb();
+      const { updateMonthlyGoals } = await import("./mentorados");
+
+      // Get all active mentorados
+      const activeMentorados = await db
+        .select({ id: mentorados.id })
+        .from(mentorados)
+        .where(eq(mentorados.ativo, "sim"));
+
+      // Apply goals to each
+      let count = 0;
+      for (const m of activeMentorados) {
+        await updateMonthlyGoals(m.id, ano, mes, goals);
+        count++;
+      }
+
+      return { count, success: true };
+    }),
+
+  /**
    * Get previous month's metrics (for comparison placeholders)
    */
   getPreviousMonthMetrics: mentoradoProcedure

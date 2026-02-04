@@ -18,6 +18,7 @@ import { LinkEmailsView } from "@/components/admin/LinkEmailsView";
 import { MenteeManagementView } from "@/components/admin/MenteeManagementView";
 import DashboardLayout from "@/components/DashboardLayout";
 import { AchievementsView } from "@/components/dashboard/AchievementsView";
+import { MonthlyGoalsAdmin } from "@/components/dashboard/MonthlyGoalsAdmin";
 import { RankingView } from "@/components/dashboard/RankingView";
 import { WeeklyPlanningAdmin } from "@/components/dashboard/WeeklyPlanningAdmin";
 
@@ -417,6 +418,7 @@ export default function GestaoMentorados() {
 
             {/* PLANEJAMENTO TAB */}
             <FloatingDockTabsContent value="planejamento" className="mt-0">
+              <MonthlyGoalsAdmin />
               <WeeklyPlanningAdmin />
             </FloatingDockTabsContent>
           </FloatingDockTabs>

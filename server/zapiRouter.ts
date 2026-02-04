@@ -316,6 +316,118 @@ export const zapiRouter = router({
     return counts;
   }),
 
+  /**
+   * Get all conversations (unique phone numbers with last message)
+   * For the Chat page inbox view
+   */
+  getAllConversations: protectedProcedure.query(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      return [];
+    }
+
+    const db = getDb();
+
+    // Get all messages grouped by phone
+    const allMessages = await db
+      .select()
+      .from(whatsappMessages)
+      .where(eq(whatsappMessages.mentoradoId, mentorado.id))
+      .orderBy(desc(whatsappMessages.createdAt));
+
+    // Group by phone and get conversation metadata
+    const conversationMap = new Map<
+      string,
+      {
+        phone: string;
+        name: string | null;
+        leadId: number | null;
+        lastMessage: string | null;
+        lastMessageAt: Date | string | null;
+        unreadCount: number;
+      }
+    >();
+
+    for (const msg of allMessages) {
+      if (!conversationMap.has(msg.phone)) {
+        // First occurrence = latest message for this phone
+        conversationMap.set(msg.phone, {
+          phone: msg.phone,
+          name: null, // Will be populated from lead if exists
+          leadId: msg.leadId,
+          lastMessage: msg.content,
+          lastMessageAt: msg.createdAt,
+          unreadCount: 0,
+        });
+      }
+      // Count inbound messages as unread
+      const conv = conversationMap.get(msg.phone)!;
+      if (msg.direction === "inbound") {
+        conv.unreadCount += 1;
+      }
+      // Keep first leadId found
+      if (!conv.leadId && msg.leadId) {
+        conv.leadId = msg.leadId;
+      }
+    }
+
+    // Get lead names for conversations
+    const { leads } = await import("../drizzle/schema");
+    const leadIds = [...conversationMap.values()]
+      .filter((c) => c.leadId)
+      .map((c) => c.leadId!) as number[];
+
+    if (leadIds.length > 0) {
+      const leadData = await db
+        .select({ id: leads.id, nome: leads.nome })
+        .from(leads)
+        .where(eq(leads.mentoradoId, mentorado.id));
+
+      for (const lead of leadData) {
+        // Find conversation with this leadId
+        for (const conv of conversationMap.values()) {
+          if (conv.leadId === lead.id) {
+            conv.name = lead.nome;
+          }
+        }
+      }
+    }
+
+    // Return as sorted array (most recent first)
+    return Array.from(conversationMap.values()).sort((a, b) => {
+      const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }),
+
+  /**
+   * Get messages by phone number (for chat page)
+   */
+  getMessagesByPhone: protectedProcedure
+    .input(z.object({ phone: z.string().min(1), limit: z.number().default(50) }))
+    .query(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        return [];
+      }
+
+      const db = getDb();
+      const messages = await db
+        .select()
+        .from(whatsappMessages)
+        .where(
+          and(
+            eq(whatsappMessages.mentoradoId, mentorado.id),
+            eq(whatsappMessages.phone, input.phone)
+          )
+        )
+        .orderBy(desc(whatsappMessages.createdAt))
+        .limit(input.limit);
+
+      return messages.reverse(); // Return in chronological order
+    }),
+
   // ═══════════════════════════════════════════════════════════════════════════
   // INTEGRATOR API PROCEDURES
   // For managing instances via the Z-API Integrator Partner program

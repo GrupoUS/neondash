@@ -197,6 +197,7 @@ export function Agenda() {
       id: event.id,
       start: new Date(start).toISOString(),
       end: new Date(end).toISOString(),
+      allDay: event.allDay, // Preserve original all-day status
     });
   };
 

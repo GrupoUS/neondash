@@ -248,20 +248,33 @@ export async function updateEvent(
   // Determine if we're updating as all-day (default to false if not specified)
   const isAllDay = event.allDay === true;
 
+  // Helper to format date for Google Calendar API (RFC3339 with Brazil offset)
+  const formatDateTimeForGoogle = (date: Date): string => {
+    // Google Calendar API expects RFC3339 format
+    // Using toISOString() gives us UTC, but we need to keep the Z suffix
+    // which is valid RFC3339 for UTC timestamps
+    return date.toISOString();
+  };
+
   if (event.start) {
+    // Validate the date before using
+    if (!(event.start instanceof Date) || Number.isNaN(event.start.getTime())) {
+      throw new Error(`Invalid start date: ${event.start}`);
+    }
     resource.start = isAllDay
       ? { date: event.start.toISOString().split("T")[0] }
-      : { dateTime: event.start.toISOString(), timeZone: "America/Sao_Paulo" };
+      : { dateTime: formatDateTimeForGoogle(event.start), timeZone: "America/Sao_Paulo" };
   }
 
   if (event.end) {
+    // Validate the date before using
+    if (!(event.end instanceof Date) || Number.isNaN(event.end.getTime())) {
+      throw new Error(`Invalid end date: ${event.end}`);
+    }
     resource.end = isAllDay
       ? { date: event.end.toISOString().split("T")[0] }
-      : { dateTime: event.end.toISOString(), timeZone: "America/Sao_Paulo" };
+      : { dateTime: formatDateTimeForGoogle(event.end), timeZone: "America/Sao_Paulo" };
   }
-
-  // DEBUG: Log what we're sending to Google
-  console.log("[updateEvent] Sending to Google API:", JSON.stringify(resource, null, 2));
 
   const response = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,

@@ -32,6 +32,7 @@ const SettingsPage = lazy(() =>
     default: module.SettingsPage,
   }))
 );
+const ChatPage = lazy(() => import("./pages/ChatPage"));
 const AccountDeletion = lazy(() => import("./pages/AccountDeletion"));
 
 // Loading fallback for lazy components
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/diagnostico" component={DiagnosticoPage} />
       <Route path="/agenda" component={AgendaPage} />
       <Route path="/configuracoes" component={SettingsPage} />
+      <Route path="/chat" component={ChatPage} />
 
       {/* Public Pages - Meta Compliance */}
       <Route path="/account-deletion" component={AccountDeletion} />

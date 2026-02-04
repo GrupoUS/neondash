@@ -150,6 +150,8 @@ export function CelebrationEffect({
       const progress = elapsed / duration;
 
       if (progress >= 1) {
+        // Clear canvas before hiding to prevent frozen stars
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         setIsAnimating(false);
         if (onComplete) onComplete();
         return;
@@ -180,6 +182,8 @@ export function CelebrationEffect({
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      // Clear canvas on cleanup to prevent frozen frame
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [trigger, duration, createParticles, drawParticle, onComplete]);
 

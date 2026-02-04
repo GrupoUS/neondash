@@ -130,13 +130,24 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                 <p className="text-xs text-muted-foreground mt-1">
                   Recorde: {streakData?.longestStreak ?? 0} meses
                 </p>
-                <div className="mt-3 space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Próximo marco</span>
-                    <span className="font-medium">{streakData?.nextMilestone ?? 3} meses</span>
-                  </div>
-                  <Progress value={streakData?.progressPercent ?? 0} className="h-2" />
-                </div>
+                {(() => {
+                  // Compute nextMilestone and progressPercent locally (moved from API)
+                  const currentStreak = streakData?.currentStreak ?? 0;
+                  const nextMilestone = currentStreak < 3 ? 3 : currentStreak < 6 ? 6 : 12;
+                  const progressPercent = Math.min(
+                    100,
+                    Math.round((currentStreak / nextMilestone) * 100)
+                  );
+                  return (
+                    <div className="mt-3 space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Próximo marco</span>
+                        <span className="font-medium">{nextMilestone} meses</span>
+                      </div>
+                      <Progress value={progressPercent} className="h-2" />
+                    </div>
+                  );
+                })()}
               </motion.div>
             )}
           </CardContent>

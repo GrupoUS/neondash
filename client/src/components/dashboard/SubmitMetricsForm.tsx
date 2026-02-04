@@ -27,6 +27,12 @@ interface SubmitMetricsFormProps {
   className?: string;
   /** When true, suggests next month (January 2026) if user has December data */
   suggestNextMonth?: boolean;
+  /** Override default year selection */
+  defaultAno?: number;
+  /** Override default month selection */
+  defaultMes?: number;
+  /** When true, disables period selectors (for editing past metrics) */
+  lockPeriod?: boolean;
 }
 
 /**
@@ -103,15 +109,18 @@ export function SubmitMetricsForm({
   onSuccess,
   className,
   suggestNextMonth = false,
+  defaultAno,
+  defaultMes,
+  lockPeriod = false,
 }: SubmitMetricsFormProps) {
   const currentDate = new Date();
 
-  // If suggestNextMonth is true, default to January 2026
-  const defaultYear = suggestNextMonth ? 2026 : currentDate.getFullYear();
-  const defaultMonth = suggestNextMonth ? 1 : currentDate.getMonth() + 1;
+  // Priority: explicit defaults > suggestNextMonth > current date
+  const initialYear = defaultAno ?? (suggestNextMonth ? 2026 : currentDate.getFullYear());
+  const initialMonth = defaultMes ?? (suggestNextMonth ? 1 : currentDate.getMonth() + 1);
 
-  const [ano, setAno] = useState(defaultYear);
-  const [mes, setMes] = useState(defaultMonth);
+  const [ano, setAno] = useState(initialYear);
+  const [mes, setMes] = useState(initialMonth);
   const [faturamento, setFaturamento] = useState("");
   const [lucro, setLucro] = useState("");
   const [postsFeed, setPostsFeed] = useState("");
@@ -351,38 +360,40 @@ export function SubmitMetricsForm({
         </Alert>
       )}
 
-      {/* Período */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="ano">Ano</Label>
-          <Select value={ano.toString()} onValueChange={(v) => setAno(parseInt(v, 10))}>
-            <SelectTrigger id="ano">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2026">2026</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Período - hidden when editing past metrics */}
+      {!lockPeriod && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="ano">Ano</Label>
+            <Select value={ano.toString()} onValueChange={(v) => setAno(parseInt(v, 10))}>
+              <SelectTrigger id="ano">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2024">2024</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="mes">Mês</Label>
-          <Select value={mes.toString()} onValueChange={(v) => setMes(parseInt(v, 10))}>
-            <SelectTrigger id="mes">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <SelectItem key={m} value={m.toString()}>
-                  {getMesNome(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label htmlFor="mes">Mês</Label>
+            <Select value={mes.toString()} onValueChange={(v) => setMes(parseInt(v, 10))}>
+              <SelectTrigger id="mes">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <SelectItem key={m} value={m.toString()}>
+                    {getMesNome(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Financeiro */}
       <div className="space-y-4">

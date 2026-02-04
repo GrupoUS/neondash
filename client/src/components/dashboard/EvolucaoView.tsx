@@ -1,4 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, Sparkles } from "lucide-react";
+import { EditMetricsDialog } from "@/components/dashboard/EditMetricsDialog";
 import { EvolutionChart } from "@/components/dashboard/EvolutionChart";
 import { GamificationSidebar } from "@/components/dashboard/GamificationSidebar";
 import { MonthComparison } from "@/components/dashboard/MonthComparison";
@@ -133,12 +134,13 @@ export function EvolucaoView({ mentoradoId }: EvolucaoViewProps) {
                     <TableHead className="text-right">Leads</TableHead>
                     <TableHead className="text-right">Posts</TableHead>
                     <TableHead className="text-right">Stories</TableHead>
+                    <TableHead className="text-center w-16">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tableData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center h-24">
+                      <TableCell colSpan={7} className="text-center h-24">
                         Nenhum dado encontrado.
                       </TableCell>
                     </TableRow>
@@ -173,6 +175,9 @@ export function EvolucaoView({ mentoradoId }: EvolucaoViewProps) {
                           </TableCell>
                           <TableCell className="text-right">{metric.postsFeed}</TableCell>
                           <TableCell className="text-right">{metric.stories}</TableCell>
+                          <TableCell className="text-center">
+                            <EditMetricsDialog ano={metric.ano} mes={metric.mes} />
+                          </TableCell>
                         </TableRow>
                       );
                     })

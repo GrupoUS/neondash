@@ -461,4 +461,45 @@ export const tasksRouter = router({
         });
       }
     }),
+
+  archivePlanTasks: protectedProcedure
+    .input(
+      z.object({
+        mentoradoId: z.number().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+
+      let targetMentoradoId = ctx.mentorado?.id;
+
+      if (input.mentoradoId) {
+        const isOwnId = input.mentoradoId === ctx.mentorado?.id;
+        const isAdmin = ctx.user?.role === "admin";
+
+        if (!isOwnId && !isAdmin) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Apenas admins podem arquivar tarefas de outros.",
+          });
+        }
+        targetMentoradoId = input.mentoradoId;
+      }
+
+      if (!targetMentoradoId) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Perfil de mentorado não encontrado.",
+        });
+      }
+
+      // Archive all AI tasks (source = ai_coach OR category = atividade) that are done
+      const result = await db
+        .update(tasks)
+        .set({ status: "archived", updatedAt: new Date() })
+        .where(and(eq(tasks.mentoradoId, targetMentoradoId), eq(tasks.status, "done")))
+        .returning({ id: tasks.id });
+
+      return { success: true, count: result.length };
+    }),
 });

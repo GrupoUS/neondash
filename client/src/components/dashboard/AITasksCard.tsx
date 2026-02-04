@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BrainCircuit, ListTodo, Loader2, Sparkles } from "lucide-react";
+import { Archive, BrainCircuit, CheckCircle2, ListTodo, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Confetti from "react-confetti"; // Using Confetti again as requested in AT-004 logic
 import { useWindowSize } from "react-use"; // Ensure react-use is installed or remove if unused (kept from original intent)
@@ -45,6 +45,16 @@ export function AITasksCard({ mentoradoId, isAdmin }: AITasksCardProps) {
       enabled: !!mentoradoId || !isAdmin,
     }
   );
+
+  const archiveMutation = trpc.tasks.archivePlanTasks.useMutation({
+    onSuccess: (data) => {
+      toast.success("Tarefas Arquivadas! 📦", {
+        description: `${data.count} tarefas foram movidas para Concluídas.`,
+        duration: 3000,
+      });
+      refetch();
+    },
+  });
 
   const generateMutation = trpc.tasks.generateFromAI.useMutation({
     onSuccess: (data) => {
@@ -114,13 +124,30 @@ export function AITasksCard({ mentoradoId, isAdmin }: AITasksCardProps) {
 
   // Filter Tasks
   const aiTasks =
-    tasksData?.filter((t) => t.source === "ai_coach" || t.category === "atividade") || [];
+    tasksData?.filter(
+      (t) => (t.source === "ai_coach" || t.category === "atividade") && t.status !== "archived"
+    ) || [];
   const manualTasks =
-    tasksData?.filter((t) => t.source !== "ai_coach" && t.category !== "atividade") || [];
+    tasksData?.filter(
+      (t) => t.source !== "ai_coach" && t.category !== "atividade" && t.status !== "archived"
+    ) || [];
+  const archivedTasks = tasksData?.filter((t) => t.status === "archived") || [];
 
   const completedAiTasks = aiTasks.filter((t) => t.status === "done").length;
   const totalAiTasks = aiTasks.length;
   const progress = totalAiTasks === 0 ? 0 : Math.round((completedAiTasks / totalAiTasks) * 100);
+
+  const handleGenerateNewPlan = () => {
+    // Archive current done tasks first, then generate new plan
+    archiveMutation.mutate(
+      { mentoradoId },
+      {
+        onSuccess: () => {
+          generateMutation.mutate({ mentoradoId });
+        },
+      }
+    );
+  };
 
   const handleGenerate = () => {
     generateMutation.mutate({ mentoradoId });
@@ -166,29 +193,47 @@ export function AITasksCard({ mentoradoId, isAdmin }: AITasksCardProps) {
           </div>
         </div>
 
-        {generateMutation.isPending ? (
+        {generateMutation.isPending || archiveMutation.isPending ? (
           <Button disabled variant="outline" className="border-primary/20 bg-primary/5">
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Gerando...
+            {archiveMutation.isPending ? "Arquivando..." : "Gerando..."}
           </Button>
-        ) : (
-          (isAdmin || totalAiTasks === 0) && (
-            <Button
-              onClick={handleGenerate}
-              variant="default"
-              size="sm"
-              className="bg-gradient-to-r from-primary to-[#D4AF37] hover:from-primary/90 hover:to-[#D4AF37]/90 text-white shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              {totalAiTasks === 0 ? "Gerar Plano" : "Novo Plano"}
-            </Button>
-          )
-        )}
+        ) : totalAiTasks === 0 ? (
+          <Button
+            onClick={handleGenerate}
+            variant="default"
+            size="sm"
+            className="bg-gradient-to-r from-primary to-[#D4AF37] hover:from-primary/90 hover:to-[#D4AF37]/90 text-white shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Gerar Plano
+          </Button>
+        ) : progress === 100 ? (
+          <Button
+            onClick={handleGenerateNewPlan}
+            variant="default"
+            size="sm"
+            className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+          >
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            Novo Plano
+          </Button>
+        ) : isAdmin ? (
+          <Button
+            onClick={handleGenerate}
+            variant="outline"
+            size="sm"
+            className="border-primary/20 hover:bg-primary/5"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Regenerar
+          </Button>
+        ) : null}
       </CardHeader>
 
       <CardContent className="z-10 relative space-y-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-3 mb-4 bg-muted/50">
             <TabsTrigger
               value="ai"
               className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
@@ -201,7 +246,19 @@ export function AITasksCard({ mentoradoId, isAdmin }: AITasksCardProps) {
               className="data-[state=active]:bg-background data-[state=active]:text-blue-500 data-[state=active]:shadow-sm"
             >
               <ListTodo className="w-4 h-4 mr-2" />
-              Tarefas Manuais
+              Manuais
+            </TabsTrigger>
+            <TabsTrigger
+              value="archived"
+              className="data-[state=active]:bg-background data-[state=active]:text-muted-foreground data-[state=active]:shadow-sm"
+            >
+              <Archive className="w-4 h-4 mr-2" />
+              Concluídas
+              {archivedTasks.length > 0 && (
+                <span className="ml-1 text-[10px] bg-muted px-1.5 py-0.5 rounded-full">
+                  {archivedTasks.length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -245,6 +302,37 @@ export function AITasksCard({ mentoradoId, isAdmin }: AITasksCardProps) {
               manualTasks.map((task) => (
                 <TaskItem key={task.id} task={task} onToggle={handleToggle} variant="manual" />
               ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="archived" className="space-y-3 min-h-[150px]">
+            {archivedTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <Archive className="w-8 h-8 opacity-20 mb-2" />
+                <p className="text-sm">Nenhuma tarefa arquivada ainda.</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  Complete um plano IA para ver suas conquistas aqui.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {archivedTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-start space-x-3 p-3 rounded-lg bg-muted/20 border border-transparent opacity-60"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-500/60" />
+                    <div className="flex-1">
+                      <p className="text-sm text-muted-foreground line-through decoration-muted-foreground/50">
+                        {task.title}
+                      </p>
+                      <span className="text-[10px] text-muted-foreground/50">
+                        {task.updatedAt ? new Date(task.updatedAt).toLocaleDateString("pt-BR") : ""}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>

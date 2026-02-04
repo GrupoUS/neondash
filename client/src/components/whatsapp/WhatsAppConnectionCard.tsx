@@ -366,10 +366,18 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
                         </div>
                       ) : qrData?.qrCode ? (
                         <img
-                          src={`data:image/png;base64,${qrData.qrCode}`}
+                          src={
+                            qrData.qrCode.startsWith("data:")
+                              ? qrData.qrCode
+                              : `data:image/png;base64,${qrData.qrCode}`
+                          }
                           alt="QR Code"
                           className="w-48 h-48"
                           data-testid="qr-code-image"
+                          onError={(e) => {
+                            // Hide broken image and show placeholder
+                            e.currentTarget.style.display = "none";
+                          }}
                         />
                       ) : (
                         <div className="w-48 h-48 flex items-center justify-center">

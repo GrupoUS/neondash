@@ -145,6 +145,18 @@ export const zapiRouter = router({
 
     const qrResponse = await zapiService.getQRCode(credentials);
 
+    // Validate QR code response
+    if (!qrResponse.value) {
+      // If connected, QR code won't be generated
+      if (qrResponse.connected) {
+        return {
+          qrCode: null,
+          connected: true,
+        };
+      }
+      throw new Error("Z-API não retornou o QR Code. Verifique se a instância está ativa.");
+    }
+
     return {
       qrCode: qrResponse.value,
       connected: qrResponse.connected,

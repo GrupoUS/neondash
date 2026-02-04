@@ -146,7 +146,7 @@ export const gamificacaoRouter = router({
 
   /**
    * Get streak information for a mentorado
-   * @returns currentStreak and longestStreak counts
+   * @returns currentStreak and longestStreak counts only (per contract)
    */
   getStreak: mentoradoProcedure
     .input(z.object({ mentoradoId: z.number() }))
@@ -159,7 +159,12 @@ export const gamificacaoRouter = router({
         });
       }
 
-      return await calculateStreak(input.mentoradoId);
+      // Project only contract-specified fields
+      const streak = await calculateStreak(input.mentoradoId);
+      return {
+        currentStreak: streak.currentStreak,
+        longestStreak: streak.longestStreak,
+      };
     }),
 
   /**
@@ -206,15 +211,17 @@ export const gamificacaoRouter = router({
         });
       }
 
+      // Align with scheduled reminder logic: remind for PREVIOUS month (pending metrics)
       const now = new Date();
-      const currentMes = now.getMonth() + 1;
-      const currentAno = now.getFullYear();
+      const currentMonth = now.getMonth(); // 0-indexed (0 = January)
+      const mesAnterior = currentMonth === 0 ? 12 : currentMonth;
+      const anoAnterior = currentMonth === 0 ? now.getFullYear() - 1 : now.getFullYear();
 
       // Use notification service for dual-channel delivery
       const result = await notificationService.sendMetricsReminder(
         input.mentoradoId,
-        currentMes,
-        currentAno,
+        mesAnterior,
+        anoAnterior,
         "manual"
       );
 

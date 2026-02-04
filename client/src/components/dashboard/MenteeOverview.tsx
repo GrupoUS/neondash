@@ -130,35 +130,53 @@ export function MenteeOverview({ mentoradoId, isAdmin, onNavigateToTab }: Mentee
           </div>
         </div>
 
-        {/* Right Column: Stats & Notes */}
+        {/* Right Column: Neon Coach (top), Stats & Notes */}
         <div className="space-y-8">
+          {/* AI Tasks Section - Placed prominently at the TOP */}
+          <AITasksCard mentoradoId={mentorado.id} isAdmin={isAdmin} />
+
           <div className="space-y-4">
             <h2 className="text-primary text-lg font-medium px-1">Principais Estatísticas</h2>
 
             <div className="grid grid-cols-1 gap-4">
-              {/* ROI Card */}
-              <Card className="bg-card dark:bg-slate-900/50 border-border dark:border-slate-700/50 hover:border-primary/30 transition-all hover:bg-accent/50 dark:hover:bg-slate-900/80 group shadow-sm">
-                <CardContent className="p-6 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-muted dark:bg-slate-800 flex items-center justify-center border border-border dark:border-slate-700 text-primary group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-primary/20">
-                    <TrendingUp className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-                      ROI Total
-                    </p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-foreground tracking-tight">
-                        {formatCurrency(stats.financials.totalProfit)}
-                      </span>
-                      {stats.financials.growthPercent > 0 && (
-                        <span className="text-xs text-emerald-400 font-bold bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                          +{stats.financials.growthPercent}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* ROI Card - Based on R$ 20,000 mentorship price */}
+              {(() => {
+                const MENTORSHIP_COST = 20000;
+                const roi =
+                  stats.financials.totalProfit > 0
+                    ? (stats.financials.totalProfit / MENTORSHIP_COST) * 100
+                    : 0;
+                const isPositiveROI = roi > 0;
+                return (
+                  <Card className="bg-card dark:bg-slate-900/50 border-border dark:border-slate-700/50 hover:border-primary/30 transition-all hover:bg-accent/50 dark:hover:bg-slate-900/80 group shadow-sm">
+                    <CardContent className="p-6 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-muted dark:bg-slate-800 flex items-center justify-center border border-border dark:border-slate-700 text-primary group-hover:scale-110 transition-transform shadow-lg group-hover:shadow-primary/20">
+                        <TrendingUp className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                          ROI da Mentoria
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                          <span
+                            className={`text-2xl font-bold tracking-tight ${isPositiveROI ? "text-emerald-400" : "text-foreground"}`}
+                          >
+                            {roi.toFixed(0)}%
+                          </span>
+                          {isPositiveROI && (
+                            <span className="text-xs text-emerald-400 font-bold bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                              +{formatCurrency(stats.financials.totalProfit)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Base: {formatCurrency(MENTORSHIP_COST)}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {/* Current Monthly Revenue Card */}
               <Card className="bg-card dark:bg-slate-900/50 border-border dark:border-slate-700/50 hover:border-primary/30 transition-all hover:bg-accent/50 dark:hover:bg-slate-900/80 group shadow-sm">
@@ -216,11 +234,6 @@ export function MenteeOverview({ mentoradoId, isAdmin, onNavigateToTab }: Mentee
             </div>
             <h2 className="text-primary text-lg font-medium px-1">Anotações Privadas</h2>
             <MentorNotes existingNotes={stats.notes} />
-          </div>
-
-          <div className="pt-4 space-y-4">
-            {/* AI Tasks Section - Placed prominently below notes */}
-            <AITasksCard mentoradoId={mentorado.id} isAdmin={isAdmin} />
           </div>
 
           <div className="pt-4 space-y-4">

@@ -60,16 +60,8 @@ export function MenteeOverview({ mentoradoId, isAdmin, onNavigateToTab }: Mentee
     return <OverviewSkeleton />;
   }
 
-  // Check if this is a new mentorado without any data
-  const hasNoData = stats.financials.chartData.length === 0;
-  if (hasNoData && !isAdmin) {
-    return (
-      <NewMentoradoWelcome
-        mentoradoName={mentorado.nomeCompleto}
-        onNavigateToDiagnostico={() => onNavigateToTab?.("diagnostico")}
-      />
-    );
-  }
+  // Note: We now show full overview even with zero data (after diagnostico)
+  // Stats will display zeros until user enters their first metrics
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);

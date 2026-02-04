@@ -1,5 +1,6 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Sparkles } from "lucide-react";
 import { EvolutionChart } from "@/components/dashboard/EvolutionChart";
+import { GamificationSidebar } from "@/components/dashboard/GamificationSidebar";
 import { MonthComparison } from "@/components/dashboard/MonthComparison";
 import { SubmitMetricsForm } from "@/components/dashboard/SubmitMetricsForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,94 +71,121 @@ export function EvolucaoView({ mentoradoId }: EvolucaoViewProps) {
   // Check if mentorado has December 2025 data (to show message in form)
   const hasDecemberData = evolutionData?.some((m) => m.ano === 2025 && m.mes === 12);
 
+  const hasNoMetrics = !evolutionData || evolutionData.length === 0;
+
   return (
-    <div className="space-y-4">
-      {/* Month Comparison Card */}
-      {currentMonth && previousMonth && (
-        <MonthComparison currentMonth={currentMonth} previousMonth={previousMonth} />
-      )}
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Main Content */}
+      <div className="flex-1 space-y-4">
+        {/* First-time User CTA */}
+        {hasNoMetrics && (
+          <Card className="border-2 border-primary/50 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 shadow-lg">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-full bg-primary/20">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Preencha suas primeiras métricas! 🎯</CardTitle>
+                  <CardDescription className="text-base">
+                    Comece a acompanhar sua evolução preenchendo o formulário abaixo
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        )}
 
-      <EvolutionChart mentoradoId={mentoradoId} />
+        {/* Month Comparison Card */}
+        {currentMonth && previousMonth && (
+          <MonthComparison currentMonth={currentMonth} previousMonth={previousMonth} />
+        )}
 
-      <Card className="col-span-4 bg-card dark:bg-black/40 border-border dark:border-white/5 shadow-sm">
-        <CardHeader>
-          <CardTitle>Lançar Métricas Mensais</CardTitle>
-          <CardDescription>
-            Preencha os dados do mês para alimentar seu dashboard e comparativos.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SubmitMetricsForm className="bg-transparent" suggestNextMonth={hasDecemberData} />
-        </CardContent>
-      </Card>
+        <EvolutionChart mentoradoId={mentoradoId} />
 
-      <Card className="col-span-4">
-        <CardHeader>
-          <CardTitle>Histórico Detalhado</CardTitle>
-          <CardDescription>
-            Acompanhamento mensal detalhado das métricas de performance.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mês/Ano</TableHead>
-                  <TableHead className="text-right">Faturamento</TableHead>
-                  <TableHead className="text-right">Lucro</TableHead>
-                  <TableHead className="text-right">Leads</TableHead>
-                  <TableHead className="text-right">Posts</TableHead>
-                  <TableHead className="text-right">Stories</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tableData.length === 0 ? (
+        <Card className="col-span-4 bg-card dark:bg-black/40 border-border dark:border-white/5 shadow-sm">
+          <CardHeader>
+            <CardTitle>Lançar Métricas Mensais</CardTitle>
+            <CardDescription>
+              Preencha os dados do mês para alimentar seu dashboard e comparativos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SubmitMetricsForm className="bg-transparent" suggestNextMonth={hasDecemberData} />
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Histórico Detalhado</CardTitle>
+            <CardDescription>
+              Acompanhamento mensal detalhado das métricas de performance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
-                      Nenhum dado encontrado.
-                    </TableCell>
+                    <TableHead>Mês/Ano</TableHead>
+                    <TableHead className="text-right">Faturamento</TableHead>
+                    <TableHead className="text-right">Lucro</TableHead>
+                    <TableHead className="text-right">Leads</TableHead>
+                    <TableHead className="text-right">Posts</TableHead>
+                    <TableHead className="text-right">Stories</TableHead>
                   </TableRow>
-                ) : (
-                  tableData.map((metric, index) => {
-                    const prevMetric = tableData[index + 1];
-                    return (
-                      <TableRow key={metric.id}>
-                        <TableCell className="font-medium">
-                          {String(metric.mes).padStart(2, "0")}/{metric.ano}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(metric.faturamento)}
-                          {prevMetric && (
-                            <VariationCell
-                              current={metric.faturamento}
-                              previous={prevMetric.faturamento}
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(metric.lucro)}
-                          {prevMetric && (
-                            <VariationCell current={metric.lucro} previous={prevMetric.lucro} />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {metric.leads}
-                          {prevMetric && (
-                            <VariationCell current={metric.leads} previous={prevMetric.leads} />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{metric.postsFeed}</TableCell>
-                        <TableCell className="text-right">{metric.stories}</TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {tableData.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center h-24">
+                        Nenhum dado encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    tableData.map((metric, index) => {
+                      const prevMetric = tableData[index + 1];
+                      return (
+                        <TableRow key={metric.id}>
+                          <TableCell className="font-medium">
+                            {String(metric.mes).padStart(2, "0")}/{metric.ano}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(metric.faturamento)}
+                            {prevMetric && (
+                              <VariationCell
+                                current={metric.faturamento}
+                                previous={prevMetric.faturamento}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(metric.lucro)}
+                            {prevMetric && (
+                              <VariationCell current={metric.lucro} previous={prevMetric.lucro} />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {metric.leads}
+                            {prevMetric && (
+                              <VariationCell current={metric.leads} previous={prevMetric.leads} />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">{metric.postsFeed}</TableCell>
+                          <TableCell className="text-right">{metric.stories}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gamification Sidebar */}
+      <GamificationSidebar mentoradoId={mentoradoId} />
     </div>
   );
 }

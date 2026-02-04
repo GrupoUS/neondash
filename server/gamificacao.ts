@@ -844,14 +844,16 @@ export async function getProgressiveGoals(mentoradoId: number) {
  * Breaks if a month is skipped or registered after day 10.
  *
  * @param mentoradoId - ID of the mentorado
- * @returns Object with currentStreak and longestStreak counts
+ * @returns Object with currentStreak, longestStreak, nextMilestone, and progressPercent
  */
 export async function calculateStreak(mentoradoId: number): Promise<{
   currentStreak: number;
   longestStreak: number;
+  nextMilestone: number;
+  progressPercent: number;
 }> {
   const db = await getDb();
-  if (!db) return { currentStreak: 0, longestStreak: 0 };
+  if (!db) return { currentStreak: 0, longestStreak: 0, nextMilestone: 3, progressPercent: 0 };
 
   // Query last 12 months of metrics ordered by ano DESC, mes DESC
   const metrics = await db
@@ -862,7 +864,7 @@ export async function calculateStreak(mentoradoId: number): Promise<{
     .limit(12);
 
   if (metrics.length === 0) {
-    return { currentStreak: 0, longestStreak: 0 };
+    return { currentStreak: 0, longestStreak: 0, nextMilestone: 3, progressPercent: 0 };
   }
 
   let currentStreak = 0;
@@ -915,5 +917,18 @@ export async function calculateStreak(mentoradoId: number): Promise<{
   }
   longestStreak = Math.max(longestStreak, tempStreak);
 
-  return { currentStreak, longestStreak };
+  // Calculate next milestone (3, 6, or 12 months)
+  let nextMilestone: number;
+  if (currentStreak < 3) {
+    nextMilestone = 3;
+  } else if (currentStreak < 6) {
+    nextMilestone = 6;
+  } else {
+    nextMilestone = 12;
+  }
+
+  // Calculate progress percentage towards next milestone
+  const progressPercent = Math.min(100, Math.round((currentStreak / nextMilestone) * 100));
+
+  return { currentStreak, longestStreak, nextMilestone, progressPercent };
 }

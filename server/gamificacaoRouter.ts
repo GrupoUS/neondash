@@ -1,11 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { notificacoes } from "../drizzle/schema";
+import { mentorados, notificacoes } from "../drizzle/schema";
 import { adminProcedure, mentoradoProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import { sendEmail } from "./emailService";
 import {
   calculateMonthlyRanking,
+  calculateStreak,
   checkAndAwardBadges,
   checkUnmetGoalsAlerts,
   getAllBadges,
@@ -141,4 +143,90 @@ export const gamificacaoRouter = router({
     await sendMetricsReminders();
     return { success: true };
   }),
+
+  /**
+   * Get streak information for a mentorado
+   * @returns currentStreak and longestStreak counts
+   */
+  getStreak: mentoradoProcedure
+    .input(z.object({ mentoradoId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      // Authorization: allow if admin OR requesting own streak
+      if (ctx.user.role !== "admin" && ctx.mentorado.id !== input.mentoradoId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Você só pode ver seu próprio streak",
+        });
+      }
+
+      return await calculateStreak(input.mentoradoId);
+    }),
+
+  /**
+   * Check and award new badges for a mentorado
+   * Triggers badge checking for the current month
+   * @returns Array of newly awarded badges
+   */
+  checkNewBadges: mentoradoProcedure
+    .input(z.object({ mentoradoId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      // Authorization: allow if admin OR checking own badges
+      if (ctx.user.role !== "admin" && ctx.mentorado.id !== input.mentoradoId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Você só pode verificar suas próprias badges",
+        });
+      }
+
+      const now = new Date();
+      const ano = now.getFullYear();
+      const mes = now.getMonth() + 1;
+
+      const newBadges = await checkAndAwardBadges(input.mentoradoId, ano, mes);
+      return { newBadges };
+    }),
+
+  /**
+   * Admin: Send a reminder notification immediately to a specific mentorado
+   * Creates in-app notification and sends email
+   */
+  sendReminderNow: adminProcedure
+    .input(z.object({ mentoradoId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      const [mentorado] = await db
+        .select()
+        .from(mentorados)
+        .where(eq(mentorados.id, input.mentoradoId));
+
+      if (!mentorado) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Mentorado não encontrado",
+        });
+      }
+
+      const now = new Date();
+      const mesAnterior = now.getMonth() === 0 ? 12 : now.getMonth();
+      const anoAnterior = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+      // Create notification
+      await db.insert(notificacoes).values({
+        mentoradoId: input.mentoradoId,
+        tipo: "lembrete_metricas",
+        titulo: "Lembrete: Envie suas métricas!",
+        mensagem: `Não se esqueça de enviar suas métricas de ${mesAnterior}/${anoAnterior}.`,
+      });
+
+      // Send email if available
+      if (mentorado.email) {
+        await sendEmail({
+          to: mentorado.email,
+          subject: "Lembrete: Envie suas métricas mensais",
+          body: `Olá ${mentorado.nomeCompleto.split(" ")[0]},\n\nNão se esqueça de enviar suas métricas de ${mesAnterior}/${anoAnterior}.\n\nAcesse o dashboard para registrar seu desempenho.\n\nAbraços,\nEquipe Neon`,
+        });
+      }
+
+      return { success: true };
+    }),
 });

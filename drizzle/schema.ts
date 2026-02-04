@@ -24,6 +24,7 @@ export const categoriaEnum = pgEnum("categoria", [
   "operacional",
   "consistencia",
   "especial",
+  "ranking",
 ]);
 export const tipoMetaEnum = pgEnum("tipo_meta", [
   "faturamento",

@@ -56,7 +56,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: BarChart3 },
     { href: "/agenda", label: "Agenda", icon: CalendarRange },
-    { href: "/crm/leads", label: "CRM Leads", icon: BriefcaseBusiness },
+    { href: "/crm/leads", label: "CRM", icon: BriefcaseBusiness },
+
     { href: "/configuracoes", label: "Configurações", icon: Settings2 },
     {
       href: "/admin/mentorados",

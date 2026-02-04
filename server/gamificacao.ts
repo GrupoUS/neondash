@@ -344,6 +344,8 @@ async function checkBadgeCriteria(
 
     case "faturamento_meta": {
       const meta = ctx.metricas.metaFaturamento ?? ctx.mentorado.metaFaturamento;
+      // Guard: if meta is 0 or undefined, cannot evaluate goal achievement
+      if (!meta || meta <= 0) return false;
       return ctx.metricas.faturamento >= meta;
     }
 
@@ -507,7 +509,9 @@ export async function calculateMonthlyRanking(ano: number, mes: number) {
     let bonus = 0;
 
     // Faturamento score (max 40 points)
-    const faturamentoPercent = Math.min((metricas.faturamento / goalFaturamento) * 100, 150);
+    // Guard: prevent division by zero when goalFaturamento is 0
+    const faturamentoPercent =
+      goalFaturamento > 0 ? Math.min((metricas.faturamento / goalFaturamento) * 100, 150) : 0;
     pontuacao += Math.round(faturamentoPercent * 0.4);
 
     // Content score (max 20 points)
@@ -1010,7 +1014,9 @@ export function calculateScoreFromMetrics(
   let pontuacao = 0;
 
   // Faturamento score (max 40 points)
-  const faturamentoPercent = Math.min((metricas.faturamento / goalFaturamento) * 100, 150);
+  // Guard: prevent division by zero when goalFaturamento is 0
+  const faturamentoPercent =
+    goalFaturamento > 0 ? Math.min((metricas.faturamento / goalFaturamento) * 100, 150) : 0;
   pontuacao += Math.round(faturamentoPercent * 0.4);
 
   // Content score (max 20 points)

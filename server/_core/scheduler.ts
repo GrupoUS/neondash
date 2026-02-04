@@ -7,7 +7,7 @@
  * @module scheduler
  */
 
-import { desc } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 import { instagramSyncLog } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { syncAllMentorados } from "../services/instagramService";
@@ -192,22 +192,40 @@ async function runCatchUpSyncIfNeeded(logger: Logger): Promise<boolean> {
   try {
     const db = getDb();
 
-    // Get last sync date
-    const [lastSync] = await db
-      .select({ syncedAt: instagramSyncLog.syncedAt })
-      .from(instagramSyncLog)
-      .orderBy(desc(instagramSyncLog.syncedAt))
-      .limit(1);
-
     // Calculate today at midnight for comparison
     const todayMidnight = new Date();
     todayMidnight.setHours(0, 0, 0, 0);
 
-    // If no sync found or last sync was before today, run catch-up
-    if (!lastSync || lastSync.syncedAt < todayMidnight) {
+    // Get last SUCCESSFUL sync for today (failed/partial syncs should be retried)
+    const [lastSuccessfulSync] = await db
+      .select({ syncedAt: instagramSyncLog.syncedAt })
+      .from(instagramSyncLog)
+      .where(
+        and(
+          eq(instagramSyncLog.syncStatus, "success"),
+          gte(instagramSyncLog.syncedAt, todayMidnight)
+        )
+      )
+      .orderBy(desc(instagramSyncLog.syncedAt))
+      .limit(1);
+
+    // If no successful sync exists for today, run catch-up
+    if (!lastSuccessfulSync) {
+      // Get the most recent sync (any status) for logging purposes
+      const [lastAnySync] = await db
+        .select({ syncedAt: instagramSyncLog.syncedAt, status: instagramSyncLog.syncStatus })
+        .from(instagramSyncLog)
+        .orderBy(desc(instagramSyncLog.syncedAt))
+        .limit(1);
+
       logger.info("catchup_sync_start", {
-        lastSync: lastSync?.syncedAt?.toISOString() ?? "never",
+        lastSync: lastAnySync?.syncedAt?.toISOString() ?? "never",
+        lastSyncStatus: lastAnySync?.status ?? "none",
         today: todayMidnight.toISOString(),
+        reason:
+          lastAnySync?.status === "failed" || lastAnySync?.status === "partial"
+            ? "Retrying failed/partial sync"
+            : "No sync today",
       });
 
       const summary = await syncAllMentorados();
@@ -227,8 +245,8 @@ async function runCatchUpSyncIfNeeded(logger: Logger): Promise<boolean> {
     }
 
     logger.info("catchup_skip", {
-      lastSync: lastSync.syncedAt.toISOString(),
-      reason: "Sync already ran today",
+      lastSuccessfulSync: lastSuccessfulSync.syncedAt.toISOString(),
+      reason: "Successful sync already exists for today",
     });
 
     return false;

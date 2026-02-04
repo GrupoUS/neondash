@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   badges,
   mentoradoBadges,
@@ -6,161 +6,193 @@ import {
   metasProgressivas,
   metricasMensais,
   notificacoes,
+  playbookItems,
+  playbookProgress,
   rankingMensal,
 } from "../drizzle/schema";
 import { getDb } from "./db";
 import { sendEmail } from "./emailService";
 
-// Badge definitions with criteria
+// Badge definitions with criteria - 15 badges aligned with Core Flows spec
 export const BADGES_CONFIG = [
-  // Faturamento
+  // ============================================
+  // CONSISTÊNCIA (5 badges)
+  // ============================================
   {
-    codigo: "meta_batida",
-    nome: "Meta Batida",
+    codigo: "primeiro_registro",
+    nome: "Primeiro Registro",
+    descricao: "Registrou suas primeiras métricas no dashboard",
+    icone: "🏆",
+    cor: "gold",
+    categoria: "consistencia" as const,
+    criterio: JSON.stringify({ tipo: "primeiro_registro" }),
+    pontos: 10,
+  },
+  {
+    codigo: "consistencia_bronze",
+    nome: "Consistência Bronze",
+    descricao: "3 meses consecutivos registrando até dia 10",
+    icone: "⭐",
+    cor: "bronze",
+    categoria: "consistencia" as const,
+    criterio: JSON.stringify({ tipo: "streak_consecutivo", meses: 3 }),
+    pontos: 30,
+  },
+  {
+    codigo: "consistencia_prata",
+    nome: "Consistência Prata",
+    descricao: "6 meses consecutivos registrando até dia 10",
+    icone: "🥈",
+    cor: "silver",
+    categoria: "consistencia" as const,
+    criterio: JSON.stringify({ tipo: "streak_consecutivo", meses: 6 }),
+    pontos: 60,
+  },
+  {
+    codigo: "consistencia_ouro",
+    nome: "Consistência Ouro",
+    descricao: "12 meses consecutivos registrando até dia 10",
+    icone: "🥇",
+    cor: "gold",
+    categoria: "consistencia" as const,
+    criterio: JSON.stringify({ tipo: "streak_consecutivo", meses: 12 }),
+    pontos: 120,
+  },
+  {
+    codigo: "pontualidade",
+    nome: "Pontualidade",
+    descricao: "3 meses consecutivos registrando até dia 5",
+    icone: "⏰",
+    cor: "blue",
+    categoria: "consistencia" as const,
+    criterio: JSON.stringify({ tipo: "pontualidade", meses: 3, dia: 5 }),
+    pontos: 50,
+  },
+
+  // ============================================
+  // FATURAMENTO (4 badges)
+  // ============================================
+  {
+    codigo: "meta_atingida",
+    nome: "Meta Atingida",
     descricao: "Atingiu a meta de faturamento do mês",
-    icone: "Target",
+    icone: "💪",
     cor: "gold",
     categoria: "faturamento" as const,
     criterio: JSON.stringify({ tipo: "faturamento_meta" }),
     pontos: 20,
   },
   {
-    codigo: "crescimento_10",
-    nome: "Crescimento 10%",
-    descricao: "Cresceu 10% em relação ao mês anterior",
-    icone: "TrendingUp",
-    cor: "green",
-    categoria: "faturamento" as const,
-    criterio: JSON.stringify({ tipo: "crescimento", valor: 10 }),
-    pontos: 15,
-  },
-  {
     codigo: "crescimento_25",
     nome: "Crescimento 25%",
-    descricao: "Cresceu 25% em relação ao mês anterior",
-    icone: "Rocket",
-    cor: "purple",
+    descricao: "Cresceu 25% ou mais em relação ao mês anterior",
+    icone: "📈",
+    cor: "green",
     categoria: "faturamento" as const,
-    criterio: JSON.stringify({ tipo: "crescimento", valor: 25 }),
-    pontos: 30,
-  },
-  {
-    codigo: "faturamento_20k",
-    nome: "20K Club",
-    descricao: "Faturou R$ 20.000 ou mais no mês",
-    icone: "Crown",
-    cor: "gold",
-    categoria: "faturamento" as const,
-    criterio: JSON.stringify({ tipo: "faturamento_minimo", valor: 20000 }),
-    pontos: 25,
-  },
-  {
-    codigo: "faturamento_50k",
-    nome: "50K Club",
-    descricao: "Faturou R$ 50.000 ou mais no mês",
-    icone: "Gem",
-    cor: "purple",
-    categoria: "faturamento" as const,
-    criterio: JSON.stringify({ tipo: "faturamento_minimo", valor: 50000 }),
-    pontos: 50,
-  },
-
-  // Conteúdo
-  {
-    codigo: "criador_conteudo",
-    nome: "Criador de Conteúdo",
-    descricao: "Postou 12+ posts e 60+ stories no mês",
-    icone: "Camera",
-    cor: "blue",
-    categoria: "conteudo" as const,
-    criterio: JSON.stringify({ tipo: "conteudo_completo" }),
-    pontos: 15,
-  },
-  {
-    codigo: "viral",
-    nome: "Viral",
-    descricao: "Postou 20+ posts no mês",
-    icone: "Flame",
-    cor: "orange",
-    categoria: "conteudo" as const,
-    criterio: JSON.stringify({ tipo: "posts_minimo", valor: 20 }),
-    pontos: 20,
-  },
-  {
-    codigo: "stories_master",
-    nome: "Stories Master",
-    descricao: "Postou 100+ stories no mês",
-    icone: "Play",
-    cor: "pink",
-    categoria: "conteudo" as const,
-    criterio: JSON.stringify({ tipo: "stories_minimo", valor: 100 }),
-    pontos: 20,
-  },
-
-  // Operacional
-  {
-    codigo: "maquina_leads",
-    nome: "Máquina de Leads",
-    descricao: "Gerou 50+ leads no mês",
-    icone: "Users",
-    cor: "blue",
-    categoria: "operacional" as const,
-    criterio: JSON.stringify({ tipo: "leads_minimo", valor: 50 }),
-    pontos: 20,
-  },
-  {
-    codigo: "alta_conversao",
-    nome: "Alta Conversão",
-    descricao: "Realizou 20+ procedimentos no mês",
-    icone: "Zap",
-    cor: "yellow",
-    categoria: "operacional" as const,
-    criterio: JSON.stringify({ tipo: "procedimentos_minimo", valor: 20 }),
-    pontos: 25,
-  },
-
-  // Consistência
-  {
-    codigo: "consistente_3",
-    nome: "Consistente",
-    descricao: "Bateu a meta 3 meses seguidos",
-    icone: "Award",
-    cor: "silver",
-    categoria: "consistencia" as const,
-    criterio: JSON.stringify({ tipo: "metas_seguidas", valor: 3 }),
+    criterio: JSON.stringify({ tipo: "crescimento", percentual: 25 }),
     pontos: 40,
   },
   {
-    codigo: "consistente_6",
-    nome: "Imparável",
-    descricao: "Bateu a meta 6 meses seguidos",
-    icone: "Trophy",
-    cor: "gold",
-    categoria: "consistencia" as const,
-    criterio: JSON.stringify({ tipo: "metas_seguidas", valor: 6 }),
+    codigo: "crescimento_50",
+    nome: "Crescimento 50%",
+    descricao: "Cresceu 50% ou mais em relação ao mês anterior",
+    icone: "🚀",
+    cor: "purple",
+    categoria: "faturamento" as const,
+    criterio: JSON.stringify({ tipo: "crescimento", percentual: 50 }),
     pontos: 80,
   },
-
-  // Especial
   {
-    codigo: "top_3",
-    nome: "Top 3",
-    descricao: "Ficou entre os 3 primeiros do ranking mensal",
-    icone: "Medal",
+    codigo: "faturamento_6_digitos",
+    nome: "6 Dígitos",
+    descricao: "Faturou R$ 100.000+ em um mês",
+    icone: "💰",
     cor: "gold",
-    categoria: "especial" as const,
-    criterio: JSON.stringify({ tipo: "ranking_top", valor: 3 }),
+    categoria: "faturamento" as const,
+    criterio: JSON.stringify({ tipo: "faturamento_minimo", valor: 100000 }),
+    pontos: 100,
+  },
+
+  // ============================================
+  // RANKING (3 badges)
+  // ============================================
+  {
+    codigo: "top_3_turma",
+    nome: "Top 3 Turma",
+    descricao: "Ficou entre os 3 primeiros do ranking mensal",
+    icone: "🥇",
+    cor: "gold",
+    categoria: "ranking" as const,
+    criterio: JSON.stringify({ tipo: "ranking_top", posicao: 3 }),
+    pontos: 50,
+  },
+  {
+    codigo: "top_1_turma",
+    nome: "Campeão da Turma",
+    descricao: "Ficou em 1º lugar no ranking mensal",
+    icone: "👑",
+    cor: "gold",
+    categoria: "ranking" as const,
+    criterio: JSON.stringify({ tipo: "ranking_top", posicao: 1 }),
+    pontos: 100,
+  },
+  {
+    codigo: "acima_media",
+    nome: "Acima da Média",
+    descricao: "Faturamento acima da média da turma por 3 meses consecutivos",
+    icone: "🎯",
+    cor: "blue",
+    categoria: "ranking" as const,
+    criterio: JSON.stringify({ tipo: "acima_media", meses: 3 }),
+    pontos: 40,
+  },
+
+  // ============================================
+  // OPERACIONAL (2 badges)
+  // ============================================
+  {
+    codigo: "gerador_leads",
+    nome: "Gerador de Leads",
+    descricao: "Gerou 50+ leads em um mês",
+    icone: "🧒",
+    cor: "blue",
+    categoria: "operacional" as const,
+    criterio: JSON.stringify({ tipo: "leads_minimo", valor: 50 }),
     pontos: 30,
   },
   {
-    codigo: "primeiro_lugar",
-    nome: "Campeão",
-    descricao: "Ficou em primeiro lugar no ranking mensal",
-    icone: "Crown",
+    codigo: "conversao_master",
+    nome: "Conversão Master",
+    descricao: "Taxa de conversão acima de 20%",
+    icone: "✨",
+    cor: "purple",
+    categoria: "operacional" as const,
+    criterio: JSON.stringify({ tipo: "conversao", percentual: 20 }),
+    pontos: 50,
+  },
+
+  // ============================================
+  // ESPECIAL (2 badges)
+  // ============================================
+  {
+    codigo: "evolucao_completa",
+    nome: "Evolução Completa",
+    descricao: "Completou todos os módulos do playbook",
+    icone: "🎓",
+    cor: "purple",
+    categoria: "especial" as const,
+    criterio: JSON.stringify({ tipo: "playbook_completo" }),
+    pontos: 80,
+  },
+  {
+    codigo: "jornada_completa",
+    nome: "Jornada Completa",
+    descricao: "6 meses de mentoria com registro mensal",
+    icone: "🎆",
     cor: "gold",
     categoria: "especial" as const,
-    criterio: JSON.stringify({ tipo: "ranking_top", valor: 1 }),
-    pontos: 50,
+    criterio: JSON.stringify({ tipo: "meses_mentoria", valor: 6 }),
+    pontos: 150,
   },
 ];
 
@@ -234,35 +266,148 @@ export async function checkAndAwardBadges(mentoradoId: number, ano: number, mes:
     let earned = false;
 
     switch (criterio.tipo) {
+      // ============================================
+      // CONSISTÊNCIA BADGES
+      // ============================================
+      case "primeiro_registro": {
+        // Count total metrics for this mentorado
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(metricasMensais)
+          .where(eq(metricasMensais.mentoradoId, mentoradoId));
+        earned = (countResult?.count ?? 0) === 1;
+        break;
+      }
+
+      case "streak_consecutivo": {
+        const streak = await calculateStreak(mentoradoId);
+        earned = streak.currentStreak >= criterio.meses;
+        break;
+      }
+
+      case "pontualidade": {
+        // Check last N months for early registration (by day 5)
+        const monthsToCheck = criterio.meses || 3;
+        const targetDay = criterio.dia || 5;
+        const recentMetrics = await db
+          .select()
+          .from(metricasMensais)
+          .where(eq(metricasMensais.mentoradoId, mentoradoId))
+          .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
+          .limit(monthsToCheck);
+
+        if (recentMetrics.length >= monthsToCheck) {
+          earned = recentMetrics.every((m) => {
+            const day = new Date(m.createdAt).getDate();
+            return day <= targetDay;
+          });
+        }
+        break;
+      }
+
+      // ============================================
+      // FATURAMENTO BADGES
+      // ============================================
       case "faturamento_meta":
         earned = metricas.faturamento >= mentorado.metaFaturamento;
         break;
-      case "crescimento":
+
+      case "crescimento": {
         if (metricasAnterior && metricasAnterior.faturamento > 0) {
           const crescimento =
             ((metricas.faturamento - metricasAnterior.faturamento) / metricasAnterior.faturamento) *
             100;
-          earned = crescimento >= criterio.valor;
+          // Support both 'valor' (old) and 'percentual' (new) for backwards compatibility
+          const threshold = criterio.percentual ?? criterio.valor ?? 0;
+          earned = crescimento >= threshold;
         }
         break;
+      }
+
       case "faturamento_minimo":
         earned = metricas.faturamento >= criterio.valor;
         break;
-      case "conteudo_completo":
-        earned = metricas.postsFeed >= 12 && metricas.stories >= 60;
+
+      // ============================================
+      // RANKING BADGES (handled in calculateMonthlyRanking)
+      // ============================================
+      case "ranking_top":
+        // Ranking badges are awarded in calculateMonthlyRanking function
+        // Skip here to avoid duplicate logic
         break;
-      case "posts_minimo":
-        earned = metricas.postsFeed >= criterio.valor;
+
+      case "acima_media": {
+        // Check if faturamento is above turma average for N consecutive months
+        const monthsRequired = criterio.meses || 3;
+        const recentMetrics = await db
+          .select()
+          .from(metricasMensais)
+          .where(eq(metricasMensais.mentoradoId, mentoradoId))
+          .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
+          .limit(monthsRequired);
+
+        if (recentMetrics.length >= monthsRequired) {
+          let allAboveAverage = true;
+          for (const m of recentMetrics) {
+            // Get average faturamento of all active mentorados for this month
+            const [avgResult] = await db
+              .select({ avg: sql<number>`avg(faturamento)` })
+              .from(metricasMensais)
+              .where(and(eq(metricasMensais.ano, m.ano), eq(metricasMensais.mes, m.mes)));
+            const turmaAverage = avgResult?.avg ?? 0;
+            if (m.faturamento <= turmaAverage) {
+              allAboveAverage = false;
+              break;
+            }
+          }
+          earned = allAboveAverage;
+        }
         break;
-      case "stories_minimo":
-        earned = metricas.stories >= criterio.valor;
-        break;
+      }
+
+      // ============================================
+      // OPERACIONAL BADGES
+      // ============================================
       case "leads_minimo":
         earned = metricas.leads >= criterio.valor;
         break;
-      case "procedimentos_minimo":
-        earned = metricas.procedimentos >= criterio.valor;
+
+      case "conversao": {
+        // Calculate conversion rate: (procedimentos / leads) * 100
+        if (metricas.leads > 0) {
+          const conversionRate = (metricas.procedimentos / metricas.leads) * 100;
+          earned = conversionRate > (criterio.percentual ?? 20);
+        }
         break;
+      }
+
+      // ============================================
+      // ESPECIAL BADGES
+      // ============================================
+      case "playbook_completo": {
+        // Count total playbook items vs completed items for this mentorado
+        const [totalItems] = await db.select({ count: sql<number>`count(*)` }).from(playbookItems);
+
+        const [completedItems] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(playbookProgress)
+          .where(eq(playbookProgress.mentoradoId, mentoradoId));
+
+        const total = totalItems?.count ?? 0;
+        const completed = completedItems?.count ?? 0;
+        earned = total > 0 && completed >= total;
+        break;
+      }
+
+      case "meses_mentoria": {
+        // Count total months with metrics registered
+        const [monthsCount] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(metricasMensais)
+          .where(eq(metricasMensais.mentoradoId, mentoradoId));
+        earned = (monthsCount?.count ?? 0) >= (criterio.valor ?? 6);
+        break;
+      }
     }
 
     if (earned) {
@@ -376,7 +521,7 @@ export async function calculateMonthlyRanking(ano: number, mes: number) {
 
     // Award ranking badges
     if (i < 3) {
-      const [topBadge] = await db.select().from(badges).where(eq(badges.codigo, "top_3"));
+      const [topBadge] = await db.select().from(badges).where(eq(badges.codigo, "top_3_turma"));
       if (topBadge) {
         const existing = await db
           .select()
@@ -400,10 +545,7 @@ export async function calculateMonthlyRanking(ano: number, mes: number) {
       }
     }
     if (i === 0) {
-      const [champBadge] = await db
-        .select()
-        .from(badges)
-        .where(eq(badges.codigo, "primeiro_lugar"));
+      const [champBadge] = await db.select().from(badges).where(eq(badges.codigo, "top_1_turma"));
       if (champBadge) {
         const existing = await db
           .select()
@@ -693,4 +835,85 @@ export async function getProgressiveGoals(mentoradoId: number) {
   if (!db) return [];
 
   return db.select().from(metasProgressivas).where(eq(metasProgressivas.mentoradoId, mentoradoId));
+}
+
+/**
+ * Calculate current and longest streak for a mentorado
+ *
+ * Streak is counted as consecutive months with metrics registered by day 10.
+ * Breaks if a month is skipped or registered after day 10.
+ *
+ * @param mentoradoId - ID of the mentorado
+ * @returns Object with currentStreak and longestStreak counts
+ */
+export async function calculateStreak(mentoradoId: number): Promise<{
+  currentStreak: number;
+  longestStreak: number;
+}> {
+  const db = await getDb();
+  if (!db) return { currentStreak: 0, longestStreak: 0 };
+
+  // Query last 12 months of metrics ordered by ano DESC, mes DESC
+  const metrics = await db
+    .select()
+    .from(metricasMensais)
+    .where(eq(metricasMensais.mentoradoId, mentoradoId))
+    .orderBy(desc(metricasMensais.ano), desc(metricasMensais.mes))
+    .limit(12);
+
+  if (metrics.length === 0) {
+    return { currentStreak: 0, longestStreak: 0 };
+  }
+
+  let currentStreak = 0;
+  let longestStreak = 0;
+  let tempStreak = 0;
+  let previousAno: number | null = null;
+  let previousMes: number | null = null;
+  let isCurrentStreakActive = true;
+
+  for (const metric of metrics) {
+    const registrationDay = new Date(metric.createdAt).getDate();
+    const isOnTime = registrationDay <= 10;
+
+    // Check for gaps in consecutive months
+    if (previousAno !== null && previousMes !== null) {
+      const expectedPrevMes = metric.mes === 12 ? 1 : metric.mes + 1;
+      const expectedPrevAno = metric.mes === 12 ? metric.ano + 1 : metric.ano;
+
+      // If there's a gap in months, break the streak
+      if (previousMes !== expectedPrevMes || previousAno !== expectedPrevAno) {
+        if (isCurrentStreakActive) {
+          currentStreak = tempStreak;
+          isCurrentStreakActive = false;
+        }
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 0;
+      }
+    }
+
+    if (isOnTime) {
+      tempStreak++;
+      longestStreak = Math.max(longestStreak, tempStreak);
+    } else {
+      // Late registration breaks the streak
+      if (isCurrentStreakActive) {
+        currentStreak = tempStreak;
+        isCurrentStreakActive = false;
+      }
+      longestStreak = Math.max(longestStreak, tempStreak);
+      tempStreak = 0;
+    }
+
+    previousAno = metric.ano;
+    previousMes = metric.mes;
+  }
+
+  // If still in active streak at end of loop
+  if (isCurrentStreakActive) {
+    currentStreak = tempStreak;
+  }
+  longestStreak = Math.max(longestStreak, tempStreak);
+
+  return { currentStreak, longestStreak };
 }

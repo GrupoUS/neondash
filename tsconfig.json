@@ -1,5 +1,5 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
+  "include": ["client/src/**/*", "shared/**/*", "server/**/*", "src/**/*"],
   "exclude": ["node_modules", "node_modules/**/*", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "target": "ES2022",
@@ -15,6 +15,8 @@
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "baseUrl": ".",
+    "maxNodeModuleJsDepth": 1,
+    "forceConsistentCasingInFileNames": true,
     "paths": {
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]

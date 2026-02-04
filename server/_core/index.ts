@@ -36,9 +36,6 @@ async function startServer() {
   // Initialize session cache (Redis or in-memory fallback)
   await initRedis();
 
-  // Initialize background schedulers (Instagram sync, etc.)
-  await initSchedulers();
-
   const app = express();
   const server = createServer(app);
 
@@ -226,7 +223,13 @@ async function startServer() {
   const preferredPort = parseInt(process.env.PORT || "3000", 10);
   const port = await findAvailablePort(preferredPort);
 
-  server.listen(port, () => {});
+  server.listen(port, () => {
+    // Initialize background schedulers AFTER server is ready (fire-and-forget)
+    // This prevents catch-up sync from blocking server startup
+    initSchedulers().catch((error) => {
+      console.error("[scheduler] Failed to initialize schedulers:", error);
+    });
+  });
 
   // ─────────────────────────────────────────────────────────────────────────
   // Graceful Shutdown

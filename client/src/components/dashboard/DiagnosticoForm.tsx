@@ -137,7 +137,10 @@ export function DiagnosticoForm({ mentoradoId }: { mentoradoId?: number }) {
   const upsertMutation = trpc.diagnostico.upsert.useMutation({
     onSuccess: () => {
       toast.success("Diagnóstico salvo com sucesso!");
+      // Invalidate diagnostico query to update form
       utils.diagnostico.get.invalidate();
+      // Invalidate overview stats so dashboard can unlock tabs
+      utils.mentorados.getOverviewStats.invalidate();
     },
     onError: (error) => {
       toast.error(`Erro: ${error.message}`);

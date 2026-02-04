@@ -1,4 +1,4 @@
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, Lock, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -20,8 +20,42 @@ import {
   NeonTabsTrigger,
 } from "@/components/ui/neon-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { trpc } from "@/lib/trpc";
+
+// Helper component to reduce main component complexity
+function LockedTab({
+  value,
+  children,
+  isLocked,
+}: {
+  value: string;
+  children: React.ReactNode;
+  isLocked: boolean;
+}) {
+  if (!isLocked) {
+    return <NeonTabsTrigger value={value}>{children}</NeonTabsTrigger>;
+  }
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <NeonTabsTrigger value={value} disabled>
+              <Lock className="w-3 h-3 mr-1 opacity-70" />
+              {children}
+            </NeonTabsTrigger>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Complete o diagnóstico primeiro</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 export default function MyDashboard() {
   const _isMobile = useIsMobile();
@@ -117,9 +151,34 @@ export default function MyDashboard() {
     }
   }, [isAdmin, isLoadingMe, mentoradoMe, errorMe, refetchMentorado]);
 
-  // Derived ID for child components
   const targetMentoradoId =
     isAdmin && selectedMentoradoId ? parseInt(selectedMentoradoId, 10) : currentMentorado?.id;
+
+  // 4. Fetch diagnostico to determine if tabs should be locked
+  const { data: diagnostico, isLoading: isLoadingDiagnostico } = trpc.diagnostico.get.useQuery(
+    isAdmin && targetMentoradoId ? { mentoradoId: targetMentoradoId } : undefined,
+    { enabled: !!targetMentoradoId || !isAdmin }
+  );
+
+  // Determine if diagnostico is completed (has key required fields)
+  const isDiagnosticoCompleted = Boolean(
+    diagnostico?.objetivo6Meses || diagnostico?.atuacaoSaude || diagnostico?.rendaMensal
+  );
+
+  // Auto-switch to diagnostico tab if first visit and no diagnostico
+  const hasAutoSwitchedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !isLoadingDiagnostico &&
+      !isDiagnosticoCompleted &&
+      !hasAutoSwitchedRef.current &&
+      activeTab !== "diagnostico" &&
+      !isAdmin
+    ) {
+      hasAutoSwitchedRef.current = true;
+      setActiveTab("diagnostico");
+    }
+  }, [isLoadingDiagnostico, isDiagnosticoCompleted, activeTab, isAdmin]);
 
   // Progress queries removed - now handled by MenteeOverview
 
@@ -248,11 +307,19 @@ export default function MyDashboard() {
         <NeonTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex justify-center mb-6">
             <NeonTabsList>
-              <NeonTabsTrigger value="visao-geral">Visão Geral</NeonTabsTrigger>
+              <LockedTab value="visao-geral" isLocked={!isAdmin && !isDiagnosticoCompleted}>
+                Visão Geral
+              </LockedTab>
               <NeonTabsTrigger value="diagnostico">Diagnóstico</NeonTabsTrigger>
-              <NeonTabsTrigger value="evolucao">Evolução</NeonTabsTrigger>
-              <NeonTabsTrigger value="atividades">Atividades</NeonTabsTrigger>
-              <NeonTabsTrigger value="instagram">Instagram</NeonTabsTrigger>
+              <LockedTab value="evolucao" isLocked={!isAdmin && !isDiagnosticoCompleted}>
+                Evolução
+              </LockedTab>
+              <LockedTab value="atividades" isLocked={!isAdmin && !isDiagnosticoCompleted}>
+                Atividades
+              </LockedTab>
+              <LockedTab value="instagram" isLocked={!isAdmin && !isDiagnosticoCompleted}>
+                Instagram
+              </LockedTab>
             </NeonTabsList>
           </div>
 

@@ -317,7 +317,7 @@ export function Agenda() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-[#C6A665]/20 pb-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-serif text-[#C6A665] tracking-tight">
-              Neon Clinic Integrated Schedule
+              Agenda NEON
             </h1>
           </div>
 
@@ -405,7 +405,8 @@ export function Agenda() {
             --rbc-border: hsl(var(--border));
             --rbc-accent: hsl(var(--primary));
             --rbc-accent-fg: hsl(var(--primary-foreground));
-            --rbc-today: hsl(var(--accent));
+            --rbc-today: hsl(var(--primary) / 0.1);
+            --rbc-today-border: hsl(var(--primary));
             --rbc-muted: hsl(var(--muted-foreground));
             --rbc-event-bg: hsl(var(--primary));
             --rbc-event-fg: hsl(var(--primary-foreground));
@@ -426,6 +427,7 @@ export function Agenda() {
             color: var(--rbc-accent);
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            font-family: ui-serif, Georgia, serif;
           }
 
           .neon-calendar .rbc-toolbar button {
@@ -434,26 +436,31 @@ export function Agenda() {
             border-radius: 0.5rem;
             background: transparent;
             padding: 0.375rem 0.75rem;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            font-weight: 500;
           }
 
           .neon-calendar .rbc-toolbar button:hover {
-            background: hsl(var(--accent));
+            background: hsl(var(--primary) / 0.15);
+            transform: translateY(-1px);
           }
 
           .neon-calendar .rbc-toolbar button.rbc-active {
             background: var(--rbc-accent);
             color: var(--rbc-accent-fg);
             font-weight: 600;
+            box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
           }
 
           .neon-calendar .rbc-header {
             padding: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
+            font-size: 0.75rem;
             color: var(--rbc-muted);
             border-bottom: 1px solid var(--rbc-border);
+            background: linear-gradient(180deg, transparent 0%, hsl(var(--muted) / 0.05) 100%);
           }
 
           .neon-calendar .rbc-month-view,
@@ -463,6 +470,7 @@ export function Agenda() {
             background: var(--rbc-bg);
             border-radius: 0.75rem;
             overflow: hidden;
+            box-shadow: 0 4px 16px hsl(var(--foreground) / 0.05);
           }
 
           .neon-calendar .rbc-month-row + .rbc-month-row {
@@ -471,14 +479,46 @@ export function Agenda() {
 
           .neon-calendar .rbc-day-bg {
             border-left: 1px solid var(--rbc-border);
+            transition: background 0.2s ease;
+          }
+
+          .neon-calendar .rbc-day-bg:hover {
+            background: hsl(var(--primary) / 0.03);
           }
 
           .neon-calendar .rbc-off-range-bg {
-            background: hsl(var(--muted) / 0.3);
+            background: hsl(var(--muted) / 0.15);
           }
 
+          /* TODAY HIGHLIGHT - Gold accent with subtle glow */
           .neon-calendar .rbc-today {
-            background: var(--rbc-today);
+            background: linear-gradient(135deg, 
+              hsl(var(--primary) / 0.08) 0%, 
+              hsl(var(--primary) / 0.15) 50%,
+              hsl(var(--primary) / 0.08) 100%
+            ) !important;
+            position: relative;
+          }
+
+          .neon-calendar .rbc-today::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, 
+              transparent 0%, 
+              var(--rbc-accent) 20%, 
+              var(--rbc-accent) 80%, 
+              transparent 100%
+            );
+          }
+
+          /* Week/Day view: subtle left border for today column */
+          .neon-calendar .rbc-time-column.rbc-today {
+            border-left: 2px solid var(--rbc-accent) !important;
+            box-shadow: inset 4px 0 12px hsl(var(--primary) / 0.1);
           }
 
           .neon-calendar .rbc-date-cell {
@@ -486,31 +526,51 @@ export function Agenda() {
             text-align: right;
           }
 
+          /* Today date number - highlight with gold */
+          .neon-calendar .rbc-date-cell.rbc-now {
+            font-weight: 700;
+          }
+
+          .neon-calendar .rbc-date-cell.rbc-now a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--rbc-accent);
+            color: var(--rbc-accent-fg);
+            border-radius: 50%;
+            font-weight: 700;
+            box-shadow: 0 2px 6px hsl(var(--primary) / 0.4);
+          }
+
           /* Events Styling */
           .neon-calendar .rbc-event {
             background: var(--rbc-event-bg);
             border: none;
             color: var(--rbc-event-fg);
-            border-radius: 4px;
-            padding: 2px 6px;
+            border-radius: 6px;
+            padding: 4px 8px;
             font-size: 0.75rem;
-            font-weight: 500;
-            box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
-            transition: transform 0.15s, box-shadow 0.15s;
+            font-weight: 600;
+            box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
+            transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+            border-left: 3px solid hsl(var(--primary) / 0.6);
           }
 
           .neon-calendar .rbc-event:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px hsl(var(--foreground) / 0.15);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 12px hsl(var(--foreground) / 0.2);
+            background: hsl(var(--primary) / 0.9);
           }
 
           .neon-calendar .rbc-event.rbc-selected {
-            box-shadow: 0 0 0 2px var(--rbc-accent);
+            box-shadow: 0 0 0 2px var(--rbc-accent), 0 4px 12px hsl(var(--primary) / 0.3);
           }
           
-          /* Grid lines */
+          /* Grid lines - subtle */
           .neon-calendar .rbc-day-slot .rbc-time-slot {
-            border-top: 1px solid var(--rbc-border);
+            border-top: 1px solid hsl(var(--border) / 0.5);
           }
           
           .neon-calendar .rbc-timeslot-group {
@@ -522,12 +582,25 @@ export function Agenda() {
           }
 
           .neon-calendar .rbc-time-content {
-            border-top: 1px solid var(--rbc-border);
+            border-top: 2px solid var(--rbc-border);
           }
 
           .neon-calendar .rbc-time-gutter {
             color: var(--rbc-muted);
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+          }
+
+          /* Week view header - today highlight */
+          .neon-calendar .rbc-header.rbc-today {
+            background: linear-gradient(180deg, 
+              hsl(var(--primary) / 0.1) 0%, 
+              hsl(var(--primary) / 0.05) 100%
+            );
+            color: var(--rbc-accent);
+            font-weight: 700;
+            border-bottom: 2px solid var(--rbc-accent);
           }
 
           /* Week view specific */
@@ -535,8 +608,23 @@ export function Agenda() {
             background: var(--rbc-bg);
           }
 
+          /* Current time indicator - pulsing gold line */
           .neon-calendar .rbc-current-time-indicator {
-            background-color: var(--rbc-accent);
+            background: var(--rbc-accent);
+            height: 2px;
+            box-shadow: 0 0 8px var(--rbc-accent), 0 0 16px hsl(var(--primary) / 0.5);
+          }
+
+          .neon-calendar .rbc-current-time-indicator::before {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            background: var(--rbc-accent);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--rbc-accent);
           }
 
           /* Agenda view */
@@ -546,30 +634,85 @@ export function Agenda() {
 
           .neon-calendar .rbc-agenda-date-cell,
           .neon-calendar .rbc-agenda-time-cell {
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1rem;
             white-space: nowrap;
             color: var(--rbc-muted);
+            font-size: 0.8rem;
+            font-weight: 500;
           }
 
           .neon-calendar .rbc-agenda-event-cell {
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1rem;
+          }
+
+          .neon-calendar .rbc-agenda-content {
+            border-top: 1px solid var(--rbc-border);
+          }
+
+          .neon-calendar .rbc-agenda-content tr:hover {
+            background: hsl(var(--primary) / 0.05);
           }
 
           /* ===== DARK MODE ===== */
           .dark .neon-calendar {
-            --rbc-bg: hsl(212 48% 13%);
-            --rbc-fg: hsl(39 44% 65%);
-            --rbc-border: hsl(26 6% 21%);
-            --rbc-accent: hsl(39 44% 65%);
-            --rbc-accent-fg: hsl(211 49% 10%);
-            --rbc-today: hsl(26 5% 20%);
-            --rbc-muted: hsl(48 10% 60%);
-            --rbc-event-bg: hsl(39 44% 65%);
-            --rbc-event-fg: hsl(211 49% 10%);
+            --rbc-bg: hsl(212 48% 10%);
+            --rbc-fg: hsl(210 20% 85%);
+            --rbc-border: hsl(212 30% 20%);
+            --rbc-accent: hsl(39 50% 58%);
+            --rbc-accent-fg: hsl(212 50% 8%);
+            --rbc-today: hsl(39 50% 58% / 0.12);
+            --rbc-today-border: hsl(39 50% 58%);
+            --rbc-muted: hsl(210 15% 55%);
+            --rbc-event-bg: hsl(39 50% 58%);
+            --rbc-event-fg: hsl(212 50% 8%);
           }
 
           .dark .neon-calendar .rbc-off-range-bg {
-            background: hsl(211 49% 8%);
+            background: hsl(212 50% 6%);
+          }
+
+          /* Dark mode today - Navy with Gold accent glow */
+          .dark .neon-calendar .rbc-today {
+            background: linear-gradient(135deg, 
+              hsl(39 50% 58% / 0.08) 0%, 
+              hsl(212 40% 15%) 50%,
+              hsl(39 50% 58% / 0.05) 100%
+            ) !important;
+          }
+
+          .dark .neon-calendar .rbc-today::before {
+            background: linear-gradient(90deg, 
+              transparent 0%, 
+              hsl(39 50% 58%) 20%, 
+              hsl(39 50% 58%) 80%, 
+              transparent 100%
+            );
+          }
+
+          .dark .neon-calendar .rbc-time-column.rbc-today {
+            background: linear-gradient(180deg, 
+              hsl(39 50% 58% / 0.06) 0%, 
+              hsl(212 45% 12%) 100%
+            ) !important;
+            border-left: 2px solid hsl(39 50% 58%) !important;
+            box-shadow: inset 4px 0 20px hsl(39 50% 58% / 0.08);
+          }
+
+          .dark .neon-calendar .rbc-header.rbc-today {
+            background: linear-gradient(180deg, 
+              hsl(39 50% 58% / 0.15) 0%, 
+              hsl(39 50% 58% / 0.05) 100%
+            );
+            color: hsl(39 50% 58%);
+            border-bottom: 2px solid hsl(39 50% 58%);
+          }
+
+          .dark .neon-calendar .rbc-event {
+            box-shadow: 0 2px 8px hsl(0 0% 0% / 0.3);
+          }
+
+          .dark .neon-calendar .rbc-current-time-indicator {
+            box-shadow: 0 0 12px hsl(39 50% 58%), 0 0 24px hsl(39 50% 58% / 0.4);
           }
         `}
         </style>

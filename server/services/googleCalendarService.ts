@@ -17,13 +17,17 @@ const GOOGLE_REDIRECT_URI = ENV.googleRedirectUri;
 // Google Calendar API scopes
 const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
 
-// Brazil timezone offset (UTC-3)
+// Brazil timezone
 const BRAZIL_TIMEZONE = "America/Sao_Paulo";
-const BRAZIL_OFFSET = "-03:00";
 
 /**
  * Format date to RFC3339 without milliseconds for Google Calendar API
  * Google expects format: 2026-02-04T14:00:00-03:00 (not 2026-02-04T17:00:00.000Z)
+ *
+ * CRITICAL FIX: Uses Intl.DateTimeFormat with explicit Brazil timezone to ensure
+ * correct date components regardless of server timezone. The previous implementation
+ * used local methods (getHours(), etc.) which return server-local time, causing
+ * incorrect timestamps when server is not in Brazil timezone.
  */
 function formatDateTimeForGoogle(date: Date): string {
   // Validate date
@@ -31,16 +35,30 @@ function formatDateTimeForGoogle(date: Date): string {
     throw new Error(`Invalid date provided: ${date}`);
   }
 
-  // Format as YYYY-MM-DDTHH:mm:ss
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
+  // Format using Brazil timezone - works regardless of server timezone
+  // Using 'en-CA' locale gives ISO-like format (YYYY-MM-DD) making extraction easier
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
 
-  // Use explicit Brazil timezone offset instead of UTC Z
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${BRAZIL_OFFSET}`;
+  const getPart = (type: string) => parts.find((p) => p.type === type)?.value || "00";
+
+  const year = getPart("year");
+  const month = getPart("month");
+  const day = getPart("day");
+  const hour = getPart("hour");
+  const minute = getPart("minute");
+  const second = getPart("second");
+
+  // Brazil timezone offset (UTC-3) - fixed for Sao Paulo
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}-03:00`;
 }
 
 /**

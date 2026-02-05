@@ -105,7 +105,10 @@ export const mentorshipRouter = router({
           .array(
             z.object({
               description: z.string().min(1),
-              dueDate: z.string().date().optional(),
+              dueDate: z
+                .union([z.string().date(), z.literal("")])
+                .optional()
+                .transform((val) => (val === "" ? undefined : val)),
             })
           )
           .optional(),
@@ -181,7 +184,10 @@ export const mentorshipRouter = router({
             z.object({
               id: z.number().optional(),
               description: z.string().min(1),
-              dueDate: z.string().date().optional(),
+              dueDate: z
+                .union([z.string().date(), z.literal("")])
+                .optional()
+                .transform((val) => (val === "" ? undefined : val)),
             })
           )
           .optional(),

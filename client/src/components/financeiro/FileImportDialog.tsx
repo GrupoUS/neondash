@@ -21,14 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { type ParsedTransaction, parseTransactions } from "@/lib/csvParser";
 import { trpc } from "@/lib/trpc";
-
-interface ParsedTransaction {
-  data: string;
-  descricao: string;
-  valor: number;
-  tipo: "receita" | "despesa";
-}
 
 interface FileImportDialogProps {
   onSuccess?: () => void;
@@ -53,112 +47,43 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
     onError: (e) => toast.error(e.message),
   });
 
-  const parseCsv = useCallback((content: string): ParsedTransaction[] => {
-    const lines = content.trim().split("\n");
-    const transactions: ParsedTransaction[] = [];
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
 
-    // Detect if this is a bank statement format (BTG/Inter style with quoted fields)
-    const isBankStatement =
-      lines[0]?.includes('"Data"') ||
-      lines[0]?.includes('"Descricao"') ||
-      lines[0]?.includes('"Descrição"');
-
-    // Skip header if present
-    const headerLine = lines[0]?.toLowerCase() || "";
-    const hasHeader =
-      headerLine.includes("data") || headerLine.includes("descri") || headerLine.includes("valor");
-    const dataLines = hasHeader ? lines.slice(1) : lines;
-
-    for (const line of dataLines) {
-      if (!line.trim()) continue;
-
-      let dataStr: string | undefined;
-      let descricao: string | undefined;
-      let valorStr: string | undefined;
-
-      if (isBankStatement) {
-        // Parse quoted CSV: "Data","Descricao","Credenciadora","Produto","CNPJ","Valor","Saldo"
-        // Match quoted fields, handling commas inside quotes
-        const matches = line.match(/"([^"]*)"/g);
-        if (!matches || matches.length < 2) continue;
-
-        // Remove quotes from matches
-        const fields = matches.map((m) => m.replace(/"/g, "").trim());
-
-        // Fields: 0=Data, 1=Descricao, 2=Credenciadora, 3=Produto, 4=CNPJ, 5=Valor, 6=Saldo
-        dataStr = fields[0]; // DD/MM/YYYY format
-        descricao = fields[1];
-        valorStr = fields[5]; // Brazilian format: "1.234,56" or "-1.234,56"
-
-        // Convert DD/MM/YYYY to YYYY-MM-DD
-        if (dataStr && /^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) {
-          const [day, month, year] = dataStr.split("/");
-          dataStr = `${year}-${month}-${day}`;
-        }
-      } else {
-        // Simple CSV format: data,descricao,valor
-        const separator = line.includes(";") ? ";" : ",";
-        const parts = line.split(separator).map((s) => s.trim());
-        [dataStr, descricao, valorStr] = parts;
-      }
-
-      if (!dataStr || !descricao || !valorStr) continue;
-
-      // Parse Brazilian number format: remove thousand separators (.) and convert decimal (,) to (.)
-      // "1.234,56" -> "1234.56" ; "-791,96" -> "-791.96"
-      const cleanValue = valorStr
-        .replace(/\s/g, "") // remove spaces
-        .replace(/\./g, "") // remove thousand separators
-        .replace(",", "."); // convert decimal separator
-
-      const valor = Math.round(Number.parseFloat(cleanValue) * 100);
-      if (Number.isNaN(valor)) continue;
-
-      transactions.push({
-        data: dataStr,
-        descricao,
-        valor: Math.abs(valor),
-        tipo: valor >= 0 ? "receita" : "despesa",
-      });
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 5MB.");
+      return;
     }
 
-    return transactions;
-  }, []);
+    const reader = new FileReader();
 
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
-      if (!file) return;
+    reader.onload = () => {
+      const content = reader.result as string;
+      const result = parseTransactions(content);
 
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Arquivo muito grande. Máximo 5MB.");
+      if (result.errors.length > 0) {
+        toast.warning(`Avisos: ${result.errors[0]}`);
+      }
+
+      if (result.transactions.length === 0) {
+        toast.error("Nenhuma transação válida encontrada no arquivo.");
         return;
       }
 
-      const reader = new FileReader();
+      setParsedData(result.transactions);
+      setFileName(file.name);
+      toast.success(
+        `${result.transactions.length} transações encontradas de ${result.totalRows} linhas`
+      );
+    };
 
-      reader.onload = () => {
-        const content = reader.result as string;
-        const parsed = parseCsv(content);
+    reader.onerror = () => {
+      toast.error("Erro ao ler arquivo");
+    };
 
-        if (parsed.length === 0) {
-          toast.error("Nenhuma transação válida encontrada no arquivo.");
-          return;
-        }
-
-        setParsedData(parsed);
-        setFileName(file.name);
-        toast.success(`${parsed.length} transações encontradas`);
-      };
-
-      reader.onerror = () => {
-        toast.error("Erro ao ler arquivo");
-      };
-
-      reader.readAsText(file);
-    },
-    [parseCsv]
-  );
+    reader.readAsText(file);
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,

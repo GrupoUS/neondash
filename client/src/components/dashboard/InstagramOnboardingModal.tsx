@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Instagram, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,7 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useInstagramOnboarding } from "@/hooks/useInstagramOnboarding";
+import { trpc } from "@/lib/trpc";
+import type {
+  FacebookLoginStatusResponse,
+  FacebookPagesResponse,
+  FacebookPageWithInstagram,
+  InstagramBusinessAccount,
+} from "@/types/facebook-sdk.d";
 
 interface InstagramOnboardingModalProps {
   mentoradoId: number | undefined;
@@ -49,7 +56,104 @@ export function InstagramOnboardingModal({
   onOpenChange,
 }: InstagramOnboardingModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const { startOAuth, isConnecting, error } = useInstagramOnboarding({ mentoradoId });
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // tRPC mutation for saving token (same as InstagramConnectionCard)
+  const saveToken = trpc.instagram.saveToken.useMutation({
+    onSuccess: () => {
+      toast.success("Instagram conectado com sucesso!");
+      onOpenChange(false);
+    },
+    onError: (err) => {
+      setError(err.message);
+      setIsConnecting(false);
+    },
+  });
+
+  // Helper to get Instagram Business Account from Facebook Pages
+  const getInstagramAccount = (): Promise<InstagramBusinessAccount | null> => {
+    return new Promise((resolve) => {
+      if (!window.FB) {
+        resolve(null);
+        return;
+      }
+
+      window.FB.api<FacebookPagesResponse>("/me/accounts", (pagesResponse) => {
+        if (pagesResponse.error || !pagesResponse.data?.length) {
+          resolve(null);
+          return;
+        }
+
+        const pageId = pagesResponse.data[0].id;
+        window.FB.api<FacebookPageWithInstagram>(
+          `/${pageId}?fields=instagram_business_account{id,username,name}`,
+          (igResponse) => {
+            if (igResponse.error || !igResponse.instagram_business_account) {
+              resolve(null);
+              return;
+            }
+            resolve(igResponse.instagram_business_account);
+          }
+        );
+      });
+    });
+  };
+
+  // Handle Facebook SDK login (same flow as InstagramConnectionCard)
+  const handleConnect = () => {
+    if (!mentoradoId) return;
+
+    if (!window.FB) {
+      setError("Facebook SDK não carregado. Aguarde ou recarregue a página.");
+      return;
+    }
+
+    setIsConnecting(true);
+    setError(null);
+
+    // Separated async logic to satisfy FB.login sync callback requirement
+    const processLoginResponse = async (response: FacebookLoginStatusResponse) => {
+      if (response.authResponse) {
+        try {
+          // Get Instagram Business Account
+          const igAccount = await getInstagramAccount();
+
+          if (!igAccount) {
+            setError(
+              "Conta Instagram Business não encontrada. Vincule sua conta Instagram a uma Página do Facebook."
+            );
+            setIsConnecting(false);
+            return;
+          }
+
+          // Save token to backend
+          await saveToken.mutateAsync({
+            mentoradoId,
+            accessToken: response.authResponse.accessToken,
+            instagramAccountId: igAccount.id,
+            instagramUsername: igAccount.username,
+          });
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Erro ao conectar Instagram");
+          setIsConnecting(false);
+        }
+      } else {
+        setError("Login cancelado ou não autorizado.");
+        setIsConnecting(false);
+      }
+    };
+
+    window.FB.login(
+      (response: FacebookLoginStatusResponse) => {
+        // Wrapper must be synchronous
+        void processLoginResponse(response);
+      },
+      {
+        scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",
+      }
+    );
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -61,10 +165,6 @@ export function InstagramOnboardingModal({
     if (currentStep > 0) {
       setCurrentStep((s) => s - 1);
     }
-  };
-
-  const handleConnect = () => {
-    startOAuth();
   };
 
   const step = steps[currentStep];
@@ -134,7 +234,7 @@ export function InstagramOnboardingModal({
                   )}
                 </Button>
 
-                {error && <p className="text-sm text-destructive text-center">{error.message}</p>}
+                {error && <p className="text-sm text-destructive text-center">{error}</p>}
               </div>
             )}
           </motion.div>

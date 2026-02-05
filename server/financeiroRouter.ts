@@ -16,11 +16,59 @@ export const financeiroRouter = router({
   categorias: router({
     list: mentoradoProcedure.query(async ({ ctx }) => {
       const db = getDb();
-      return db
+      const mentoradoId = ctx.mentorado.id;
+
+      // Check if mentorado has categories
+      let categorias = await db
         .select()
         .from(categoriasFinanceiras)
-        .where(eq(categoriasFinanceiras.mentoradoId, ctx.mentorado.id))
+        .where(eq(categoriasFinanceiras.mentoradoId, mentoradoId))
         .orderBy(categoriasFinanceiras.tipo, categoriasFinanceiras.nome);
+
+      // Auto-seed if empty
+      if (categorias.length === 0) {
+        const defaultCategorias: { tipo: "receita" | "despesa"; nome: string }[] = [
+          // Receitas (8)
+          { tipo: "receita", nome: "Procedimentos Faciais" },
+          { tipo: "receita", nome: "Procedimentos Corporais" },
+          { tipo: "receita", nome: "Harmonização Orofacial" },
+          { tipo: "receita", nome: "Consultas e Avaliações" },
+          { tipo: "receita", nome: "Venda de Produtos" },
+          { tipo: "receita", nome: "Tratamentos Capilares" },
+          { tipo: "receita", nome: "Depilação" },
+          { tipo: "receita", nome: "Outros Serviços" },
+          // Despesas (12)
+          { tipo: "despesa", nome: "Insumos e Materiais" },
+          { tipo: "despesa", nome: "Equipamentos" },
+          { tipo: "despesa", nome: "Aluguel/Condomínio" },
+          { tipo: "despesa", nome: "Salários e Profissionais" },
+          { tipo: "despesa", nome: "Marketing e Publicidade" },
+          { tipo: "despesa", nome: "Impostos e Taxas" },
+          { tipo: "despesa", nome: "Manutenção" },
+          { tipo: "despesa", nome: "Cursos e Capacitação" },
+          { tipo: "despesa", nome: "Contabilidade" },
+          { tipo: "despesa", nome: "Limpeza e Higienização" },
+          { tipo: "despesa", nome: "Sistemas e Software" },
+          { tipo: "despesa", nome: "Outras Despesas" },
+        ];
+
+        await db.insert(categoriasFinanceiras).values(
+          defaultCategorias.map((c) => ({
+            mentoradoId,
+            tipo: c.tipo,
+            nome: c.nome,
+          }))
+        );
+
+        // Re-fetch after seed
+        categorias = await db
+          .select()
+          .from(categoriasFinanceiras)
+          .where(eq(categoriasFinanceiras.mentoradoId, mentoradoId))
+          .orderBy(categoriasFinanceiras.tipo, categoriasFinanceiras.nome);
+      }
+
+      return categorias;
     }),
 
     create: mentoradoProcedure
@@ -337,5 +385,95 @@ export const financeiroRouter = router({
 
         return { imported };
       }),
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SEED DEFAULTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  seedDefaults: mentoradoProcedure.mutation(async ({ ctx }) => {
+    const db = getDb();
+    const mentoradoId = ctx.mentorado.id;
+
+    // Check existing data
+    const existingCategorias = await db
+      .select()
+      .from(categoriasFinanceiras)
+      .where(eq(categoriasFinanceiras.mentoradoId, mentoradoId))
+      .limit(1);
+
+    const existingFormas = await db
+      .select()
+      .from(formasPagamento)
+      .where(eq(formasPagamento.mentoradoId, mentoradoId))
+      .limit(1);
+
+    let categoriasCriadas = 0;
+    let formasCriadas = 0;
+
+    // Seed categorias if empty
+    if (existingCategorias.length === 0) {
+      const defaultCategorias: { tipo: "receita" | "despesa"; nome: string }[] = [
+        // Receitas (8)
+        { tipo: "receita", nome: "Procedimentos Faciais" },
+        { tipo: "receita", nome: "Procedimentos Corporais" },
+        { tipo: "receita", nome: "Harmonização Orofacial" },
+        { tipo: "receita", nome: "Consultas e Avaliações" },
+        { tipo: "receita", nome: "Venda de Produtos" },
+        { tipo: "receita", nome: "Tratamentos Capilares" },
+        { tipo: "receita", nome: "Depilação" },
+        { tipo: "receita", nome: "Outros Serviços" },
+        // Despesas (12)
+        { tipo: "despesa", nome: "Insumos e Materiais" },
+        { tipo: "despesa", nome: "Equipamentos" },
+        { tipo: "despesa", nome: "Aluguel/Condomínio" },
+        { tipo: "despesa", nome: "Salários e Profissionais" },
+        { tipo: "despesa", nome: "Marketing e Publicidade" },
+        { tipo: "despesa", nome: "Impostos e Taxas" },
+        { tipo: "despesa", nome: "Manutenção" },
+        { tipo: "despesa", nome: "Cursos e Capacitação" },
+        { tipo: "despesa", nome: "Contabilidade" },
+        { tipo: "despesa", nome: "Limpeza e Higienização" },
+        { tipo: "despesa", nome: "Sistemas e Software" },
+        { tipo: "despesa", nome: "Outras Despesas" },
+      ];
+
+      await db.insert(categoriasFinanceiras).values(
+        defaultCategorias.map((c) => ({
+          mentoradoId,
+          tipo: c.tipo,
+          nome: c.nome,
+        }))
+      );
+      categoriasCriadas = defaultCategorias.length;
+    }
+
+    // Seed formas de pagamento if empty (taxas em percentual * 100)
+    if (existingFormas.length === 0) {
+      const defaultFormas = [
+        { nome: "Dinheiro", taxaPercentual: 0, prazoRecebimentoDias: 0 },
+        { nome: "PIX", taxaPercentual: 0, prazoRecebimentoDias: 0 },
+        { nome: "Débito", taxaPercentual: 150, prazoRecebimentoDias: 1 },
+        { nome: "Crédito à Vista", taxaPercentual: 290, prazoRecebimentoDias: 30 },
+        { nome: "Crédito 2x", taxaPercentual: 450, prazoRecebimentoDias: 60 },
+        { nome: "Crédito 3x", taxaPercentual: 520, prazoRecebimentoDias: 90 },
+        { nome: "Crédito 4-6x", taxaPercentual: 580, prazoRecebimentoDias: 120 },
+        { nome: "Crédito 7-12x", taxaPercentual: 650, prazoRecebimentoDias: 180 },
+        { nome: "Boleto", taxaPercentual: 190, prazoRecebimentoDias: 3 },
+        { nome: "Link de Pagamento", taxaPercentual: 250, prazoRecebimentoDias: 2 },
+      ];
+
+      await db.insert(formasPagamento).values(
+        defaultFormas.map((f) => ({
+          mentoradoId,
+          nome: f.nome,
+          taxaPercentual: f.taxaPercentual,
+          prazoRecebimentoDias: f.prazoRecebimentoDias,
+        }))
+      );
+      formasCriadas = defaultFormas.length;
+    }
+
+    return { categoriasCriadas, formasCriadas };
   }),
 });

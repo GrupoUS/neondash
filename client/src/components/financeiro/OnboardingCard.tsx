@@ -1,4 +1,4 @@
-import { Info, X } from "lucide-react";
+import { Info, Loader2, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,19 @@ interface OnboardingCardProps {
   title: string;
   steps: string[];
   storageKey: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  isActionLoading?: boolean;
 }
 
-export function OnboardingCard({ title, steps, storageKey }: OnboardingCardProps) {
+export function OnboardingCard({
+  title,
+  steps,
+  storageKey,
+  actionLabel,
+  onAction,
+  isActionLoading,
+}: OnboardingCardProps) {
   const [isDismissed, setIsDismissed] = useState(() => {
     return localStorage.getItem(storageKey) === "dismissed";
   });
@@ -33,6 +43,18 @@ export function OnboardingCard({ title, steps, storageKey }: OnboardingCardProps
               <li key={`step-${index + 1}`}>{step}</li>
             ))}
           </ol>
+          {actionLabel && onAction && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              onClick={onAction}
+              disabled={isActionLoading}
+            >
+              {isActionLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {actionLabel}
+            </Button>
+          )}
         </div>
         <Button
           variant="ghost"

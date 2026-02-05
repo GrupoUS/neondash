@@ -328,4 +328,93 @@ export const precificacaoRouter = router({
         };
       }),
   }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SEED DEFAULTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  seedDefaults: mentoradoProcedure.mutation(async ({ ctx }) => {
+    const db = getDb();
+    const mentoradoId = ctx.mentorado.id;
+
+    // Check existing insumos
+    const existingInsumos = await db
+      .select()
+      .from(insumos)
+      .where(eq(insumos.mentoradoId, mentoradoId))
+      .limit(1);
+
+    if (existingInsumos.length > 0) {
+      return { insumosCriados: 0 };
+    }
+
+    // Default insumos (valores em centavos)
+    const defaultInsumos = [
+      { nome: "Agulha 40x13", valorCompra: 2500, rendimento: 100 },
+      { nome: "Agulha 30x13", valorCompra: 3900, rendimento: 100 },
+      { nome: "Agulha 80x30", valorCompra: 2500, rendimento: 100 },
+      { nome: "Agulha 60x30", valorCompra: 2500, rendimento: 100 },
+      { nome: "Agulha 30x7", valorCompra: 1500, rendimento: 100 },
+      { nome: "Agulha Ponteira Capilar", valorCompra: 8000, rendimento: 8 },
+      { nome: "Ponteira SmartGR", valorCompra: 29000, rendimento: 10 },
+      { nome: "Ponteira 5 Agulhas", valorCompra: 100, rendimento: 1 },
+      { nome: "Ativos - Alopecia Masculina", valorCompra: 14410, rendimento: 5 },
+      { nome: "Dudasterida", valorCompra: 18634, rendimento: 10 },
+      { nome: "Ativos - Alopecia Masculina + Feminina", valorCompra: 16352, rendimento: 5 },
+      { nome: "Ativos - IM Boom Capilar", valorCompra: 11356, rendimento: 10 },
+      { nome: "Anestésico", valorCompra: 4000, rendimento: 1 },
+      { nome: "Labial", valorCompra: 45000, rendimento: 1 },
+      { nome: "Full Face", valorCompra: 50000, rendimento: 1 },
+      { nome: "Diamond Bio", valorCompra: 45000, rendimento: 1 },
+      { nome: "Elleva 210 Bio", valorCompra: 69999, rendimento: 1 },
+      { nome: "Fios de PDO", valorCompra: 112990, rendimento: 60 },
+      { nome: "Cânula", valorCompra: 25000, rendimento: 10 },
+      { nome: "Botox", valorCompra: 60000, rendimento: 1 },
+      { nome: "Soro Fisiológico Bastonete", valorCompra: 120, rendimento: 1 },
+      { nome: "Água de Injeção Bastonete", valorCompra: 120, rendimento: 1 },
+      { nome: "Luvas", valorCompra: 3300, rendimento: 100 },
+      { nome: "Máscara", valorCompra: 1100, rendimento: 100 },
+      { nome: "Oxigênio Portátil", valorCompra: 6200, rendimento: 1000 },
+      { nome: "Fluido Biorelaxante", valorCompra: 13000, rendimento: 1 },
+      { nome: "Oxigênio", valorCompra: 96040, rendimento: 98000 },
+      { nome: "Álcool Suabe", valorCompra: 790, rendimento: 100 },
+      { nome: "Band Aid", valorCompra: 2500, rendimento: 500 },
+      { nome: "Seringa 3ML", valorCompra: 2900, rendimento: 100 },
+      { nome: "Seringa 10ML", valorCompra: 4500, rendimento: 100 },
+      { nome: "Seringa 20ML", valorCompra: 3950, rendimento: 50 },
+      { nome: "Seringa 60ML", valorCompra: 1750, rendimento: 5 },
+      { nome: "Sonda", valorCompra: 6000, rendimento: 50 },
+      { nome: "Tubo de Coleta", valorCompra: 6500, rendimento: 50 },
+      { nome: "Escalpe", valorCompra: 3600, rendimento: 30 },
+      { nome: "Papel Lençol", valorCompra: 6900, rendimento: 210 },
+      { nome: "Torneirinha 3 vias", valorCompra: 4550, rendimento: 35 },
+      { nome: "Gaze", valorCompra: 15960, rendimento: 500 },
+      { nome: "Tubo Verde", valorCompra: 13500, rendimento: 50 },
+      { nome: "Saco de Lixo", valorCompra: 3500, rendimento: 100 },
+      { nome: "Cápsula de Café", valorCompra: 2200, rendimento: 8 },
+      { nome: "Açúcar", valorCompra: 500, rendimento: 20 },
+      { nome: "Material Banheiro", valorCompra: 2000, rendimento: 12 },
+      { nome: "Água Mineral", valorCompra: 1600, rendimento: 20 },
+      { nome: "Sabonete Líquido Pele", valorCompra: 11400, rendimento: 500 },
+      { nome: "Tônico Pele", valorCompra: 11100, rendimento: 500 },
+      { nome: "Esfoliante", valorCompra: 13800, rendimento: 200 },
+      { nome: "Loção Emoliente", valorCompra: 9900, rendimento: 500 },
+      { nome: "Creme Emoliente", valorCompra: 13900, rendimento: 200 },
+      { nome: "Epigem", valorCompra: 110800, rendimento: 120 },
+      { nome: "Vitamina Pós Procedimento", valorCompra: 25000, rendimento: 30 },
+      { nome: "Máquina Lavien (Locação Diária)", valorCompra: 110000, rendimento: 5 },
+      { nome: "Locação Máquina Microfocado", valorCompra: 280000, rendimento: 8 },
+    ];
+
+    await db.insert(insumos).values(
+      defaultInsumos.map((i) => ({
+        mentoradoId,
+        nome: i.nome,
+        valorCompra: i.valorCompra,
+        rendimento: i.rendimento,
+      }))
+    );
+
+    return { insumosCriados: defaultInsumos.length };
+  }),
 });

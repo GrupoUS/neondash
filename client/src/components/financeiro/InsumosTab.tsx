@@ -70,6 +70,18 @@ export function InsumosTab() {
     onError: (e) => toast.error(e.message),
   });
 
+  const seedMutation = trpc.precificacao.seedDefaults.useMutation({
+    onSuccess: (data) => {
+      if (data.insumosCriados > 0) {
+        toast.success(`${data.insumosCriados} insumos padrão criados!`);
+        utils.precificacao.insumos.list.invalidate();
+      } else {
+        toast.info("Você já possui insumos cadastrados");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingId(null);
@@ -149,6 +161,9 @@ export function InsumosTab() {
           "Informe quantas aplicações/usos o produto rende",
           "O custo por uso será calculado automaticamente",
         ]}
+        actionLabel="Carregar Insumos Padrão"
+        onAction={() => seedMutation.mutate()}
+        isActionLoading={seedMutation.isPending}
       />
 
       <div className="flex justify-end">

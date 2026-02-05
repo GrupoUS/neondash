@@ -225,46 +225,132 @@ export const ATIVIDADES: Atividade[] = [
     titulo: "Finanças Organizadas",
     etapa: "Fase 1: Fundamentos",
     icone: "💳",
-    descricao: "Separe suas finanças pessoais das profissionais e controle seu fluxo de caixa.",
+    descricao:
+      "Separe suas finanças pessoais das profissionais, organize seu fluxo de caixa e construa uma estrutura financeira sólida para sua clínica.",
     steps: [
+      // ═══════════════════════════════════════════════════════════════════════
+      // CATEGORIA 1: DIAGNÓSTICO INICIAL
+      // ═══════════════════════════════════════════════════════════════════════
       {
         codigo: "f1-fin-1",
-        label: "Abrir conta bancária PJ",
+        label: "Entender a situação atual da clínica",
         descricao:
-          "Bancos digitais (Inter, Cora) têm taxas menores. Nunca misture dinheiro PF com PJ.",
+          "Liste todas as despesas e receitas dos últimos 6 meses. Use extratos bancários, notas fiscais e recibos. Categoria por: procedimentos, produtos vendidos, serviços auxiliares. Objetivo: ter clareza total do dinheiro que entra e sai.",
       },
       {
         codigo: "f1-fin-2",
-        label: "Configurar planilha de fluxo de caixa",
+        label: "Classificar custos fixos e variáveis",
         descricao:
-          "Baixe modelo no drive NEON ou use apps como Conta Azul, Granatum. Registre TUDO.",
+          "Fixos: aluguel, internet, contador, seguros, software. Variáveis: insumos, comissões, materiais descartáveis. Anote o valor mensal de cada um. Isso é essencial para calcular seu ponto de equilíbrio.",
       },
       {
         codigo: "f1-fin-3",
-        label: "Definir pró-labore mensal",
+        label: "Estabelecer limites claros entre finanças PF e PJ",
         descricao:
-          "Valor fixo que você retira todo mês. Sugestão: 30-40% do lucro líquido. Seja disciplinada.",
+          "Defina a regra: dinheiro da clínica NUNCA paga conta pessoal. Crie a disciplina de não usar a conta da empresa para gastos pessoais. Essa separação é a base de toda gestão financeira saudável.",
       },
       {
         codigo: "f1-fin-4",
-        label: "Mapear custos fixos e variáveis",
+        label: "Acompanhar abertura do CNPJ e conta bancária separada",
         descricao:
-          "Fixos: aluguel, internet, software. Variáveis: insumos, comissões. Crie categorias claras.",
+          "Se ainda não tem CNPJ, priorize. Use CNAE 9602-5/02 (Atividades de Estética) ou confirme com seu contador. MEI não serve para clínicas - opte por ME ou LTDA. Lucro Presumido costuma ser mais vantajoso.",
       },
+      // ═══════════════════════════════════════════════════════════════════════
+      // CATEGORIA 2: INFRAESTRUTURA FINANCEIRA
+      // ═══════════════════════════════════════════════════════════════════════
       {
         codigo: "f1-fin-5",
-        label: "Criar reserva de emergência",
+        label: "Abrir conta bancária PJ",
         descricao:
-          "Meta: 3-6 meses de custos fixos. Guarde em conta separada. Não toque exceto emergência real.",
+          "Bancos digitais recomendados: Cora (conta PJ gratuita, boletos ilimitados), Inter Empresas, Nubank PJ. Taxas menores que bancos tradicionais. NUNCA misture dinheiro PF com PJ - essa é a regra de ouro.",
       },
       {
         codigo: "f1-fin-6",
-        label: "Implementar DRE simplificada",
+        label: "Solicitar máquina de cartão integrada",
         descricao:
-          "Demonstrativo de Resultados: Receitas - Custos Variáveis - Custos Fixos = Lucro. Faça mensal.",
+          "Peça máquina que integra com sua conta PJ para facilitar conciliação. Compare taxas: Stone, PagSeguro, Cielo. Negocie taxas se tiver volume alto. Configure para cair direto na conta PJ.",
+      },
+      {
+        codigo: "f1-fin-7",
+        label: "Escolher software de gestão financeira",
+        descricao:
+          "Opções recomendadas: Conta Azul (mais completo para clínicas), Organizze (simples e visual), Mobills (controle pessoal + empresa), Omie (ERP completo). Escolha o que você vai REALMENTE usar todos os dias.",
+      },
+      {
+        codigo: "f1-fin-8",
+        label: "Configurar fluxo de caixa digital",
+        descricao:
+          "No software escolhido, configure: categorias de entrada (procedimentos, produtos), categorias de saída (insumos, aluguel, pessoal), contas bancárias, forma de pagamento. Registre TUDO - cada centavo conta.",
+      },
+      // ═══════════════════════════════════════════════════════════════════════
+      // CATEGORIA 3: REMUNERAÇÃO E LUCROS
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        codigo: "f1-fin-9",
+        label: "Definir pró-labore fixo mensal",
+        descricao:
+          "Seu 'salário' como sócia. Sugestão: 30-40% do lucro líquido OU valor fixo que cubra seus custos pessoais. Pague todo mês no mesmo dia, como se fosse funcionária. Separe automaticamente na conta PJ.",
+      },
+      {
+        codigo: "f1-fin-10",
+        label: "Definir bônus variável sobre procedimentos",
+        descricao:
+          "Além do pró-labore fixo, defina um percentual variável: sugestão de 20% sobre cada procedimento realizado por você. Isso incentiva produtividade sem comprometer o caixa fixo da empresa.",
+      },
+      {
+        codigo: "f1-fin-11",
+        label: "Criar política de distribuição de lucros",
+        descricao:
+          "A cada 3 meses, realize a retirada de lucros: 30% do lucro acumulado. REGRA IMPORTANTE: só distribua APÓS ter sua reserva de emergência completa. Documente essa política por escrito.",
+      },
+      {
+        codigo: "f1-fin-12",
+        label: "Criar reserva de emergência",
+        descricao:
+          "Meta: 3-6 meses de custos fixos em conta separada (poupança ou CDB com liquidez). Não toque exceto emergência REAL: equipamento quebrado, demissão, crise de mercado. Essa reserva é sua segurança.",
+      },
+      // ═══════════════════════════════════════════════════════════════════════
+      // CATEGORIA 4: GESTÃO DO FLUXO DE CAIXA
+      // ═══════════════════════════════════════════════════════════════════════
+      {
+        codigo: "f1-fin-13",
+        label: "Mapear margem de lucro por procedimento",
+        descricao:
+          "Para cada serviço, calcule: Preço - Custo Direto = Margem. Identifique quais são os mais e menos rentáveis. Pergunte-se: qual é o mais lucrativo? Faz sentido focar nele na captação de clientes?",
+      },
+      {
+        codigo: "f1-fin-14",
+        label: "Monitorar prazos de pagamento e recebimento",
+        descricao:
+          "Crie controle de contas a pagar (vencimentos) e contas a receber (clientes devendo). Use planilha ou software. Objetivo: nunca ser surpreendida por uma conta vencida ou cliente inadimplente.",
+      },
+      {
+        codigo: "f1-fin-15",
+        label: "Negociar prazos mais longos com fornecedores",
+        descricao:
+          "Entre em contato com seus principais fornecedores de insumos e negocie prazos de 30, 45 ou 60 dias. Isso melhora seu ciclo de caixa: você recebe do cliente antes de pagar o fornecedor.",
+      },
+      {
+        codigo: "f1-fin-16",
+        label: "Criar calendário financeiro",
+        descricao:
+          "No Google Calendar ou app de tarefas, marque: dia de pagar fornecedores, dia de pagar impostos, dia de cobrar inadimplentes, dia de revisar fluxo. Use Post-its, Trello ou App To-Do para lembretes visuais.",
+      },
+      {
+        codigo: "f1-fin-17",
+        label: "Implementar DRE simplificada mensal",
+        descricao:
+          "Demonstrativo de Resultados do Exercício mensal: Receita Bruta - Impostos - Custos Variáveis - Custos Fixos = Lucro Líquido. Faça todo final de mês para saber EXATAMENTE quanto lucrou.",
+      },
+      {
+        codigo: "f1-fin-18",
+        label: "Estipular dia fixo semanal para revisão financeira",
+        descricao:
+          "Escolha 1 dia da semana (ex: segunda ou sexta-feira) para revisar finanças. Nesse dia: confira extrato, atualize fluxo de caixa, cobre inadimplentes, planeje próxima semana. Bloqueie 1-2h na agenda.",
       },
     ],
   },
+
   {
     codigo: "f1-precificacao",
     titulo: "Precificação Lucrativa",

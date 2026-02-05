@@ -63,6 +63,18 @@ export function CategoriasTab() {
     onError: (e) => toast.error(e.message),
   });
 
+  const seedMutation = trpc.financeiro.seedDefaults.useMutation({
+    onSuccess: (data) => {
+      if (data.categoriasCriadas > 0) {
+        toast.success(`${data.categoriasCriadas} categorias padrão criadas!`);
+        utils.financeiro.categorias.list.invalidate();
+      } else {
+        toast.info("Você já possui categorias cadastradas");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const handleSubmit = () => {
     if (!formData.nome.trim()) {
       toast.error("Nome é obrigatório");
@@ -100,6 +112,9 @@ export function CategoriasTab() {
           "Exemplos de Receita: Consultas, Procedimentos, Vendas",
           "Exemplos de Despesa: Aluguel, Insumos, Marketing",
         ]}
+        actionLabel="Carregar Categorias Padrão"
+        onAction={() => seedMutation.mutate()}
+        isActionLoading={seedMutation.isPending}
       />
 
       <div className="flex justify-end">

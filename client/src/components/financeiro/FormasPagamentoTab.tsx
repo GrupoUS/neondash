@@ -54,6 +54,18 @@ export function FormasPagamentoTab() {
     onError: (e) => toast.error(e.message),
   });
 
+  const seedMutation = trpc.financeiro.seedDefaults.useMutation({
+    onSuccess: (data) => {
+      if (data.formasCriadas > 0) {
+        toast.success(`${data.formasCriadas} formas de pagamento padrão criadas!`);
+        utils.financeiro.formasPagamento.list.invalidate();
+      } else {
+        toast.info("Você já possui formas de pagamento cadastradas");
+      }
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const handleSubmit = () => {
     if (!formData.nome.trim()) {
       toast.error("Nome é obrigatório");
@@ -100,6 +112,9 @@ export function FormasPagamentoTab() {
           "Defina o prazo de recebimento em dias (ex: 30)",
           "Use essas informações ao registrar transações",
         ]}
+        actionLabel="Carregar Formas de Pagamento Padrão"
+        onAction={() => seedMutation.mutate()}
+        isActionLoading={seedMutation.isPending}
       />
 
       <div className="flex justify-end">

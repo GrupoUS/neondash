@@ -122,11 +122,48 @@ export const financeiroRouter = router({
   formasPagamento: router({
     list: mentoradoProcedure.query(async ({ ctx }) => {
       const db = getDb();
-      return db
+      const mentoradoId = ctx.mentorado.id;
+
+      // Check if mentorado has payment methods
+      let formas = await db
         .select()
         .from(formasPagamento)
-        .where(eq(formasPagamento.mentoradoId, ctx.mentorado.id))
+        .where(eq(formasPagamento.mentoradoId, mentoradoId))
         .orderBy(formasPagamento.nome);
+
+      // Auto-seed if empty (taxas em percentual * 100)
+      if (formas.length === 0) {
+        const defaultFormas = [
+          { nome: "Dinheiro", taxaPercentual: 0, prazoRecebimentoDias: 0 },
+          { nome: "PIX", taxaPercentual: 0, prazoRecebimentoDias: 0 },
+          { nome: "Débito", taxaPercentual: 150, prazoRecebimentoDias: 1 },
+          { nome: "Crédito à Vista", taxaPercentual: 290, prazoRecebimentoDias: 30 },
+          { nome: "Crédito 2x", taxaPercentual: 450, prazoRecebimentoDias: 60 },
+          { nome: "Crédito 3x", taxaPercentual: 520, prazoRecebimentoDias: 90 },
+          { nome: "Crédito 4-6x", taxaPercentual: 580, prazoRecebimentoDias: 120 },
+          { nome: "Crédito 7-12x", taxaPercentual: 650, prazoRecebimentoDias: 180 },
+          { nome: "Boleto", taxaPercentual: 190, prazoRecebimentoDias: 3 },
+          { nome: "Link de Pagamento", taxaPercentual: 250, prazoRecebimentoDias: 2 },
+        ];
+
+        await db.insert(formasPagamento).values(
+          defaultFormas.map((f) => ({
+            mentoradoId,
+            nome: f.nome,
+            taxaPercentual: f.taxaPercentual,
+            prazoRecebimentoDias: f.prazoRecebimentoDias,
+          }))
+        );
+
+        // Re-fetch after seed
+        formas = await db
+          .select()
+          .from(formasPagamento)
+          .where(eq(formasPagamento.mentoradoId, mentoradoId))
+          .orderBy(formasPagamento.nome);
+      }
+
+      return formas;
     }),
 
     create: mentoradoProcedure

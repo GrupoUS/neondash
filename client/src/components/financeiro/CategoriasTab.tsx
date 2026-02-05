@@ -63,18 +63,6 @@ export function CategoriasTab() {
     onError: (e) => toast.error(e.message),
   });
 
-  const seedMutation = trpc.financeiro.seedDefaults.useMutation({
-    onSuccess: (data) => {
-      if (data.categoriasCriadas > 0) {
-        toast.success(`${data.categoriasCriadas} categorias padrão criadas!`);
-        utils.financeiro.categorias.list.invalidate();
-      } else {
-        toast.info("Você já possui categorias cadastradas");
-      }
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
   const handleSubmit = () => {
     if (!formData.nome.trim()) {
       toast.error("Nome é obrigatório");
@@ -107,14 +95,11 @@ export function CategoriasTab() {
         title="Como organizar categorias?"
         storageKey="onboarding-categorias"
         steps={[
-          "Crie categorias para classificar suas transações",
-          "Defina se é uma categoria de Receita ou Despesa",
-          "Exemplos de Receita: Consultas, Procedimentos, Vendas",
-          "Exemplos de Despesa: Aluguel, Insumos, Marketing",
+          "As categorias padrão já foram carregadas automaticamente",
+          "Você pode editar, excluir ou adicionar novas categorias",
+          "Categorias de Receita: Procedimentos, Consultas, Vendas",
+          "Categorias de Despesa: Insumos, Aluguel, Marketing",
         ]}
-        actionLabel="Carregar Categorias Padrão"
-        onAction={() => seedMutation.mutate()}
-        isActionLoading={seedMutation.isPending}
       />
 
       <div className="flex justify-end">

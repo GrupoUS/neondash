@@ -70,18 +70,6 @@ export function InsumosTab() {
     onError: (e) => toast.error(e.message),
   });
 
-  const seedMutation = trpc.precificacao.seedDefaults.useMutation({
-    onSuccess: (data) => {
-      if (data.insumosCriados > 0) {
-        toast.success(`${data.insumosCriados} insumos padrão criados!`);
-        utils.precificacao.insumos.list.invalidate();
-      } else {
-        toast.info("Você já possui insumos cadastrados");
-      }
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
   const closeDialog = () => {
     setIsDialogOpen(false);
     setEditingId(null);
@@ -152,18 +140,14 @@ export function InsumosTab() {
   return (
     <div className="space-y-6">
       <OnboardingCard
-        title="Como cadastrar insumos?"
+        title="Insumos e materiais"
         storageKey="onboarding-insumos"
         steps={[
-          "Clique em 'Novo Insumo' para adicionar um produto",
-          "Informe o nome do insumo (ex: Ácido Hialurônico)",
-          "Digite o valor total de compra do produto",
-          "Informe quantas aplicações/usos o produto rende",
-          "O custo por uso será calculado automaticamente",
+          "54 insumos padrão já foram carregados automaticamente",
+          "Valores e rendimentos baseados em clínicas estéticas reais",
+          "Edite os valores conforme seus custos atuais",
+          "Adicione novos insumos específicos do seu negócio",
         ]}
-        actionLabel="Carregar Insumos Padrão"
-        onAction={() => seedMutation.mutate()}
-        isActionLoading={seedMutation.isPending}
       />
 
       <div className="flex justify-end">

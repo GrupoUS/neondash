@@ -182,27 +182,55 @@ export function Agenda() {
     return {};
   }, []);
 
+  // AT-001: Utility to ensure 1-hour default duration for new events
+  const ensureOneHourDuration = (start: Date): Date => {
+    const oneHour = 60 * 60 * 1000;
+    return new Date(start.getTime() + oneHour);
+  };
+
+  // AT-002/AT-003: Utility to constrain end date to same day
+  const constrainToSameDay = (start: Date, end: Date): Date => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (endDate.toDateString() !== startDate.toDateString()) {
+      const sameDay = new Date(startDate);
+      sameDay.setHours(23, 59, 59, 999);
+      return sameDay;
+    }
+    return endDate;
+  };
+
   const onEventResize = (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
+
+    // AT-003: Constrain end date to same day
+    const adjustedEnd = constrainToSameDay(new Date(start), new Date(end));
 
     // Optimistic update
     setMyEvents((prev) => {
       const existing = prev.find((ev) => ev.id === event.id);
       const filtered = prev.filter((ev) => ev.id !== event.id);
       if (!existing) return prev;
-      return [...filtered, { ...existing, start: new Date(start), end: new Date(end) }];
+      return [...filtered, { ...existing, start: new Date(start), end: adjustedEnd }];
     });
 
     updateEventMutation.mutate({
       id: event.id,
       start: new Date(start).toISOString(),
-      end: new Date(end).toISOString(),
+      end: adjustedEnd.toISOString(),
       allDay: event.allDay, // Preserve original all-day status
     });
   };
 
   const onEventDrop = (args: EventInteractionArgs<CalendarEvent>) => {
-    const { event, start, end, isAllDay } = args;
+    const { event, start, isAllDay } = args;
+
+    // AT-002: Preserve original event duration instead of using DnD end
+    const originalDuration = event.end.getTime() - event.start.getTime();
+    let newEnd = new Date(new Date(start).getTime() + originalDuration);
+
+    // AT-002: Constrain to same day to prevent multi-day events
+    newEnd = constrainToSameDay(new Date(start), newEnd);
 
     // Optimistic update
     setMyEvents((prev) => {
@@ -211,14 +239,14 @@ export function Agenda() {
       if (!existing) return prev;
       return [
         ...filtered,
-        { ...existing, start: new Date(start), end: new Date(end), allDay: Boolean(isAllDay) },
+        { ...existing, start: new Date(start), end: newEnd, allDay: Boolean(isAllDay) },
       ];
     });
 
     updateEventMutation.mutate({
       id: event.id,
       start: new Date(start).toISOString(),
-      end: new Date(end).toISOString(),
+      end: newEnd.toISOString(),
       allDay: Boolean(isAllDay),
     });
   };
@@ -234,7 +262,11 @@ export function Agenda() {
   }) => {
     // Determine if allDay based on slots length (simplification) or just use the slot info
     const isAllDay = slots.length === 1;
-    setSelectedSlot({ start: new Date(start), end: new Date(end), allDay: isAllDay });
+
+    // AT-001: Enforce 1-hour default duration for time-based events
+    const adjustedEnd = isAllDay ? new Date(end) : ensureOneHourDuration(new Date(start));
+
+    setSelectedSlot({ start: new Date(start), end: adjustedEnd, allDay: isAllDay });
     setIsDialogOpen(true);
   };
 

@@ -54,18 +54,6 @@ export function FormasPagamentoTab() {
     onError: (e) => toast.error(e.message),
   });
 
-  const seedMutation = trpc.financeiro.seedDefaults.useMutation({
-    onSuccess: (data) => {
-      if (data.formasCriadas > 0) {
-        toast.success(`${data.formasCriadas} formas de pagamento padrão criadas!`);
-        utils.financeiro.formasPagamento.list.invalidate();
-      } else {
-        toast.info("Você já possui formas de pagamento cadastradas");
-      }
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
   const handleSubmit = () => {
     if (!formData.nome.trim()) {
       toast.error("Nome é obrigatório");
@@ -104,17 +92,13 @@ export function FormasPagamentoTab() {
   return (
     <div className="space-y-6">
       <OnboardingCard
-        title="Como cadastrar formas de pagamento?"
+        title="Formas de pagamento"
         storageKey="onboarding-formas-pagamento"
         steps={[
-          "Cadastre as formas de pagamento que você aceita",
-          "Informe a taxa % cobrada (ex: 2,5% no cartão)",
-          "Defina o prazo de recebimento em dias (ex: 30)",
-          "Use essas informações ao registrar transações",
+          "As formas de pagamento padrão já foram carregadas",
+          "Taxas e prazos estão configurados para o mercado brasileiro",
+          "Você pode editar valores ou adicionar novas formas",
         ]}
-        actionLabel="Carregar Formas de Pagamento Padrão"
-        onAction={() => seedMutation.mutate()}
-        isActionLoading={seedMutation.isPending}
       />
 
       <div className="flex justify-end">

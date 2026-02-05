@@ -42,7 +42,11 @@ import { DailyBalanceChart } from "./DailyBalanceChart";
 import { FileImportDialog } from "./FileImportDialog";
 import { OnboardingCard } from "./OnboardingCard";
 
-export function TransacoesTab() {
+interface TransacoesTabProps {
+  onNavigateToAnalysis?: () => void;
+}
+
+export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split("T")[0],

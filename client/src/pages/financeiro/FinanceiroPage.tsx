@@ -1,7 +1,8 @@
-import { BookOpen, CreditCard, FileSpreadsheet, Package, TrendingUp } from "lucide-react";
+import { Album, BookOpen, CreditCard, FileSpreadsheet, Package, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import { AnaliseTab } from "@/components/financeiro/AnaliseTab";
 import { CategoriasTab } from "@/components/financeiro/CategoriasTab";
 import { FormasPagamentoTab } from "@/components/financeiro/FormasPagamentoTab";
 import { InsumosTab } from "@/components/financeiro/InsumosTab";
@@ -39,6 +40,10 @@ export default function FinanceiroPage() {
                 <FileSpreadsheet className="h-4 w-4" />
                 Transações
               </NeonTabsTrigger>
+              <NeonTabsTrigger value="analise" className="gap-1.5">
+                <Album className="h-4 w-4" />
+                Análise IA
+              </NeonTabsTrigger>
               <NeonTabsTrigger value="categorias" className="gap-1.5">
                 <BookOpen className="h-4 w-4" />
                 Categorias
@@ -59,7 +64,11 @@ export default function FinanceiroPage() {
           </div>
 
           <NeonTabsContent value="transacoes">
-            <TransacoesTab />
+            <TransacoesTab onNavigateToAnalysis={() => setActiveTab("analise")} />
+          </NeonTabsContent>
+
+          <NeonTabsContent value="analise">
+            <AnaliseTab />
           </NeonTabsContent>
 
           <NeonTabsContent value="categorias">

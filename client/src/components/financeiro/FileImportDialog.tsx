@@ -38,9 +38,12 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
   const utils = trpc.useUtils();
   const importMutation = trpc.financeiro.transacoes.importCsv.useMutation({
     onSuccess: (data) => {
-      toast.success(`${data.imported} transações importadas com sucesso!`);
+      const catMsg =
+        data.categoriesCreated > 0 ? ` (${data.categoriesCreated} categorias criadas)` : "";
+      toast.success(`${data.imported} transações importadas${catMsg}`);
       utils.financeiro.transacoes.list.invalidate();
       utils.financeiro.transacoes.resumo.invalidate();
+      utils.financeiro.categorias.list.invalidate();
       setIsOpen(false);
       setParsedData([]);
       setFileName(null);

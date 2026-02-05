@@ -112,36 +112,42 @@ export function InstagramOnboardingModal({
     setIsConnecting(true);
     setError(null);
 
-    window.FB.login(
-      async (response: FacebookLoginStatusResponse) => {
-        if (response.authResponse) {
-          try {
-            // Get Instagram Business Account
-            const igAccount = await getInstagramAccount();
+    // Separated async logic to satisfy FB.login sync callback requirement
+    const processLoginResponse = async (response: FacebookLoginStatusResponse) => {
+      if (response.authResponse) {
+        try {
+          // Get Instagram Business Account
+          const igAccount = await getInstagramAccount();
 
-            if (!igAccount) {
-              setError(
-                "Conta Instagram Business não encontrada. Vincule sua conta Instagram a uma Página do Facebook."
-              );
-              setIsConnecting(false);
-              return;
-            }
-
-            // Save token to backend
-            await saveToken.mutateAsync({
-              mentoradoId,
-              accessToken: response.authResponse.accessToken,
-              instagramAccountId: igAccount.id,
-              instagramUsername: igAccount.username,
-            });
-          } catch (err) {
-            setError(err instanceof Error ? err.message : "Erro ao conectar Instagram");
+          if (!igAccount) {
+            setError(
+              "Conta Instagram Business não encontrada. Vincule sua conta Instagram a uma Página do Facebook."
+            );
             setIsConnecting(false);
+            return;
           }
-        } else {
-          setError("Login cancelado ou não autorizado.");
+
+          // Save token to backend
+          await saveToken.mutateAsync({
+            mentoradoId,
+            accessToken: response.authResponse.accessToken,
+            instagramAccountId: igAccount.id,
+            instagramUsername: igAccount.username,
+          });
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Erro ao conectar Instagram");
           setIsConnecting(false);
         }
+      } else {
+        setError("Login cancelado ou não autorizado.");
+        setIsConnecting(false);
+      }
+    };
+
+    window.FB.login(
+      (response: FacebookLoginStatusResponse) => {
+        // Wrapper must be synchronous
+        void processLoginResponse(response);
       },
       {
         scope: "instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement",

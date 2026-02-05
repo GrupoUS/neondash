@@ -148,6 +148,42 @@ for_each_atomic_task:
 
 ---
 
+## Evolution Checkpoint (AUTOMATIC - Every 5 Steps)
+
+> [!NOTE]
+> **Self-Evolving Agent Integration** - Runs automatically during implementation
+
+The `self-evolving-agent` skill automatically triggers every 5 implementation steps:
+
+1. **Capture State**: Stores current implementation progress via `evolution_engine.py checkpoint_progress`
+2. **Analyze Patterns**: Identifies inefficiencies or anti-patterns in recent work
+3. **Suggest Optimizations**: Proposes improvements if confidence > 80%
+4. **Store Observations**: Records tool usage for future learning
+
+```yaml
+EVOLUTION_CHECKPOINT:
+  trigger: "Every 5 AT-XXX completions"
+  actions:
+    - Snapshot current task.md status
+    - Analyze tool usage patterns
+    - Compare against successful past implementations
+    - Generate mutation suggestions (if applicable)
+  safety:
+    confirmation_required: true  # Mutations require explicit approval
+    max_suggestions: 3           # Limit per checkpoint
+```
+
+**Mutation Approval**: If the evolution engine suggests optimizations, it will pause and ask:
+
+```
+🧬 Evolution Suggestion (89% confidence):
+- Pattern: Repeated file reads without caching
+- Suggestion: Batch file operations
+- Apply? [y/n]
+```
+
+---
+
 ## Step 3: Validation Gates
 
 After all AT-XXX tasks complete:

@@ -15,12 +15,112 @@ import {
   leads,
   type Mentorado,
   metricasMensais,
+  systemSettings,
   tasks,
 } from "../../drizzle/schema";
 import { defaultModel, isAIConfigured } from "../_core/aiProvider";
 import { ENV } from "../_core/env";
 import { getDb } from "../db";
+import { getFinancialContext } from "./financialContextService";
 import { getEvents, refreshAccessToken } from "./googleCalendarService";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AGENT TYPE DEFINITIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+type AgentType = "financial" | "marketing" | "sdr" | "general";
+
+interface AgentConfig {
+  type: AgentType;
+  settingsKey: string;
+  defaultPrompt: string;
+  emoji: string;
+  title: string;
+}
+
+const AGENT_CONFIGS: Record<Exclude<AgentType, "general">, AgentConfig> = {
+  financial: {
+    type: "financial",
+    settingsKey: "financial_coach_prompt",
+    emoji: "💰",
+    title: "CONSULTOR FINANCEIRO",
+    defaultPrompt: `Você é um especialista em finanças para clínicas de estética. Analise os dados de faturamento, lucro e despesas. Identifique tendências de queda, gastos excessivos com insumos ou marketing ineficiente. Seja direto, motivador e use emojis. Foque em: 1. Aumentar margem de lucro. 2. Reduzir custos fixos. 3. Otimizar ticket médio.`,
+  },
+  marketing: {
+    type: "marketing",
+    settingsKey: "marketing_agent_prompt",
+    emoji: "📣",
+    title: "CONSULTOR DE MARKETING",
+    defaultPrompt: `Você é um especialista em marketing digital para profissionais de estética. Seu foco é Instagram, conteúdo orgânico e estratégias de engajamento. Analise métricas de posts, stories e reels. Sugira horários ideais de postagem, tipos de conteúdo que convertem e estratégias para aumentar alcance. Seja criativo e prático.`,
+  },
+  sdr: {
+    type: "sdr",
+    settingsKey: "sdr_agent_prompt",
+    emoji: "🎯",
+    title: "CONSULTOR COMERCIAL (SDR)",
+    defaultPrompt: `Você é um especialista em vendas consultivas para clínicas de estética. Seu foco é qualificação de leads, scripts de abordagem e técnicas de fechamento. Ajude a estruturar o funil de vendas, melhorar conversões e criar relacionamento com potenciais clientes. Seja objetivo e orientado a resultados.`,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LLM-BASED INTENT CLASSIFICATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Uses LLM to classify user intent into agent categories.
+ * Returns the most appropriate agent type for the message.
+ */
+async function classifyUserIntent(userMessage: string): Promise<AgentType> {
+  try {
+    const classificationPrompt = `Classifique a intenção da seguinte mensagem de usuário em uma das categorias:
+
+CATEGORIAS:
+- financial: Perguntas sobre dinheiro, faturamento, lucro, despesas, custos, margens, DRE, fluxo de caixa, preços, investimentos
+- marketing: Perguntas sobre Instagram, posts, stories, reels, conteúdo, engajamento, seguidores, alcance, branding, redes sociais
+- sdr: Perguntas sobre leads, vendas, clientes, atendimento, prospecção, CRM, pipeline, conversão, fechamento, qualificação, agendamento
+- general: Qualquer outra pergunta não relacionada às categorias acima
+
+MENSAGEM DO USUÁRIO:
+"${userMessage}"
+
+RESPONDA APENAS com uma das palavras: financial, marketing, sdr, general
+
+CLASSIFICAÇÃO:`;
+
+    const result = await generateText({
+      model: defaultModel,
+      prompt: classificationPrompt,
+      maxTokens: 20,
+    });
+
+    const classification = result.text.toLowerCase().trim();
+
+    if (classification.includes("financial")) return "financial";
+    if (classification.includes("marketing")) return "marketing";
+    if (classification.includes("sdr")) return "sdr";
+
+    return "general";
+  } catch (error) {
+    console.error("[Intent Classification] Error:", error);
+    return "general";
+  }
+}
+
+/**
+ * Fetches agent-specific prompt from systemSettings.
+ */
+async function getAgentPrompt(agentType: Exclude<AgentType, "general">): Promise<string> {
+  const db = getDb();
+  const config = AGENT_CONFIGS[agentType];
+
+  const [setting] = await db
+    .select({ value: systemSettings.value })
+    .from(systemSettings)
+    .where(eq(systemSettings.key, config.settingsKey))
+    .limit(1);
+
+  return setting?.value || config.defaultPrompt;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -610,10 +710,62 @@ export async function chat(messages: AIMessage[], context: ChatContext): Promise
 
   try {
     const tools = createTools(context);
+    const lastMessage = messages[messages.length - 1];
+
+    // Base system prompt
+    let effectiveSystemPrompt = SYSTEM_PROMPT;
+
+    // Classify user intent and route to specialized agent
+    if (lastMessage && lastMessage.role === "user") {
+      try {
+        const agentType = await classifyUserIntent(lastMessage.content);
+        console.info(`[Agent Routing] Classified as: ${agentType}`);
+
+        if (agentType !== "general") {
+          const config = AGENT_CONFIGS[agentType];
+          const customPrompt = await getAgentPrompt(agentType);
+
+          // Build agent-specific instruction block
+          let agentInstruction = `
+\n\n═══════════════════════════════════════════════════════════════════════════
+${config.emoji} MODO ${config.title} ATIVADO ${config.emoji}
+═══════════════════════════════════════════════════════════════════════════
+
+INSTRUÇÕES DO AGENTE:
+${customPrompt}
+
+`;
+
+          // For financial agent, also inject financial data
+          if (agentType === "financial") {
+            const financialContext = await getFinancialContext(context.mentoradoId);
+            agentInstruction += `
+DADOS FINANCEIROS ATUAIS (JSON):
+${financialContext.formatted}
+
+DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
+1. **Use os números reais** acima. NUNCA invente valores.
+2. **Conversão**: Os valores no JSON estão em CENTAVOS. Divida por 100 para falar em Reais (ex: 50000 = R$ 500,00).
+3. **Análise Crítica**:
+   - Compare Receitas vs Despesas.
+   - Analise a Margem Líquida (Ideal > 20% para serviços).
+   - Se Saldo for negativo ou baixo, ALERTE e sugira redução de custos.
+4. **Seja Consultivo**: Não apenas relate os números, diga o que eles SIGNIFICAM para o negócio.
+5. **Ação**: Sugira 1 ação prática baseada nestes números ao final.
+`;
+          }
+
+          effectiveSystemPrompt += agentInstruction;
+        }
+      } catch (err) {
+        console.error("[Agent Routing] Error:", err);
+        // Continue with base prompt if classification fails
+      }
+    }
 
     const result = await generateText({
       model: defaultModel,
-      system: SYSTEM_PROMPT,
+      system: effectiveSystemPrompt,
       messages: messages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,

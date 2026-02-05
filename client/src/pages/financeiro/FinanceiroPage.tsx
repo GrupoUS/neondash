@@ -64,7 +64,7 @@ export default function FinanceiroPage() {
           </div>
 
           <NeonTabsContent value="transacoes">
-            <TransacoesTab onNavigateToAnalysis={() => setActiveTab("analise")} />
+            <TransacoesTab />
           </NeonTabsContent>
 
           <NeonTabsContent value="analise">

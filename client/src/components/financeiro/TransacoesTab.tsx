@@ -1,10 +1,11 @@
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Filter, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { BentoCard, BentoCardContent, BentoGrid } from "@/components/ui/bento-grid";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { useFinancialMetrics } from "@/hooks/use-financial-metrics";
 import { trpc } from "@/lib/trpc";
+import { AIInsightsSection } from "./AIInsightsSection";
 import { FinancialSummaryCard } from "./cards/FinancialSummaryCard";
 import { GoalCard } from "./cards/GoalCard";
 import { NeonCoachCard } from "./cards/NeonCoachCard";
@@ -41,12 +43,9 @@ import { StreakCard } from "./cards/StreakCard";
 import { DailyBalanceChart } from "./DailyBalanceChart";
 import { FileImportDialog } from "./FileImportDialog";
 import { OnboardingCard } from "./OnboardingCard";
+import { getDateRangeForPeriod, PeriodSelector, type PeriodType } from "./PeriodSelector";
 
-interface TransacoesTabProps {
-  onNavigateToAnalysis?: () => void;
-}
-
-export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
+export function TransacoesTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split("T")[0],
@@ -58,14 +57,21 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
     nomeClienteFornecedor: "",
   });
 
-  const now = new Date();
-  const [ano, setAno] = useState(now.getFullYear());
-  const [mes, setMes] = useState(now.getMonth() + 1);
+  // Period selection (replaces month/year)
+  const [periodType, setPeriodType] = useState<PeriodType>("mensal");
+  const { dataInicio, dataFim } = useMemo(() => getDateRangeForPeriod(periodType), [periodType]);
 
-  const dataInicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
-  const nextMonth = mes === 12 ? 1 : mes + 1;
-  const nextYear = mes === 12 ? ano + 1 : ano;
-  const dataFim = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+  // For resumo query - extract year/month from current period
+  const now = new Date();
+  const ano = now.getFullYear();
+  const mes = now.getMonth() + 1;
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // Filter states
+  const [filterCategoria, setFilterCategoria] = useState<string>("all");
+  const [filterTipo, setFilterTipo] = useState<"all" | "receita" | "despesa">("all");
 
   const utils = trpc.useUtils();
   const { data: transacoes, isLoading } = trpc.financeiro.transacoes.list.useQuery({
@@ -105,6 +111,55 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
     onError: (e) => toast.error(e.message),
   });
 
+  const deleteManyMutation = trpc.financeiro.transacoes.deleteAll.useMutation({
+    onSuccess: (data) => {
+      toast.success(`${data.deleted} transações removidas`);
+      setSelectedIds(new Set());
+      utils.financeiro.transacoes.list.invalidate();
+      utils.financeiro.transacoes.resumo.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Filtered transactions
+  const filteredTransactions =
+    transacoes?.filter((t) => {
+      if (filterTipo !== "all" && t.tipo !== filterTipo) return false;
+      if (filterCategoria !== "all" && String(t.categoriaId) !== filterCategoria) return false;
+      return true;
+    }) ?? [];
+
+  // Selection helpers
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === filteredTransactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredTransactions.map((t) => t.id)));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // Computed values for selection
+  const selectedTotal = filteredTransactions
+    .filter((t) => selectedIds.has(t.id))
+    .reduce((acc, t) => acc + (t.tipo === "receita" ? t.valor : -t.valor), 0);
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Excluir ${selectedIds.size} transações?`)) return;
+    deleteManyMutation.mutate();
+  };
+
   const handleSubmit = () => {
     const valorCents = Math.round(Number(formData.valor.replace(",", ".")) * 100);
     if (Number.isNaN(valorCents) || valorCents <= 0) {
@@ -134,21 +189,6 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
       currency: "BRL",
     }).format(cents / 100);
   };
-
-  const meses = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ];
 
   if (isLoading) {
     return (
@@ -216,6 +256,14 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
         </BentoGrid>
       </div>
 
+      {/* AI Insights Section */}
+      <div className="mb-8 animate-in slide-in-from-bottom-4 duration-500 delay-100">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+          Insights do Período
+        </h3>
+        <AIInsightsSection periodType={periodType} />
+      </div>
+
       {/* Daily Balance Chart */}
       <div className="mb-8 animate-in slide-in-from-bottom-4 duration-700 delay-150">
         <DailyBalanceChart ano={ano} mes={mes} />
@@ -223,28 +271,53 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
 
       {/* Filtros e Ações */}
       <NeonCard className="p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Select value={String(mes)} onValueChange={(v) => setMes(parseInt(v, 10))}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
+        {/* Toolbar: Filters Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Period Selector */}
+            <PeriodSelector value={periodType} onChange={setPeriodType} />
+
+            <div className="h-6 w-px bg-border mx-1" />
+
+            {/* Tipo Filter */}
+            <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+              <Button
+                variant={filterTipo === "all" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-2.5 text-xs cursor-pointer"
+                onClick={() => setFilterTipo("all")}
+              >
+                Todos
+              </Button>
+              <Button
+                variant={filterTipo === "receita" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-2.5 text-xs text-emerald-500 cursor-pointer"
+                onClick={() => setFilterTipo("receita")}
+              >
+                Receitas
+              </Button>
+              <Button
+                variant={filterTipo === "despesa" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-2.5 text-xs text-red-500 cursor-pointer"
+                onClick={() => setFilterTipo("despesa")}
+              >
+                Despesas
+              </Button>
+            </div>
+
+            {/* Categoria Filter */}
+            <Select value={filterCategoria} onValueChange={setFilterCategoria}>
+              <SelectTrigger className="w-[160px]">
+                <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
-                {meses.map((m, i) => (
-                  <SelectItem key={m} value={String(i + 1)}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={String(ano)} onValueChange={(v) => setAno(parseInt(v, 10))}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y}
+                <SelectItem value="all">Todas Categorias</SelectItem>
+                {categorias?.map((cat) => (
+                  <SelectItem key={cat.id} value={String(cat.id)}>
+                    {cat.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -374,10 +447,57 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
           </div>
         </div>
 
+        {/* Bulk Actions Bar */}
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between gap-4 mb-4 p-3 bg-muted/50 rounded-lg border border-border animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">
+                {selectedIds.size} selecionada{selectedIds.size > 1 ? "s" : ""}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Total:{" "}
+                <span className={selectedTotal >= 0 ? "text-emerald-500" : "text-red-500"}>
+                  {formatCurrency(Math.abs(selectedTotal))}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs cursor-pointer"
+                onClick={clearSelection}
+              >
+                Limpar seleção
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1.5 cursor-pointer"
+                onClick={handleBulkDelete}
+                disabled={deleteManyMutation.isPending}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Tabela */}
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={
+                    filteredTransactions.length > 0 &&
+                    selectedIds.size === filteredTransactions.length
+                  }
+                  onCheckedChange={selectAll}
+                  aria-label="Selecionar todos"
+                />
+              </TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Descrição</TableHead>
@@ -387,15 +507,27 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transacoes?.length === 0 ? (
+            {filteredTransactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Nenhuma transação neste período
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  {transacoes?.length === 0
+                    ? "Nenhuma transação neste período"
+                    : "Nenhuma transação corresponde aos filtros"}
                 </TableCell>
               </TableRow>
             ) : (
-              transacoes?.map((t) => (
-                <TableRow key={t.id}>
+              filteredTransactions.map((t) => (
+                <TableRow
+                  key={t.id}
+                  className={`transition-colors hover:bg-muted/50 ${selectedIds.has(t.id) ? "bg-muted/30" : ""}`}
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(t.id)}
+                      onCheckedChange={() => toggleSelect(t.id)}
+                      aria-label={`Selecionar transação ${t.descricao}`}
+                    />
+                  </TableCell>
                   <TableCell>{new Date(t.data).toLocaleDateString("pt-BR")}</TableCell>
                   <TableCell>
                     <Badge variant={t.tipo === "receita" ? "default" : "destructive"}>
@@ -414,7 +546,7 @@ export function TransacoesTab({ onNavigateToAnalysis }: TransacoesTabProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive cursor-pointer"
                       onClick={() => deleteMutation.mutate({ id: t.id })}
                     >
                       ×

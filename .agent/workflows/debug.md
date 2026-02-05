@@ -293,6 +293,44 @@ agent-browser close                        # Cleanup obrigatório
 
 ---
 
+## Post-Error Analysis (AUTOMATIC)
+
+> [!NOTE]
+> **Self-Evolving Agent Integration** - Runs automatically after any error
+
+After any error, the `self-evolving-agent` skill automatically:
+
+1. **Analyze Pattern**: Compares error against historical failure data via `evolution_engine.py analyze_failure`
+2. **Suggest Solutions**: Retrieves fixes that worked for similar errors
+3. **Store Learning**: Records error-solution pair for future reference
+4. **Update Strategies**: Adjusts mutation strategies to prevent recurrence
+
+```yaml
+POST_ERROR_ANALYSIS:
+  trigger: "After any build/test/runtime error"
+  actions:
+    - Extract error signature (type, message, stack trace)
+    - Query similar errors from memory database
+    - Rank solutions by success rate
+    - Store new error if not previously seen
+  output:
+    - "Historical matches: X similar errors found"
+    - "Suggested fix: [description] (Y% success rate)"
+    - "Related files: [list]"
+```
+
+**Example Output**:
+
+```
+🔍 Historical Analysis (3 similar errors found):
+   1. "Type instantiation too deep" - Solution: Early cast (92% success)
+   2. Similar tRPC inference issue - Solution: Explicit generics (87% success)
+   
+💡 Recommended: Apply early cast pattern from AT-015
+```
+
+---
+
 ## Code Review Checklist
 
 ### Security (CRITICAL - Check First)

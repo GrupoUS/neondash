@@ -3,9 +3,11 @@
  * Manages WhatsApp Z-API connection and AI agent settings
  */
 
-import { MessageCircle, Settings2, Sparkles, TrendingUp } from "lucide-react";
+import { Bot, Brain, MessageCircle, Settings2, TrendingUp } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { FinancialCoachSettingsCard } from "@/components/financeiro/FinancialCoachSettingsCard";
+import { MarketingAgentSettingsCard } from "@/components/settings/MarketingAgentSettingsCard";
+import { SdrAgentSettingsCard } from "@/components/settings/SdrAgentSettingsCard";
 import { Separator } from "@/components/ui/separator";
 import { AIAgentSettingsCard } from "@/components/whatsapp/AIAgentSettingsCard";
 import { WhatsAppConnectionCard } from "@/components/whatsapp/WhatsAppConnectionCard";
@@ -43,30 +45,48 @@ export function SettingsPage() {
 
         <Separator />
 
-        {/* AI Agent Section */}
+        {/* WhatsApp AI Agent Section */}
         <section className="space-y-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-teal-600" />
-            <h2 className="text-xl font-semibold">Agente IA (SDR)</h2>
+            <Bot className="w-5 h-5 text-teal-600" />
+            <h2 className="text-xl font-semibold">Agente IA WhatsApp (SDR)</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Configure respostas automáticas com inteligência artificial para qualificação de leads.
+            Configure respostas automáticas via WhatsApp com inteligência artificial para
+            qualificação de leads.
           </p>
           <AIAgentSettingsCard />
         </section>
 
         <Separator />
 
-        {/* Financial Coach Section */}
-        <section className="space-y-4">
+        {/* Chat Widget Agents Section */}
+        <section className="space-y-6">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-amber-500" />
-            <h2 className="text-xl font-semibold">Neon Coach Financeiro</h2>
+            <Brain className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-semibold">Agentes IA do Chat</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Configure o agente de IA para análise financeira. Defina o prompt mestre e diretrizes.
+            Configure os prompts dos agentes especializados. O chat widget detecta automaticamente a
+            intenção da pergunta e aciona o agente apropriado.
           </p>
-          <FinancialCoachSettingsCard />
+
+          <div className="grid gap-6">
+            {/* Financial Coach */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-amber-500" />
+                <h3 className="text-sm font-medium text-muted-foreground">Finanças & Análise</h3>
+              </div>
+              <FinancialCoachSettingsCard />
+            </div>
+
+            {/* Marketing Agent */}
+            <MarketingAgentSettingsCard />
+
+            {/* SDR Agent */}
+            <SdrAgentSettingsCard />
+          </div>
         </section>
       </div>
     </DashboardLayout>

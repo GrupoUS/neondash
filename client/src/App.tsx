@@ -35,6 +35,7 @@ const SettingsPage = lazy(() =>
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const AccountDeletion = lazy(() => import("./pages/AccountDeletion"));
 const CallPreparation = lazy(() => import("./pages/CallPreparation"));
+const FinanceiroPage = lazy(() => import("./pages/financeiro/FinanceiroPage"));
 
 // Loading fallback for lazy components
 function PageLoader() {
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/agenda" component={AgendaPage} />
       <Route path="/configuracoes" component={SettingsPage} />
       <Route path="/chat" component={ChatPage} />
+      <Route path="/financeiro" component={FinanceiroPage} />
       <Route path="/admin/call-preparation/:mentoradoId" component={CallPreparation} />
       {/* Public Pages - Meta Compliance */}
       <Route path="/account-deletion" component={AccountDeletion} />

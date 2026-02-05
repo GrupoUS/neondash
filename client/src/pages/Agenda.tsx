@@ -10,7 +10,6 @@ import withDragAndDrop, {
 import { CalendarSettingsCard } from "@/components/agenda/CalendarSettingsCard";
 import { NeonWeeklyCalendar } from "@/components/agenda/NeonWeeklyCalendar";
 import { NextPatientBanner } from "@/components/agenda/NextPatientBanner";
-import { UpcomingCallsSection } from "@/components/agenda/UpcomingCallsSection";
 
 import { Button } from "@/components/ui/button";
 import { NeonCard } from "@/components/ui/neon-card";
@@ -354,9 +353,6 @@ export function Agenda() {
         <div className="space-y-6">
           {/* Neon Weekly Calendar */}
           <NeonWeeklyCalendar />
-
-          {/* Upcoming Calls for Admins */}
-          <UpcomingCallsSection />
 
           {nextPatient && <NextPatientBanner {...nextPatient} />}
 

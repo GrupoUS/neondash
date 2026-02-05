@@ -337,9 +337,15 @@ export async function updateEvent(
     // Validate and format start date
     try {
       const validatedStart = validateDate(event.start, "start");
+      // CRITICAL: When updating, we must explicitly nullify the conflicting format
+      // Google API rejects PATCH requests if both date and dateTime could exist
       resource.start = isAllDay
-        ? { date: validatedStart.toISOString().split("T")[0] }
-        : { dateTime: formatDateTimeForGoogle(validatedStart), timeZone: BRAZIL_TIMEZONE };
+        ? { date: validatedStart.toISOString().split("T")[0], dateTime: null, timeZone: null }
+        : {
+            dateTime: formatDateTimeForGoogle(validatedStart),
+            timeZone: BRAZIL_TIMEZONE,
+            date: null,
+          };
 
       logger.debug("Start date formatted", {
         original: event.start,
@@ -355,9 +361,14 @@ export async function updateEvent(
     // Validate and format end date
     try {
       const validatedEnd = validateDate(event.end, "end");
+      // CRITICAL: Same nullification needed for end date
       resource.end = isAllDay
-        ? { date: validatedEnd.toISOString().split("T")[0] }
-        : { dateTime: formatDateTimeForGoogle(validatedEnd), timeZone: BRAZIL_TIMEZONE };
+        ? { date: validatedEnd.toISOString().split("T")[0], dateTime: null, timeZone: null }
+        : {
+            dateTime: formatDateTimeForGoogle(validatedEnd),
+            timeZone: BRAZIL_TIMEZONE,
+            date: null,
+          };
 
       logger.debug("End date formatted", {
         original: event.end,

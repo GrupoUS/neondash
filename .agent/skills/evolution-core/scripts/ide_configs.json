@@ -1,0 +1,44 @@
+{
+  "antigravity": {
+    "name": "Antigravity",
+    "config_file": "~/.antigravity/settings.json",
+    "config_path": ["hooks"],
+    "hook_format": "command",
+    "supported": true
+  },
+  "cursor": {
+    "name": "Cursor",
+    "config_file": "~/.cursor/settings.json",
+    "config_path": ["hooks"],
+    "hook_format": "command",
+    "supported": true
+  },
+  "claude": {
+    "name": "Claude Code",
+    "config_file": "~/.claude/settings.json",
+    "config_path": ["hooks"],
+    "hook_format": "command",
+    "supported": true
+  },
+  "opencode": {
+    "name": "OpenCode",
+    "config_file": "~/.opencode/config.json",
+    "config_path": ["hooks"],
+    "hook_format": "command",
+    "supported": true
+  },
+  "kilocode": {
+    "name": "Kilocode",
+    "config_file": "~/.kilocode/settings.json",
+    "config_path": ["hooks"],
+    "hook_format": "command",
+    "supported": true
+  },
+  "manus": {
+    "name": "Manus",
+    "config_file": "~/.manus/settings.json",
+    "config_path": ["hooks"],
+    "hook_format": "command",
+    "supported": true
+  }
+}

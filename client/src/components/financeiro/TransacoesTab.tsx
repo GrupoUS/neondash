@@ -1,4 +1,4 @@
-import { Plus, Upload } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -31,7 +31,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { useFinancialMetrics } from "@/hooks/use-financial-metrics";
 import { trpc } from "@/lib/trpc";
 import { FinancialSummaryCard } from "./cards/FinancialSummaryCard";
@@ -40,12 +39,11 @@ import { NeonCoachCard } from "./cards/NeonCoachCard";
 import { QuickActionCard } from "./cards/QuickActionCard";
 import { StreakCard } from "./cards/StreakCard";
 import { DailyBalanceChart } from "./DailyBalanceChart";
+import { FileImportDialog } from "./FileImportDialog";
 import { OnboardingCard } from "./OnboardingCard";
 
 export function TransacoesTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [csvContent, setCsvContent] = useState("");
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split("T")[0],
     tipo: "receita" as "receita" | "despesa",
@@ -90,17 +88,6 @@ export function TransacoesTab() {
         formaPagamentoId: "",
         nomeClienteFornecedor: "",
       });
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const importMutation = trpc.financeiro.transacoes.importCsv.useMutation({
-    onSuccess: (data) => {
-      toast.success(`${data.imported} transações importadas`);
-      utils.financeiro.transacoes.list.invalidate();
-      utils.financeiro.transacoes.resumo.invalidate();
-      setIsImportDialogOpen(false);
-      setCsvContent("");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -261,40 +248,7 @@ export function TransacoesTab() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <Upload className="h-4 w-4" />
-                  Importar CSV
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Importar Transações (CSV)</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Formato esperado: data,descricao,valor (valores positivos = receita, negativos =
-                    despesa)
-                  </p>
-                  <Textarea
-                    placeholder={
-                      "2024-01-15,Venda procedimento,350.00\n2024-01-16,Compra insumos,-120.00"
-                    }
-                    value={csvContent}
-                    onChange={(e) => setCsvContent(e.target.value)}
-                    rows={8}
-                  />
-                  <Button
-                    onClick={() => importMutation.mutate({ csvContent })}
-                    disabled={importMutation.isPending || !csvContent.trim()}
-                    className="w-full"
-                  >
-                    {importMutation.isPending ? "Importando..." : "Importar"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <FileImportDialog />
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>

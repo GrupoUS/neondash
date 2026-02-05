@@ -5,6 +5,7 @@ import { aiAssistantRouter } from "./aiAssistantRouter";
 import { atividadesRouter } from "./atividadesRouter";
 import { crmColumnsRouter } from "./crmColumnsRouter";
 import { diagnosticoRouter } from "./diagnostico";
+import { financeiroRouter } from "./financeiroRouter";
 import { gamificacaoRouter } from "./gamificacaoRouter";
 import { instagramRouter } from "./instagramRouter";
 import { interacoesRouter } from "./interacoesRouter";
@@ -12,6 +13,7 @@ import { interactionTemplatesRouter } from "./interactionTemplatesRouter";
 import { leadsRouter } from "./leadsRouter";
 import { mentoradosRouter } from "./mentoradosRouter";
 import { notificationsRouter } from "./notificationsRouter";
+import { precificacaoRouter } from "./precificacaoRouter";
 import { adminRouter } from "./routers/admin";
 import { authRouter } from "./routers/auth";
 import { calendarRouter } from "./routers/calendar";
@@ -47,6 +49,8 @@ export const appRouter = router({
   notifications: notificationsRouter,
   mentor: mentorRouter,
   mentorship: mentorshipRouter,
+  financeiro: financeiroRouter,
+  precificacao: precificacaoRouter,
 });
 
 export type AppRouter = typeof appRouter;

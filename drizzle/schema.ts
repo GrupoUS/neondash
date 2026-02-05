@@ -40,6 +40,7 @@ export const tipoNotificacaoEnum = pgEnum("tipo_notificacao", [
   "ranking",
 ]);
 export const simNaoEnum = pgEnum("sim_nao", ["sim", "nao"]);
+export const tipoTransacaoEnum = pgEnum("tipo_transacao", ["receita", "despesa"]);
 export const syncStatusEnum = pgEnum("sync_status", ["success", "failed", "partial"]);
 export const channelTypeEnum = pgEnum("channel_type", ["webchat", "whatsapp", "telegram", "slack"]);
 
@@ -1156,3 +1157,158 @@ export const notificationSettings = pgTable("notification_settings", {
 
 export type NotificationSetting = typeof notificationSettings.$inferSelect;
 export type InsertNotificationSetting = typeof notificationSettings.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FINANCIAL MODULE TABLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Categorias Financeiras - Categories for income/expenses
+ */
+export const categoriasFinanceiras = pgTable(
+  "categorias_financeiras",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    tipo: tipoTransacaoEnum("tipo").notNull(),
+    nome: varchar("nome", { length: 100 }).notNull(),
+    descricao: text("descricao"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("categorias_fin_mentorado_idx").on(table.mentoradoId),
+    uniqueIndex("categorias_fin_unique_idx").on(table.mentoradoId, table.tipo, table.nome),
+  ]
+);
+
+export type CategoriaFinanceira = typeof categoriasFinanceiras.$inferSelect;
+export type InsertCategoriaFinanceira = typeof categoriasFinanceiras.$inferInsert;
+
+/**
+ * Formas de Pagamento - Payment methods with fees
+ */
+export const formasPagamento = pgTable(
+  "formas_pagamento",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: varchar("nome", { length: 100 }).notNull(),
+    taxaPercentual: integer("taxa_percentual").default(0), // 150 = 1.5%
+    prazoRecebimentoDias: integer("prazo_recebimento_dias").default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("formas_pag_mentorado_idx").on(table.mentoradoId),
+    uniqueIndex("formas_pag_unique_idx").on(table.mentoradoId, table.nome),
+  ]
+);
+
+export type FormaPagamento = typeof formasPagamento.$inferSelect;
+export type InsertFormaPagamento = typeof formasPagamento.$inferInsert;
+
+/**
+ * Transacoes - Financial transactions (DRE entries)
+ */
+export const transacoes = pgTable(
+  "transacoes",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    data: date("data").notNull(),
+    tipo: tipoTransacaoEnum("tipo").notNull(),
+    categoriaId: integer("categoria_id").references(() => categoriasFinanceiras.id),
+    descricao: text("descricao").notNull(),
+    nomeClienteFornecedor: varchar("nome_cliente_fornecedor", { length: 255 }),
+    formaPagamentoId: integer("forma_pagamento_id").references(() => formasPagamento.id),
+    valor: integer("valor").notNull(), // em centavos
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("transacoes_mentorado_idx").on(table.mentoradoId),
+    index("transacoes_data_idx").on(table.data),
+    index("transacoes_mentorado_data_idx").on(table.mentoradoId, table.data),
+    index("transacoes_categoria_idx").on(table.categoriaId),
+  ]
+);
+
+export type Transacao = typeof transacoes.$inferSelect;
+export type InsertTransacao = typeof transacoes.$inferInsert;
+
+/**
+ * Insumos - Supplies/ingredients used in procedures
+ */
+export const insumos = pgTable(
+  "insumos",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: varchar("nome", { length: 255 }).notNull(),
+    valorCompra: integer("valor_compra").notNull(), // em centavos
+    rendimento: integer("rendimento").notNull().default(1), // número de usos
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("insumos_mentorado_idx").on(table.mentoradoId)]
+);
+
+export type Insumo = typeof insumos.$inferSelect;
+export type InsertInsumo = typeof insumos.$inferInsert;
+
+/**
+ * Procedimentos - Services/procedures offered
+ */
+export const procedimentos = pgTable(
+  "procedimentos",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: varchar("nome", { length: 255 }).notNull(),
+    precoVenda: integer("preco_venda").notNull(), // em centavos
+    custoOperacional: integer("custo_operacional").default(0), // em centavos
+    custoInvestimento: integer("custo_investimento").default(0), // em centavos
+    percentualParceiro: integer("percentual_parceiro").default(0), // 0-10000 (0-100%)
+    percentualImposto: integer("percentual_imposto").default(700), // 700 = 7%
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("procedimentos_mentorado_idx").on(table.mentoradoId)]
+);
+
+export type Procedimento = typeof procedimentos.$inferSelect;
+export type InsertProcedimento = typeof procedimentos.$inferInsert;
+
+/**
+ * Procedimento Insumos - Junction table for procedure-supply relationship
+ */
+export const procedimentoInsumos = pgTable(
+  "procedimento_insumos",
+  {
+    id: serial("id").primaryKey(),
+    procedimentoId: integer("procedimento_id")
+      .notNull()
+      .references(() => procedimentos.id, { onDelete: "cascade" }),
+    insumoId: integer("insumo_id")
+      .notNull()
+      .references(() => insumos.id, { onDelete: "cascade" }),
+    quantidade: integer("quantidade").default(1),
+  },
+  (table) => [
+    uniqueIndex("proc_insumo_unique_idx").on(table.procedimentoId, table.insumoId),
+    index("proc_insumo_proc_idx").on(table.procedimentoId),
+    index("proc_insumo_insumo_idx").on(table.insumoId),
+  ]
+);
+
+export type ProcedimentoInsumo = typeof procedimentoInsumos.$inferSelect;
+export type InsertProcedimentoInsumo = typeof procedimentoInsumos.$inferInsert;

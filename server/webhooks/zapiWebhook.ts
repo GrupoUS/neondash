@@ -13,6 +13,7 @@ import type { Lead } from "../../drizzle/schema";
 import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
 import { createLogger } from "../_core/logger";
 import { getDb } from "../db";
+import { sseService } from "../services/sseService";
 import { phonesMatch, zapiService } from "../services/zapiService";
 
 const logger = createLogger({ service: "zapiWebhook" });
@@ -102,15 +103,29 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
 
   // Store message with normalized phone
   const db = getDb();
-  await db.insert(whatsappMessages).values({
-    mentoradoId: mentorado.id,
-    leadId: lead?.id ?? null,
+  const [savedMessage] = await db
+    .insert(whatsappMessages)
+    .values({
+      mentoradoId: mentorado.id,
+      leadId: lead?.id ?? null,
+      phone: normalizedPhone,
+      direction: "inbound",
+      content,
+      zapiMessageId: payload.messageId,
+      status: "delivered",
+      isFromAi: "nao",
+    })
+    .returning();
+
+  // Broadcast new message to connected SSE clients
+  sseService.broadcast(mentorado.id, "message", {
+    id: savedMessage?.id,
     phone: normalizedPhone,
+    leadId: lead?.id ?? null,
     direction: "inbound",
     content,
-    zapiMessageId: payload.messageId,
     status: "delivered",
-    isFromAi: "nao",
+    createdAt: savedMessage?.createdAt ?? new Date().toISOString(),
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -174,10 +189,20 @@ async function handleMessageStatus(payload: ZApiMessageStatusPayload): Promise<v
   if (!status) return;
 
   const db = getDb();
-  await db
+  const [updated] = await db
     .update(whatsappMessages)
     .set({ status })
-    .where(eq(whatsappMessages.zapiMessageId, payload.messageId));
+    .where(eq(whatsappMessages.zapiMessageId, payload.messageId))
+    .returning({ mentoradoId: whatsappMessages.mentoradoId, id: whatsappMessages.id });
+
+  // Broadcast status update to connected SSE clients
+  if (updated) {
+    sseService.broadcast(updated.mentoradoId, "status_update", {
+      messageId: updated.id,
+      zapiMessageId: payload.messageId,
+      status,
+    });
+  }
 }
 
 /**

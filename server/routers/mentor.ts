@@ -317,6 +317,11 @@ export const mentorRouter = router({
         const avgLeads = turmaMetrics.reduce((acc, m) => acc + m.leads, 0) / turmaMetrics.length;
         const avgProcedimentos =
           turmaMetrics.reduce((acc, m) => acc + m.procedimentos, 0) / turmaMetrics.length;
+        const avgLucro = turmaMetrics.reduce((acc, m) => acc + m.lucro, 0) / turmaMetrics.length;
+        const avgPostsFeed =
+          turmaMetrics.reduce((acc, m) => acc + m.postsFeed, 0) / turmaMetrics.length;
+        const avgStories =
+          turmaMetrics.reduce((acc, m) => acc + m.stories, 0) / turmaMetrics.length;
 
         comparison = {
           userMetrics: {
@@ -331,6 +336,9 @@ export const mentorRouter = router({
             faturamento: Math.round(avgFaturamento),
             leads: Math.round(avgLeads),
             procedimentos: Math.round(avgProcedimentos),
+            lucro: Math.round(avgLucro),
+            postsFeed: Math.round(avgPostsFeed),
+            stories: Math.round(avgStories),
           },
           percentiles: null, // Could add percentile calculation here
         };

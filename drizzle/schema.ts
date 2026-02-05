@@ -692,6 +692,11 @@ export const atividadeProgress = pgTable(
     completed: simNaoEnum("completed").default("nao").notNull(),
     completedAt: timestamp("completed_at"),
     notes: text("notes"), // Notas do mentorado para este passo
+    // Admin grading fields
+    grade: integer("grade"), // 0-10 scale
+    feedback: text("feedback"), // Admin/Mentor feedback
+    feedbackAt: timestamp("feedback_at"),
+    gradedBy: integer("graded_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -704,6 +709,7 @@ export const atividadeProgress = pgTable(
     index("atividade_progress_atividade_idx").on(table.mentoradoId, table.atividadeCodigo),
   ]
 );
+
 
 export type AtividadeProgress = typeof atividadeProgress.$inferSelect;
 export type InsertAtividadeProgress = typeof atividadeProgress.$inferInsert;

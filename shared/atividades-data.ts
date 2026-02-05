@@ -7,6 +7,8 @@ export interface AtividadeStep {
   codigo: string;
   label: string;
   descricao?: string;
+  /** HTML/Markdown content for detailed implementation guide */
+  detalhes?: string;
 }
 
 export interface Atividade {

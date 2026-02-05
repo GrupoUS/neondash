@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -25,8 +25,16 @@ import {
 import { trpc } from "@/lib/trpc";
 import { OnboardingCard } from "./OnboardingCard";
 
+type FormaPagamento = {
+  id: number;
+  nome: string;
+  taxaPercentual: number | null;
+  prazoRecebimentoDias: number | null;
+};
+
 export function FormasPagamentoTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingForma, setEditingForma] = useState<FormaPagamento | null>(null);
   const [formData, setFormData] = useState({
     nome: "",
     taxaPercentual: "",
@@ -41,6 +49,16 @@ export function FormasPagamentoTab() {
       toast.success("Forma de pagamento criada");
       utils.financeiro.formasPagamento.list.invalidate();
       setIsDialogOpen(false);
+      setFormData({ nome: "", taxaPercentual: "", prazoRecebimentoDias: "" });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.financeiro.formasPagamento.update.useMutation({
+    onSuccess: () => {
+      toast.success("Forma de pagamento atualizada");
+      utils.financeiro.formasPagamento.list.invalidate();
+      setEditingForma(null);
       setFormData({ nome: "", taxaPercentual: "", prazoRecebimentoDias: "" });
     },
     onError: (e) => toast.error(e.message),
@@ -70,6 +88,38 @@ export function FormasPagamentoTab() {
       nome: formData.nome,
       taxaPercentual,
       prazoRecebimentoDias,
+    });
+  };
+
+  const handleUpdate = () => {
+    if (!editingForma) return;
+    if (!formData.nome.trim()) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
+    const taxaPercentual = formData.taxaPercentual
+      ? Math.round(Number(formData.taxaPercentual.replace(",", ".")) * 100)
+      : undefined;
+    const prazoRecebimentoDias = formData.prazoRecebimentoDias
+      ? parseInt(formData.prazoRecebimentoDias, 10)
+      : undefined;
+
+    updateMutation.mutate({
+      id: editingForma.id,
+      nome: formData.nome,
+      taxaPercentual,
+      prazoRecebimentoDias,
+    });
+  };
+
+  const openEditDialog = (forma: FormaPagamento) => {
+    setEditingForma(forma);
+    setFormData({
+      nome: forma.nome,
+      taxaPercentual: forma.taxaPercentual
+        ? (forma.taxaPercentual / 100).toString().replace(".", ",")
+        : "",
+      prazoRecebimentoDias: forma.prazoRecebimentoDias?.toString() || "",
     });
   };
 
@@ -151,6 +201,49 @@ export function FormasPagamentoTab() {
         </Dialog>
       </div>
 
+      {/* Edit Dialog */}
+      <Dialog open={!!editingForma} onOpenChange={(open) => !open && setEditingForma(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Forma de Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                placeholder="Ex: Cartão de Crédito"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Taxa (%)</Label>
+                <Input
+                  value={formData.taxaPercentual}
+                  onChange={(e) => setFormData({ ...formData, taxaPercentual: e.target.value })}
+                  placeholder="Ex: 2,5"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Prazo (dias)</Label>
+                <Input
+                  type="number"
+                  value={formData.prazoRecebimentoDias}
+                  onChange={(e) =>
+                    setFormData({ ...formData, prazoRecebimentoDias: e.target.value })
+                  }
+                  placeholder="Ex: 30"
+                />
+              </div>
+            </div>
+            <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="w-full">
+              {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <NeonCard className="p-6">
         <Table>
           <TableHeader>
@@ -158,7 +251,7 @@ export function FormasPagamentoTab() {
               <TableHead>Nome</TableHead>
               <TableHead>Taxa</TableHead>
               <TableHead>Prazo (dias)</TableHead>
-              <TableHead className="w-[50px]" />
+              <TableHead className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -179,14 +272,24 @@ export function FormasPagamentoTab() {
                     {fp.prazoRecebimentoDias ?? "-"}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteMutation.mutate({ id: fp.id })}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        onClick={() => openEditDialog(fp)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteMutation.mutate({ id: fp.id })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

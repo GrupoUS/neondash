@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -34,8 +34,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { OnboardingCard } from "./OnboardingCard";
 
+type Categoria = {
+  id: number;
+  tipo: "receita" | "despesa";
+  nome: string;
+  descricao: string | null;
+};
+
 export function CategoriasTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCategoria, setEditingCategoria] = useState<Categoria | null>(null);
   const [formData, setFormData] = useState({
     tipo: "receita" as "receita" | "despesa",
     nome: "",
@@ -50,6 +58,16 @@ export function CategoriasTab() {
       toast.success("Categoria criada");
       utils.financeiro.categorias.list.invalidate();
       setIsDialogOpen(false);
+      setFormData({ tipo: "receita", nome: "", descricao: "" });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.financeiro.categorias.update.useMutation({
+    onSuccess: () => {
+      toast.success("Categoria atualizada");
+      utils.financeiro.categorias.list.invalidate();
+      setEditingCategoria(null);
       setFormData({ tipo: "receita", nome: "", descricao: "" });
     },
     onError: (e) => toast.error(e.message),
@@ -75,6 +93,28 @@ export function CategoriasTab() {
     });
   };
 
+  const handleUpdate = () => {
+    if (!editingCategoria) return;
+    if (!formData.nome.trim()) {
+      toast.error("Nome é obrigatório");
+      return;
+    }
+    updateMutation.mutate({
+      id: editingCategoria.id,
+      nome: formData.nome,
+      descricao: formData.descricao || undefined,
+    });
+  };
+
+  const openEditDialog = (categoria: Categoria) => {
+    setEditingCategoria(categoria);
+    setFormData({
+      tipo: categoria.tipo,
+      nome: categoria.nome,
+      descricao: categoria.descricao || "",
+    });
+  };
+
   if (isLoading) {
     return (
       <NeonCard className="p-6">
@@ -88,6 +128,33 @@ export function CategoriasTab() {
 
   const receitas = categorias?.filter((c) => c.tipo === "receita") ?? [];
   const despesas = categorias?.filter((c) => c.tipo === "despesa") ?? [];
+
+  const renderCategoriaRow = (c: Categoria) => (
+    <TableRow key={c.id}>
+      <TableCell className="font-medium">{c.nome}</TableCell>
+      <TableCell className="text-muted-foreground">{c.descricao ?? "-"}</TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-primary"
+            onClick={() => openEditDialog(c)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            onClick={() => deleteMutation.mutate({ id: c.id })}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
 
   return (
     <div className="space-y-6">
@@ -156,6 +223,36 @@ export function CategoriasTab() {
         </Dialog>
       </div>
 
+      {/* Edit Dialog */}
+      <Dialog open={!!editingCategoria} onOpenChange={(open) => !open && setEditingCategoria(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Categoria</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                placeholder="Ex: Consultas"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição (opcional)</Label>
+              <Textarea
+                value={formData.descricao}
+                onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                placeholder="Descrição da categoria"
+              />
+            </div>
+            <Button onClick={handleUpdate} disabled={updateMutation.isPending} className="w-full">
+              {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Receitas */}
         <NeonCard className="p-6">
@@ -168,7 +265,7 @@ export function CategoriasTab() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead className="w-[50px]" />
+                <TableHead className="w-[80px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -179,22 +276,7 @@ export function CategoriasTab() {
                   </TableCell>
                 </TableRow>
               ) : (
-                receitas.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.descricao ?? "-"}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteMutation.mutate({ id: c.id })}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                receitas.map(renderCategoriaRow)
               )}
             </TableBody>
           </Table>
@@ -211,7 +293,7 @@ export function CategoriasTab() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead className="w-[50px]" />
+                <TableHead className="w-[80px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -222,22 +304,7 @@ export function CategoriasTab() {
                   </TableCell>
                 </TableRow>
               ) : (
-                despesas.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell className="text-muted-foreground">{c.descricao ?? "-"}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => deleteMutation.mutate({ id: c.id })}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                despesas.map(renderCategoriaRow)
               )}
             </TableBody>
           </Table>

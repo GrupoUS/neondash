@@ -119,6 +119,40 @@ export const financeiroRouter = router({
         await db.delete(categoriasFinanceiras).where(eq(categoriasFinanceiras.id, input.id));
         return { success: true };
       }),
+
+    update: mentoradoProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          nome: z.string().min(1, "Nome é obrigatório"),
+          descricao: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        const [categoria] = await db
+          .select()
+          .from(categoriasFinanceiras)
+          .where(eq(categoriasFinanceiras.id, input.id))
+          .limit(1);
+
+        if (!categoria) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Categoria não encontrada" });
+        }
+        if (categoria.mentoradoId !== ctx.mentorado.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        await db
+          .update(categoriasFinanceiras)
+          .set({
+            nome: input.nome,
+            descricao: input.descricao,
+          })
+          .where(eq(categoriasFinanceiras.id, input.id));
+
+        return { success: true };
+      }),
   }),
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -212,6 +246,42 @@ export const financeiroRouter = router({
         }
 
         await db.delete(formasPagamento).where(eq(formasPagamento.id, input.id));
+        return { success: true };
+      }),
+
+    update: mentoradoProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          nome: z.string().min(1, "Nome é obrigatório"),
+          taxaPercentual: z.number().optional(),
+          prazoRecebimentoDias: z.number().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        const [forma] = await db
+          .select()
+          .from(formasPagamento)
+          .where(eq(formasPagamento.id, input.id))
+          .limit(1);
+
+        if (!forma) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Forma de pagamento não encontrada" });
+        }
+        if (forma.mentoradoId !== ctx.mentorado.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+
+        await db
+          .update(formasPagamento)
+          .set({
+            nome: input.nome,
+            taxaPercentual: input.taxaPercentual,
+            prazoRecebimentoDias: input.prazoRecebimentoDias,
+          })
+          .where(eq(formasPagamento.id, input.id));
+
         return { success: true };
       }),
   }),

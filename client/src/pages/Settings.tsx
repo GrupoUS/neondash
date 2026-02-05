@@ -3,8 +3,9 @@
  * Manages WhatsApp Z-API connection and AI agent settings
  */
 
-import { MessageCircle, Settings2, Sparkles } from "lucide-react";
+import { MessageCircle, Settings2, Sparkles, TrendingUp } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { FinancialCoachSettingsCard } from "@/components/financeiro/FinancialCoachSettingsCard";
 import { Separator } from "@/components/ui/separator";
 import { AIAgentSettingsCard } from "@/components/whatsapp/AIAgentSettingsCard";
 import { WhatsAppConnectionCard } from "@/components/whatsapp/WhatsAppConnectionCard";
@@ -52,6 +53,20 @@ export function SettingsPage() {
             Configure respostas automáticas com inteligência artificial para qualificação de leads.
           </p>
           <AIAgentSettingsCard />
+        </section>
+
+        <Separator />
+
+        {/* Financial Coach Section */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-amber-500" />
+            <h2 className="text-xl font-semibold">Neon Coach Financeiro</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Configure o agente de IA para análise financeira. Defina o prompt mestre e diretrizes.
+          </p>
+          <FinancialCoachSettingsCard />
         </section>
       </div>
     </DashboardLayout>

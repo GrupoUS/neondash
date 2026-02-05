@@ -21,6 +21,8 @@ vi.mock("./db", () => ({
 // Mock email service
 vi.mock("./emailService", () => ({
   sendEmail: vi.fn(() => Promise.resolve(true)),
+  getEmailTemplate: vi.fn(() => "<html>mock email</html>"),
+  sendWelcomeEmail: vi.fn(() => Promise.resolve(true)),
 }));
 
 // Mock notification service

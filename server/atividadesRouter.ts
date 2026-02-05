@@ -4,10 +4,12 @@ import { atividadeProgress } from "../drizzle/schema";
 import { adminProcedure, mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 
-// Progress map with optional notes
+// Progress map with optional notes and grading
 interface ProgressData {
   completed: boolean;
   notes?: string | null;
+  grade?: number | null;
+  feedback?: string | null;
 }
 
 export const atividadesRouter = router({
@@ -28,6 +30,8 @@ export const atividadesRouter = router({
       progressMap[key] = {
         completed: p.completed === "sim",
         notes: p.notes,
+        grade: p.grade,
+        feedback: p.feedback,
       };
     }
     return progressMap;
@@ -51,6 +55,8 @@ export const atividadesRouter = router({
         progressMap[key] = {
           completed: p.completed === "sim",
           notes: p.notes,
+          grade: p.grade,
+          feedback: p.feedback,
         };
       }
       return progressMap;
@@ -140,6 +146,59 @@ export const atividadesRouter = router({
           stepCodigo: input.stepCodigo,
           completed: "nao",
           notes: input.notes || null,
+        });
+      }
+
+      return { success: true };
+    }),
+
+  /**
+   * Update grade and feedback for a step (admin only)
+   */
+  updateGrade: adminProcedure
+    .input(
+      z.object({
+        mentoradoId: z.number(),
+        atividadeCodigo: z.string(),
+        stepCodigo: z.string(),
+        grade: z.number().min(0).max(10).optional().nullable(),
+        feedback: z.string().optional().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      const existing = await db
+        .select()
+        .from(atividadeProgress)
+        .where(
+          and(
+            eq(atividadeProgress.mentoradoId, input.mentoradoId),
+            eq(atividadeProgress.atividadeCodigo, input.atividadeCodigo),
+            eq(atividadeProgress.stepCodigo, input.stepCodigo)
+          )
+        )
+        .limit(1);
+
+      const gradeData = {
+        grade: input.grade ?? null,
+        feedback: input.feedback ?? null,
+        feedbackAt: new Date(),
+        gradedBy: ctx.user.id,
+      };
+
+      if (existing.length > 0) {
+        await db
+          .update(atividadeProgress)
+          .set(gradeData)
+          .where(eq(atividadeProgress.id, existing[0].id));
+      } else {
+        // Create new entry with grade/feedback
+        await db.insert(atividadeProgress).values({
+          mentoradoId: input.mentoradoId,
+          atividadeCodigo: input.atividadeCodigo,
+          stepCodigo: input.stepCodigo,
+          completed: "nao",
+          ...gradeData,
         });
       }
 

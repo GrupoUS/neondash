@@ -7,6 +7,19 @@
 
 const ZAPI_BASE_URL = "https://api.z-api.io";
 
+// Simple logger for Z-API service (silent in production, logs in development)
+const noop = (): void => undefined;
+const logger = {
+  info: noop as (msg: string, ...args: unknown[]) => void,
+  error: noop as (msg: string, ...args: unknown[]) => void,
+};
+if (process.env.NODE_ENV !== "production") {
+  // biome-ignore lint/suspicious/noConsole: development logging only
+  logger.info = (msg, ...a) => console.info(`[Z-API] ${msg}`, ...a);
+  // biome-ignore lint/suspicious/noConsole: development logging only
+  logger.error = (msg, ...a) => console.error(`[Z-API] ${msg}`, ...a);
+}
+
 export interface ZApiCredentials {
   instanceId: string;
   token: string;
@@ -48,6 +61,19 @@ export interface ZApiWebhookPayload {
   momment?: number; // Timestamp in ms
   status?: "SENT" | "DELIVERED" | "READ" | "FAILED";
   isFromMe?: boolean;
+}
+
+/**
+ * Z-API Chat response from get-chats endpoint
+ */
+export interface ZApiChat {
+  phone: string;
+  name: string | null;
+  unread: string;
+  lastMessageTime: string;
+  isMuted: string;
+  isMarkedSpam: boolean;
+  profileThumbnail: string | null;
 }
 
 /**
@@ -147,6 +173,52 @@ export async function disconnect(credentials: ZApiCredentials): Promise<boolean>
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Get all active chats from WhatsApp
+ * Fetches conversations with metadata like name, unread count, and last message time
+ * Uses pagination (page/pageSize) per Z-API docs to fetch all chats
+ * Endpoint: /chats per Z-API docs
+ */
+export async function getChats(credentials: ZApiCredentials): Promise<ZApiChat[]> {
+  try {
+    logger.info("[Z-API getChats] Fetching all chats with pagination...");
+
+    const allChats: ZApiChat[] = [];
+    let page = 1;
+    const pageSize = 100;
+    let hasMore = true;
+
+    while (hasMore) {
+      const endpoint = `chats?page=${page}&pageSize=${pageSize}`;
+      logger.info(`[Z-API getChats] Page ${page}...`);
+
+      const response = await zapiRequest<ZApiChat[]>(credentials, endpoint);
+
+      if (!response || response.length === 0) {
+        hasMore = false;
+      } else {
+        allChats.push(...response);
+        logger.info(
+          `[Z-API getChats] Page ${page}: ${response.length} (total: ${allChats.length})`
+        );
+        hasMore = response.length >= pageSize;
+        page++;
+      }
+    }
+
+    logger.info(`[Z-API getChats] Total: ${allChats.length} chats`);
+
+    // Filter out group chats (groups have @g.us suffix)
+    const filtered = allChats.filter((chat) => !chat.phone.includes("@g.us"));
+    logger.info(`[Z-API getChats] After filtering groups: ${filtered.length} individual chats`);
+
+    return filtered;
+  } catch (error) {
+    logger.error("[Z-API getChats] Failed:", error);
+    return [];
   }
 }
 
@@ -334,6 +406,7 @@ export const zapiService = {
   getConnectionStatus,
   disconnect,
   sendTextMessage,
+  getChats,
 
   // Phone utilities
   normalizePhoneNumber,

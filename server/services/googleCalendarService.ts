@@ -5,6 +5,9 @@
 
 import type { calendar_v3 } from "googleapis";
 import { ENV } from "../_core/env";
+import { createLogger } from "../_core/logger";
+
+const logger = createLogger({ service: "googleCalendar" });
 
 // Environment variables for Google OAuth
 const GOOGLE_CLIENT_ID = ENV.googleClientId;
@@ -13,6 +16,50 @@ const GOOGLE_REDIRECT_URI = ENV.googleRedirectUri;
 
 // Google Calendar API scopes
 const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
+
+// Brazil timezone
+const BRAZIL_TIMEZONE = "America/Sao_Paulo";
+
+/**
+ * Format date to RFC3339 for Google Calendar API
+ *
+ * Google Calendar API accepts dates in two formats:
+ * 1. UTC with Z suffix: "2026-02-04T17:00:00Z" + timeZone: "America/Sao_Paulo"
+ * 2. Local with offset: "2026-02-04T14:00:00-03:00"
+ *
+ * We use option 1 (UTC with timeZone) as it's simpler and avoids DST edge cases.
+ * The `.000Z` milliseconds are stripped as some Google services reject them.
+ */
+function formatDateTimeForGoogle(date: Date): string {
+  // Validate date
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid date provided: ${date}`);
+  }
+
+  // Use ISO format (UTC) and strip milliseconds: "2026-02-04T17:00:00Z"
+  // Google accepts this when timeZone is specified separately
+  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+/**
+ * Validate and sanitize date input
+ * Returns valid Date or throws with descriptive error
+ */
+function validateDate(date: unknown, fieldName: string): Date {
+  if (!date) {
+    throw new Error(`${fieldName} is required`);
+  }
+
+  if (!(date instanceof Date)) {
+    throw new Error(`${fieldName} must be a Date instance, got: ${typeof date}`);
+  }
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`${fieldName} is an invalid Date (NaN)`);
+  }
+
+  return date;
+}
 
 interface TokenResponse {
   access_token: string;
@@ -31,7 +78,24 @@ interface CalendarEvent {
   allDay: boolean;
   location?: string;
   htmlLink?: string;
+  colorId?: string; // Google Calendar color ID (1-11)
+  color?: string; // Hex color for display
 }
+
+// Google Calendar event color palette (colorId 1-11)
+const GOOGLE_CALENDAR_COLORS: Record<string, string> = {
+  "1": "#7986CB", // Lavender
+  "2": "#33B679", // Sage
+  "3": "#8E24AA", // Grape
+  "4": "#E67C73", // Flamingo
+  "5": "#F6BF26", // Banana
+  "6": "#F4511E", // Tangerine
+  "7": "#039BE5", // Peacock
+  "8": "#616161", // Graphite
+  "9": "#3F51B5", // Blueberry
+  "10": "#0B8043", // Basil
+  "11": "#D50000", // Tomato
+};
 
 /**
  * Check if Google OAuth is configured
@@ -149,16 +213,23 @@ export async function getEvents(
 
   const data: calendar_v3.Schema$Events = await response.json();
 
-  return (data.items || []).map((event) => ({
-    id: event.id || "",
-    title: event.summary || "Sem título",
-    description: event.description || undefined,
-    start: new Date(event.start?.dateTime || event.start?.date || ""),
-    end: new Date(event.end?.dateTime || event.end?.date || ""),
-    allDay: Boolean(event.start?.date && !event.start?.dateTime),
-    location: event.location || undefined,
-    htmlLink: event.htmlLink || undefined,
-  }));
+  return (data.items || []).map((event) => {
+    const colorId = event.colorId || undefined;
+    const color = colorId ? GOOGLE_CALENDAR_COLORS[colorId] : undefined;
+
+    return {
+      id: event.id || "",
+      title: event.summary || "Sem título",
+      description: event.description || undefined,
+      start: new Date(event.start?.dateTime || event.start?.date || ""),
+      end: new Date(event.end?.dateTime || event.end?.date || ""),
+      allDay: Boolean(event.start?.date && !event.start?.dateTime),
+      location: event.location || undefined,
+      htmlLink: event.htmlLink || undefined,
+      colorId,
+      color,
+    };
+  });
 }
 
 /**
@@ -168,17 +239,39 @@ export async function createEvent(
   accessToken: string,
   event: Partial<CalendarEvent>
 ): Promise<CalendarEvent> {
+  logger.debug("createEvent called", {
+    hasTitle: Boolean(event.title),
+    hasStart: Boolean(event.start),
+    hasEnd: Boolean(event.end),
+    allDay: event.allDay,
+  });
+
+  const isAllDay = event.allDay === true;
+
+  // Validate dates
+  if (!event.start) {
+    throw new Error("Start date is required");
+  }
+  if (!event.end) {
+    throw new Error("End date is required");
+  }
+
+  const validatedStart = validateDate(event.start, "start");
+  const validatedEnd = validateDate(event.end, "end");
+
   const resource: calendar_v3.Schema$Event = {
     summary: event.title,
     description: event.description,
     location: event.location,
-    start: event.allDay
-      ? { date: event.start?.toISOString().split("T")[0] }
-      : { dateTime: event.start?.toISOString() },
-    end: event.allDay
-      ? { date: event.end?.toISOString().split("T")[0] }
-      : { dateTime: event.end?.toISOString() },
+    start: isAllDay
+      ? { date: validatedStart.toISOString().split("T")[0] }
+      : { dateTime: formatDateTimeForGoogle(validatedStart), timeZone: BRAZIL_TIMEZONE },
+    end: isAllDay
+      ? { date: validatedEnd.toISOString().split("T")[0] }
+      : { dateTime: formatDateTimeForGoogle(validatedEnd), timeZone: BRAZIL_TIMEZONE },
   };
+
+  logger.debug("Sending POST request to Google Calendar API", { resource });
 
   const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
     method: "POST",
@@ -190,11 +283,19 @@ export async function createEvent(
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to create event: ${error}`);
+    const errorText = await response.text();
+    logger.error("Google Calendar API error", {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+      resource,
+    });
+    throw new Error(`Failed to create event: ${errorText}`);
   }
 
   const data = await response.json();
+  logger.debug("Event created successfully", { eventId: data.id, title: data.summary });
+
   return {
     id: data.id || "",
     title: data.summary || "Sem título",
@@ -215,23 +316,75 @@ export async function updateEvent(
   eventId: string,
   event: Partial<CalendarEvent>
 ): Promise<CalendarEvent> {
+  logger.debug("updateEvent called", {
+    eventId,
+    hasTitle: Boolean(event.title),
+    hasStart: Boolean(event.start),
+    hasEnd: Boolean(event.end),
+    allDay: event.allDay,
+  });
+
   const resource: calendar_v3.Schema$Event = {};
 
   if (event.title) resource.summary = event.title;
   if (event.description !== undefined) resource.description = event.description;
   if (event.location !== undefined) resource.location = event.location;
 
+  // Determine if we're updating as all-day (default to false if not specified)
+  const isAllDay = event.allDay === true;
+
   if (event.start) {
-    resource.start = event.allDay
-      ? { date: event.start.toISOString().split("T")[0] }
-      : { dateTime: event.start.toISOString() };
+    // Validate and format start date
+    try {
+      const validatedStart = validateDate(event.start, "start");
+      // CRITICAL: When updating, we must explicitly nullify the conflicting format
+      // Google API rejects PATCH requests if both date and dateTime could exist
+      resource.start = isAllDay
+        ? { date: validatedStart.toISOString().split("T")[0], dateTime: null, timeZone: null }
+        : {
+            dateTime: formatDateTimeForGoogle(validatedStart),
+            timeZone: BRAZIL_TIMEZONE,
+            date: null,
+          };
+
+      logger.debug("Start date formatted", {
+        original: event.start,
+        formatted: resource.start,
+      });
+    } catch (error) {
+      logger.error("Start date validation failed", { error, start: event.start });
+      throw error;
+    }
   }
 
   if (event.end) {
-    resource.end = event.allDay
-      ? { date: event.end.toISOString().split("T")[0] }
-      : { dateTime: event.end.toISOString() };
+    // Validate and format end date
+    try {
+      const validatedEnd = validateDate(event.end, "end");
+      // CRITICAL: Same nullification needed for end date
+      resource.end = isAllDay
+        ? { date: validatedEnd.toISOString().split("T")[0], dateTime: null, timeZone: null }
+        : {
+            dateTime: formatDateTimeForGoogle(validatedEnd),
+            timeZone: BRAZIL_TIMEZONE,
+            date: null,
+          };
+
+      logger.debug("End date formatted", {
+        original: event.end,
+        formatted: resource.end,
+      });
+    } catch (error) {
+      logger.error("End date validation failed", { error, end: event.end });
+      throw error;
+    }
   }
+
+  // Log the full payload for debugging
+  logger.debug("Sending PATCH request to Google Calendar API", {
+    eventId,
+    resource,
+  });
 
   const response = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
@@ -246,11 +399,20 @@ export async function updateEvent(
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to update event: ${error}`);
+    const errorText = await response.text();
+    logger.error("Google Calendar API error", {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+      eventId,
+      resource,
+    });
+    throw new Error(`Failed to update event: ${errorText}`);
   }
 
   const data = await response.json();
+  logger.debug("Event updated successfully", { eventId, title: data.summary });
+
   return {
     id: data.id || "",
     title: data.summary || "Sem título",

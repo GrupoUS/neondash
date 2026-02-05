@@ -1,7 +1,9 @@
-import { CalendarDays, ExternalLink, RefreshCw, Video } from "lucide-react";
+import { CalendarDays, ExternalLink, Phone, RefreshCw, Video } from "lucide-react";
 import moment from "moment";
 import React from "react";
+import { Link } from "wouter";
 
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { NeonCard } from "@/components/ui/neon-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -190,9 +192,57 @@ interface EventItemProps {
   event: NeonEvent;
 }
 
+/**
+ * Check if event is a mentoring call based on title
+ */
+function isCallEvent(title: string): boolean {
+  const lowerTitle = title.toLowerCase();
+  return (
+    lowerTitle.includes("call") || lowerTitle.includes("mentoria") || lowerTitle.includes("1:1")
+  );
+}
+
+/**
+ * Extract mentorado name from event title
+ * Patterns: "CALL NEON - Name", "Call - Name", "Mentoria Name"
+ */
+function extractMentoradoName(title: string): string | null {
+  const patterns = [
+    /(?:call|mentoria|1:1)\s*(?:neon)?\s*[-:]\s*(.+)/i,
+    /^(.+?)\s*[-:]\s*(?:call|mentoria)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = title.match(pattern);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+  return null;
+}
+
 function EventItem({ event }: EventItemProps) {
+  const { user } = useAuth();
   const time = moment(event.start).format("HH:mm");
   const hasLink = Boolean(event.url);
+  const isCall = isCallEvent(event.title);
+  const mentoradoName = isCall ? extractMentoradoName(event.title) : null;
+  const isAdmin = user?.role === "admin";
+
+  // Query mentorados to find matching ID (only for admins viewing calls)
+  const mentoradosQuery = trpc.mentorados.list.useQuery(undefined, {
+    enabled: isAdmin && isCall && Boolean(mentoradoName),
+    staleTime: 10 * 60 * 1000, // 10 min cache
+  });
+
+  // Find matching mentorado by name
+  const matchedMentorado = React.useMemo(() => {
+    if (!mentoradoName || !mentoradosQuery.data) return null;
+    const lowerName = mentoradoName.toLowerCase();
+    return mentoradosQuery.data.find((m: { nomeCompleto: string; id: number }) =>
+      m.nomeCompleto.toLowerCase().includes(lowerName)
+    );
+  }, [mentoradoName, mentoradosQuery.data]);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -202,7 +252,9 @@ function EventItem({ event }: EventItemProps) {
             type="button"
             className={cn(
               "group w-full text-left cursor-pointer rounded px-1.5 py-1 transition-colors",
-              "bg-[#C6A665]/20 hover:bg-[#C6A665]/30 border-l-2 border-[#C6A665]"
+              isCall
+                ? "bg-teal-500/20 hover:bg-teal-500/30 border-l-2 border-teal-400"
+                : "bg-[#C6A665]/20 hover:bg-[#C6A665]/30 border-l-2 border-[#C6A665]"
             )}
             onClick={() => {
               if (event.url) {
@@ -211,8 +263,16 @@ function EventItem({ event }: EventItemProps) {
             }}
           >
             <div className="flex items-center gap-1">
-              <span className="text-[10px] text-[#C6A665] font-mono font-semibold">{time}</span>
-              {hasLink && <Video className="w-2.5 h-2.5 text-blue-400" />}
+              <span
+                className={cn(
+                  "text-[10px] font-mono font-semibold",
+                  isCall ? "text-teal-400" : "text-[#C6A665]"
+                )}
+              >
+                {time}
+              </span>
+              {isCall && <Phone className="w-2.5 h-2.5 text-teal-400" />}
+              {hasLink && !isCall && <Video className="w-2.5 h-2.5 text-blue-400" />}
             </div>
             <div className="text-[10px] text-white/90 truncate leading-tight">{event.title}</div>
           </button>
@@ -220,7 +280,9 @@ function EventItem({ event }: EventItemProps) {
         <TooltipContent side="bottom" className="bg-[#1a1f2e] border-[#C6A665]/30 max-w-xs">
           <div className="space-y-2">
             <div>
-              <div className="font-bold text-[#C6A665]">{event.title}</div>
+              <div className={cn("font-bold", isCall ? "text-teal-400" : "text-[#C6A665]")}>
+                {event.title}
+              </div>
               <div className="text-xs text-gray-400">
                 {moment(event.start).format("ddd, DD MMM • HH:mm")} -{" "}
                 {moment(event.end).format("HH:mm")}
@@ -240,6 +302,19 @@ function EventItem({ event }: EventItemProps) {
                 <ExternalLink className="w-3 h-3" />
                 Abrir link
               </a>
+            )}
+            {/* Call Preparation Link for Admins */}
+            {isAdmin && isCall && matchedMentorado && (
+              <Link href={`/admin/call-preparation/${matchedMentorado.id}`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-1 text-teal-400 border-teal-400/50 hover:bg-teal-400/10"
+                >
+                  <Phone className="w-3 h-3 mr-1" />
+                  Preparar Call
+                </Button>
+              </Link>
             )}
           </div>
         </TooltipContent>

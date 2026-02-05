@@ -102,10 +102,8 @@ interface DateRange {
  * Parse recurring event occurrences within date range
  */
 function parseRecurringEvent(
-  // biome-ignore lint/suspicious/noExplicitAny: ical.js types are not well-defined
-  event: any,
-  // biome-ignore lint/suspicious/noExplicitAny: ical.js types are not well-defined
-  vevent: any,
+  event: ICAL.Event,
+  vevent: ICAL.Component,
   { oneMonthAgo, threeMonthsFromNow }: DateRange
 ): ICalEvent[] {
   const occurrences: ICalEvent[] = [];
@@ -147,10 +145,8 @@ function parseRecurringEvent(
  * Parse single (non-recurring) event
  */
 function parseSingleEvent(
-  // biome-ignore lint/suspicious/noExplicitAny: ical.js types are not well-defined
-  event: any,
-  // biome-ignore lint/suspicious/noExplicitAny: ical.js types are not well-defined
-  vevent: any,
+  event: ICAL.Event,
+  vevent: ICAL.Component,
   { oneMonthAgo, threeMonthsFromNow }: DateRange
 ): ICalEvent | null {
   const startDate = event.startDate?.toJSDate();
@@ -175,8 +171,7 @@ function parseSingleEvent(
 /**
  * Check if event is all-day
  */
-// biome-ignore lint/suspicious/noExplicitAny: ical.js types are not well-defined
-function isAllDayEvent(vevent: any): boolean {
+function isAllDayEvent(vevent: ICAL.Component): boolean {
   return vevent.hasProperty("dtstart")
     ? vevent.getFirstProperty("dtstart")?.type === "date"
     : false;

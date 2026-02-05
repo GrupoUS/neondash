@@ -40,6 +40,7 @@ export const tipoNotificacaoEnum = pgEnum("tipo_notificacao", [
   "ranking",
 ]);
 export const simNaoEnum = pgEnum("sim_nao", ["sim", "nao"]);
+export const tipoTransacaoEnum = pgEnum("tipo_transacao", ["receita", "despesa"]);
 export const syncStatusEnum = pgEnum("sync_status", ["success", "failed", "partial"]);
 export const channelTypeEnum = pgEnum("channel_type", ["webchat", "whatsapp", "telegram", "slack"]);
 
@@ -79,6 +80,7 @@ export const temperaturaLeadEnum = pgEnum("temperatura_lead", ["frio", "morno", 
 export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "outbound"]);
 export const messageStatusEnum = pgEnum("message_status", ["pending", "sent", "delivered", "read", "failed"]);
 export const zapiInstanceStatusEnum = pgEnum("zapi_instance_status", ["trial", "active", "suspended", "canceled"]);
+export const actionItemStatusEnum = pgEnum("action_item_status", ["pending", "completed"]);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLES
@@ -690,6 +692,11 @@ export const atividadeProgress = pgTable(
     completed: simNaoEnum("completed").default("nao").notNull(),
     completedAt: timestamp("completed_at"),
     notes: text("notes"), // Notas do mentorado para este passo
+    // Admin grading fields
+    grade: integer("grade"), // 0-10 scale
+    feedback: text("feedback"), // Admin/Mentor feedback
+    feedbackAt: timestamp("feedback_at"),
+    gradedBy: integer("graded_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -702,6 +709,7 @@ export const atividadeProgress = pgTable(
     index("atividade_progress_atividade_idx").on(table.mentoradoId, table.atividadeCodigo),
   ]
 );
+
 
 export type AtividadeProgress = typeof atividadeProgress.$inferSelect;
 export type InsertAtividadeProgress = typeof atividadeProgress.$inferInsert;
@@ -852,6 +860,32 @@ export const whatsappMessages = pgTable(
 
 export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
 export type InsertWhatsappMessage = typeof whatsappMessages.$inferInsert;
+
+/**
+ * WhatsApp Contacts - Contact list for conversations not linked to CRM leads
+ * Stores contact names and notes per mentorado
+ */
+export const whatsappContacts = pgTable(
+  "whatsapp_contacts",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    phone: varchar("phone", { length: 20 }).notNull(),
+    name: varchar("name", { length: 255 }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("whatsapp_contacts_phone_mentorado_idx").on(table.mentoradoId, table.phone),
+    index("whatsapp_contacts_mentorado_idx").on(table.mentoradoId),
+  ]
+);
+
+export type WhatsappContact = typeof whatsappContacts.$inferSelect;
+export type InsertWhatsappContact = typeof whatsappContacts.$inferInsert;
 
 /**
  * AI Agent Config - Configuration for AI SDR per mentorado
@@ -1044,3 +1078,243 @@ export const weeklyPlanProgress = pgTable(
 
 export type WeeklyPlanProgress = typeof weeklyPlanProgress.$inferSelect;
 export type InsertWeeklyPlanProgress = typeof weeklyPlanProgress.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MENTORSHIP PLANNING TABLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Mentorship Sessions - Individual mentor-mentee session tracking
+ */
+export const mentorshipSessions = pgTable(
+  "mentorship_sessions",
+  {
+    id: serial("id").primaryKey(),
+    mentorId: integer("mentor_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    sessionDate: timestamp("session_date").defaultNow().notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    summary: text("summary").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("mentorship_sessions_mentor_idx").on(table.mentorId),
+    index("mentorship_sessions_mentorado_idx").on(table.mentoradoId),
+    index("mentorship_sessions_date_idx").on(table.sessionDate),
+  ]
+);
+
+export type MentorshipSession = typeof mentorshipSessions.$inferSelect;
+export type InsertMentorshipSession = typeof mentorshipSessions.$inferInsert;
+
+/**
+ * Mentorship Action Items - Trackable tasks from mentorship sessions
+ */
+export const mentorshipActionItems = pgTable(
+  "mentorship_action_items",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: integer("session_id")
+      .notNull()
+      .references(() => mentorshipSessions.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    status: actionItemStatusEnum("status").default("pending").notNull(),
+    dueDate: date("due_date"),
+    completedAt: timestamp("completed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("mentorship_action_items_session_idx").on(table.sessionId),
+    index("mentorship_action_items_status_idx").on(table.status),
+  ]
+);
+
+export type MentorshipActionItem = typeof mentorshipActionItems.$inferSelect;
+export type InsertMentorshipActionItem = typeof mentorshipActionItems.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NOTIFICATION SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Notification Settings - Global admin-configurable notification settings
+ */
+export const notificationSettings = pgTable("notification_settings", {
+  id: serial("id").primaryKey(),
+  // Schedule config (which days of month to send reminders)
+  reminderDays: text("reminder_days").notNull().default("[1,3,6,11]"), // JSON array
+  // Enable/disable notification types
+  metricsRemindersEnabled: simNaoEnum("metrics_reminders_enabled").default("sim").notNull(),
+  badgeNotificationsEnabled: simNaoEnum("badge_notifications_enabled").default("sim").notNull(),
+  rankingNotificationsEnabled: simNaoEnum("ranking_notifications_enabled").default("sim").notNull(),
+  // Email templates (JSON with subject/body overrides per template)
+  emailTemplates: text("email_templates"), // JSON: { templateName: { subject, body } }
+  // In-app notification templates (JSON with title/message overrides)
+  inAppTemplates: text("in_app_templates"), // JSON: { templateName: { title, message } }
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => users.id),
+});
+
+export type NotificationSetting = typeof notificationSettings.$inferSelect;
+export type InsertNotificationSetting = typeof notificationSettings.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FINANCIAL MODULE TABLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Categorias Financeiras - Categories for income/expenses
+ */
+export const categoriasFinanceiras = pgTable(
+  "categorias_financeiras",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    tipo: tipoTransacaoEnum("tipo").notNull(),
+    nome: varchar("nome", { length: 100 }).notNull(),
+    descricao: text("descricao"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("categorias_fin_mentorado_idx").on(table.mentoradoId),
+    uniqueIndex("categorias_fin_unique_idx").on(table.mentoradoId, table.tipo, table.nome),
+  ]
+);
+
+export type CategoriaFinanceira = typeof categoriasFinanceiras.$inferSelect;
+export type InsertCategoriaFinanceira = typeof categoriasFinanceiras.$inferInsert;
+
+/**
+ * Formas de Pagamento - Payment methods with fees
+ */
+export const formasPagamento = pgTable(
+  "formas_pagamento",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: varchar("nome", { length: 100 }).notNull(),
+    taxaPercentual: integer("taxa_percentual").default(0), // 150 = 1.5%
+    prazoRecebimentoDias: integer("prazo_recebimento_dias").default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("formas_pag_mentorado_idx").on(table.mentoradoId),
+    uniqueIndex("formas_pag_unique_idx").on(table.mentoradoId, table.nome),
+  ]
+);
+
+export type FormaPagamento = typeof formasPagamento.$inferSelect;
+export type InsertFormaPagamento = typeof formasPagamento.$inferInsert;
+
+/**
+ * Transacoes - Financial transactions (DRE entries)
+ */
+export const transacoes = pgTable(
+  "transacoes",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    data: date("data").notNull(),
+    tipo: tipoTransacaoEnum("tipo").notNull(),
+    categoriaId: integer("categoria_id").references(() => categoriasFinanceiras.id),
+    descricao: text("descricao").notNull(),
+    nomeClienteFornecedor: varchar("nome_cliente_fornecedor", { length: 255 }),
+    formaPagamentoId: integer("forma_pagamento_id").references(() => formasPagamento.id),
+    valor: integer("valor").notNull(), // em centavos
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("transacoes_mentorado_idx").on(table.mentoradoId),
+    index("transacoes_data_idx").on(table.data),
+    index("transacoes_mentorado_data_idx").on(table.mentoradoId, table.data),
+    index("transacoes_categoria_idx").on(table.categoriaId),
+  ]
+);
+
+export type Transacao = typeof transacoes.$inferSelect;
+export type InsertTransacao = typeof transacoes.$inferInsert;
+
+/**
+ * Insumos - Supplies/ingredients used in procedures
+ */
+export const insumos = pgTable(
+  "insumos",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: varchar("nome", { length: 255 }).notNull(),
+    valorCompra: integer("valor_compra").notNull(), // em centavos
+    rendimento: integer("rendimento").notNull().default(1), // número de usos
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("insumos_mentorado_idx").on(table.mentoradoId)]
+);
+
+export type Insumo = typeof insumos.$inferSelect;
+export type InsertInsumo = typeof insumos.$inferInsert;
+
+/**
+ * Procedimentos - Services/procedures offered
+ */
+export const procedimentos = pgTable(
+  "procedimentos",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: varchar("nome", { length: 255 }).notNull(),
+    precoVenda: integer("preco_venda").notNull(), // em centavos
+    custoOperacional: integer("custo_operacional").default(0), // em centavos
+    custoInvestimento: integer("custo_investimento").default(0), // em centavos
+    percentualParceiro: integer("percentual_parceiro").default(0), // 0-10000 (0-100%)
+    percentualImposto: integer("percentual_imposto").default(700), // 700 = 7%
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("procedimentos_mentorado_idx").on(table.mentoradoId)]
+);
+
+export type Procedimento = typeof procedimentos.$inferSelect;
+export type InsertProcedimento = typeof procedimentos.$inferInsert;
+
+/**
+ * Procedimento Insumos - Junction table for procedure-supply relationship
+ */
+export const procedimentoInsumos = pgTable(
+  "procedimento_insumos",
+  {
+    id: serial("id").primaryKey(),
+    procedimentoId: integer("procedimento_id")
+      .notNull()
+      .references(() => procedimentos.id, { onDelete: "cascade" }),
+    insumoId: integer("insumo_id")
+      .notNull()
+      .references(() => insumos.id, { onDelete: "cascade" }),
+    quantidade: integer("quantidade").default(1),
+  },
+  (table) => [
+    uniqueIndex("proc_insumo_unique_idx").on(table.procedimentoId, table.insumoId),
+    index("proc_insumo_proc_idx").on(table.procedimentoId),
+    index("proc_insumo_insumo_idx").on(table.insumoId),
+  ]
+);
+
+export type ProcedimentoInsumo = typeof procedimentoInsumos.$inferSelect;
+export type InsertProcedimentoInsumo = typeof procedimentoInsumos.$inferInsert;

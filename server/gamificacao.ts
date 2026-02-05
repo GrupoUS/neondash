@@ -704,7 +704,11 @@ export async function updateProgressiveGoals(mentoradoId: number, ano: number, m
   }
 }
 
-// Send reminder notifications for metrics submission
+/**
+ * @deprecated Use notificationService.sendAllReminders() instead.
+ * This legacy function bypasses the new templates, spam control, and dual-channel delivery.
+ * Kept for reference; will be removed in a future version.
+ */
 export async function sendMetricsReminders() {
   const db = await getDb();
   if (!db) return;

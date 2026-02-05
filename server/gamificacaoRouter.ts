@@ -16,7 +16,6 @@ import {
   getRanking,
   initializeBadges,
   markNotificationRead,
-  sendMetricsReminders,
   updateProgressiveGoals,
 } from "./gamificacao";
 import { notificationService } from "./services/notificationService";
@@ -36,6 +35,15 @@ export const gamificacaoRouter = router({
   // Get current user's badges
   myBadges: mentoradoProcedure.query(async ({ ctx }) => {
     return await getMentoradoBadges(ctx.mentorado.id);
+  }),
+
+  // Get current user's streak (Comment 2 fix: streak fallback for self-dashboard)
+  myStreak: mentoradoProcedure.query(async ({ ctx }) => {
+    const streak = await calculateStreak(ctx.mentorado.id);
+    return {
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+    };
   }),
 
   // Get badges for a specific mentorado (admin or self)
@@ -138,10 +146,15 @@ export const gamificacaoRouter = router({
       return { success: true };
     }),
 
-  // Admin: Send metrics reminders (uses legacy function for compatibility)
+  // Admin: Send metrics reminders to all active mentorados
   sendReminders: adminProcedure.mutation(async () => {
-    await sendMetricsReminders();
-    return { success: true };
+    const summary = await notificationService.sendAllReminders("manual");
+    return {
+      success: true,
+      sent: summary.sent,
+      skipped: summary.skipped,
+      failed: summary.failed,
+    };
   }),
 
   /**

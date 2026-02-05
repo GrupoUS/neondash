@@ -7,6 +7,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import withDragAndDrop, {
   type EventInteractionArgs,
 } from "react-big-calendar/lib/addons/dragAndDrop";
+import { CalendarSettingsCard } from "@/components/agenda/CalendarSettingsCard";
 import { NeonWeeklyCalendar } from "@/components/agenda/NeonWeeklyCalendar";
 import { NextPatientBanner } from "@/components/agenda/NextPatientBanner";
 
@@ -33,6 +34,7 @@ interface CalendarEvent extends Event {
   location?: string;
   htmlLink?: string;
   isNeonEvent?: boolean; // Flag to differentiate Neon events
+  color?: string; // Hex color from Google Calendar
 }
 
 // Custom styling for dark theme
@@ -50,6 +52,7 @@ export function Agenda() {
   const [selectedSlot, setSelectedSlot] = React.useState<
     { start: Date; end: Date; allDay?: boolean } | undefined
   >(undefined);
+  const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | undefined>(undefined);
 
   const statusQuery = trpc.calendar.getStatus.useQuery();
   const authUrlQuery = trpc.calendar.getAuthUrl.useQuery(undefined, {
@@ -131,6 +134,7 @@ export function Agenda() {
         location: event.location,
         htmlLink: event.htmlLink,
         isNeonEvent: false,
+        color: (event as { color?: string }).color, // Sync color from backend
       }));
       setMyEvents(formattedEvents);
     }
@@ -152,7 +156,7 @@ export function Agenda() {
     return [...myEvents, ...neonEvents];
   }, [myEvents, neonEventsQuery.data?.events]);
 
-  // Style getter for differentiating event sources
+  // Style getter for differentiating event sources and applying Google colors
   const eventPropGetter = React.useCallback((event: CalendarEvent) => {
     if (event.isNeonEvent) {
       return {
@@ -164,29 +168,69 @@ export function Agenda() {
         },
       };
     }
+    // Apply Google Calendar color if present
+    if (event.color) {
+      return {
+        style: {
+          backgroundColor: event.color,
+          borderLeft: `3px solid ${event.color}`,
+          color: "#ffffff",
+          fontWeight: 500,
+        },
+      };
+    }
     return {};
   }, []);
 
+  // AT-001: Utility to ensure 1-hour default duration for new events
+  const ensureOneHourDuration = (start: Date): Date => {
+    const oneHour = 60 * 60 * 1000;
+    return new Date(start.getTime() + oneHour);
+  };
+
+  // AT-002/AT-003: Utility to constrain end date to same day
+  const constrainToSameDay = (start: Date, end: Date): Date => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (endDate.toDateString() !== startDate.toDateString()) {
+      const sameDay = new Date(startDate);
+      sameDay.setHours(23, 59, 59, 999);
+      return sameDay;
+    }
+    return endDate;
+  };
+
   const onEventResize = (args: EventInteractionArgs<CalendarEvent>) => {
     const { event, start, end } = args;
+
+    // AT-003: Constrain end date to same day
+    const adjustedEnd = constrainToSameDay(new Date(start), new Date(end));
 
     // Optimistic update
     setMyEvents((prev) => {
       const existing = prev.find((ev) => ev.id === event.id);
       const filtered = prev.filter((ev) => ev.id !== event.id);
       if (!existing) return prev;
-      return [...filtered, { ...existing, start: new Date(start), end: new Date(end) }];
+      return [...filtered, { ...existing, start: new Date(start), end: adjustedEnd }];
     });
 
     updateEventMutation.mutate({
       id: event.id,
       start: new Date(start).toISOString(),
-      end: new Date(end).toISOString(),
+      end: adjustedEnd.toISOString(),
+      allDay: event.allDay, // Preserve original all-day status
     });
   };
 
   const onEventDrop = (args: EventInteractionArgs<CalendarEvent>) => {
-    const { event, start, end, isAllDay } = args;
+    const { event, start, isAllDay } = args;
+
+    // AT-002: Preserve original event duration instead of using DnD end
+    const originalDuration = event.end.getTime() - event.start.getTime();
+    let newEnd = new Date(new Date(start).getTime() + originalDuration);
+
+    // AT-002: Constrain to same day to prevent multi-day events
+    newEnd = constrainToSameDay(new Date(start), newEnd);
 
     // Optimistic update
     setMyEvents((prev) => {
@@ -195,14 +239,14 @@ export function Agenda() {
       if (!existing) return prev;
       return [
         ...filtered,
-        { ...existing, start: new Date(start), end: new Date(end), allDay: Boolean(isAllDay) },
+        { ...existing, start: new Date(start), end: newEnd, allDay: Boolean(isAllDay) },
       ];
     });
 
     updateEventMutation.mutate({
       id: event.id,
       start: new Date(start).toISOString(),
-      end: new Date(end).toISOString(),
+      end: newEnd.toISOString(),
       allDay: Boolean(isAllDay),
     });
   };
@@ -218,7 +262,11 @@ export function Agenda() {
   }) => {
     // Determine if allDay based on slots length (simplification) or just use the slot info
     const isAllDay = slots.length === 1;
-    setSelectedSlot({ start: new Date(start), end: new Date(end), allDay: isAllDay });
+
+    // AT-001: Enforce 1-hour default duration for time-based events
+    const adjustedEnd = isAllDay ? new Date(end) : ensureOneHourDuration(new Date(start));
+
+    setSelectedSlot({ start: new Date(start), end: adjustedEnd, allDay: isAllDay });
     setIsDialogOpen(true);
   };
 
@@ -372,16 +420,26 @@ export function Agenda() {
                   showMore: (total) => `+${total} mais`,
                 }}
                 onSelectEvent={(event: CalendarEvent) => {
-                  setSelectedSlot({ start: event.start, end: event.end, allDay: event.allDay });
-                  if (event.htmlLink) {
-                    window.open(event.htmlLink, "_blank");
+                  // Neon events are read-only, just open link
+                  if (event.isNeonEvent) {
+                    if (event.htmlLink) {
+                      window.open(event.htmlLink, "_blank");
+                    }
+                    return;
                   }
+                  // Personal events: open edit dialog
+                  setSelectedEvent(event);
+                  setSelectedSlot(undefined);
+                  setIsDialogOpen(true);
                 }}
               />
             )}
             <EventFormDialog
               open={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
+              onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) setSelectedEvent(undefined);
+              }}
               defaultDate={
                 selectedSlot
                   ? {
@@ -391,8 +449,12 @@ export function Agenda() {
                     }
                   : undefined
               }
+              event={selectedEvent}
             />
           </div>
+
+          {/* Settings Card at bottom */}
+          <CalendarSettingsCard onDisconnect={handleDisconnect} />
         </div>
 
         {/* Custom styles for Navy/Gold Theme */}

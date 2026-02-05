@@ -97,8 +97,51 @@ async function startServer() {
   );
 
   // ─────────────────────────────────────────────────────────────────────────
+  // SSE Endpoint for Real-Time Chat Updates
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get("/api/chat/events", async (req, res) => {
+    const auth = getAuth(req);
+    if (!auth.userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Get mentorado ID from Clerk user
+    const { getDb } = await import("../db");
+    const { eq } = await import("drizzle-orm");
+    const { mentorados, users } = await import("../../drizzle/schema");
+    const { sseService } = await import("../services/sseService");
+
+    const db = getDb();
+    const [mentorado] = await db
+      .select({ id: mentorados.id })
+      .from(mentorados)
+      .innerJoin(users, eq(users.id, mentorados.userId))
+      .where(eq(users.clerkId, auth.userId))
+      .limit(1);
+
+    if (!mentorado) {
+      return res.status(404).json({ error: "Mentorado not found" });
+    }
+
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    // Register client
+    sseService.addClient(mentorado.id, res);
+
+    // Cleanup on close
+    req.on("close", () => {
+      sseService.removeClient(mentorado.id, res);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Google Calendar OAuth Callback
   // ─────────────────────────────────────────────────────────────────────────
+
   app.get("/api/calendar/callback", async (req, res) => {
     const { code, state, error } = req.query;
 

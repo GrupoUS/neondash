@@ -12,6 +12,7 @@ vi.mock("./db", () => ({
 vi.mock("./emailService", () => ({
   sendEmail: vi.fn(async () => true),
   sendWelcomeEmail: vi.fn(async () => true),
+  getEmailTemplate: vi.fn(() => "<html>mock email</html>"),
 }));
 
 describe("Mentorados Router", () => {

@@ -2,9 +2,9 @@
  * Z-API tRPC Router
  * Handles WhatsApp connection management and messaging
  */
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { mentorados, whatsappMessages } from "../drizzle/schema";
+import { leads, mentorados, whatsappContacts, whatsappMessages } from "../drizzle/schema";
 import { protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { encrypt, safeDecrypt } from "./services/crypto";
@@ -51,6 +51,47 @@ function buildCredentials(mentorado: {
     token: decryptedToken,
     clientToken: decryptedClientToken ?? undefined,
   };
+}
+
+/**
+ * Link orphan WhatsApp messages to existing CRM leads by matching phone numbers
+ * Uses phonesMatch() for flexible format matching (handles +55, 9th digit, etc.)
+ * Returns count of newly linked messages
+ */
+async function linkOrphanMessages(mentoradoId: number): Promise<number> {
+  const db = getDb();
+
+  // Get messages without a leadId
+  const orphanMessages = await db
+    .select()
+    .from(whatsappMessages)
+    .where(and(eq(whatsappMessages.mentoradoId, mentoradoId), isNull(whatsappMessages.leadId)));
+
+  if (orphanMessages.length === 0) return 0;
+
+  // Get all leads for this mentorado
+  const allLeads = await db.select().from(leads).where(eq(leads.mentoradoId, mentoradoId));
+
+  if (allLeads.length === 0) return 0;
+
+  let linkedCount = 0;
+
+  // Match orphan messages to leads
+  for (const msg of orphanMessages) {
+    const matchedLead = allLeads.find(
+      (lead) => lead.telefone && zapiService.phonesMatch(lead.telefone, msg.phone)
+    );
+
+    if (matchedLead) {
+      await db
+        .update(whatsappMessages)
+        .set({ leadId: matchedLead.id })
+        .where(eq(whatsappMessages.id, msg.id));
+      linkedCount++;
+    }
+  }
+
+  return linkedCount;
 }
 
 export const zapiRouter = router({
@@ -315,6 +356,394 @@ export const zapiRouter = router({
 
     return counts;
   }),
+
+  /**
+   * Get all conversations (unique phone numbers with last message)
+   * For the Chat page inbox view
+   * Primary: Z-API get-chats for real-time WhatsApp data
+   * Fallback: Local database messages if disconnected
+   */
+  getAllConversations: protectedProcedure.query(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      return [];
+    }
+
+    const db = getDb();
+    const credentials = buildCredentials(mentorado);
+
+    // Get saved contacts for custom names
+    const savedContacts = await db
+      .select()
+      .from(whatsappContacts)
+      .where(eq(whatsappContacts.mentoradoId, mentorado.id));
+
+    // Get all leads for name matching
+    const allLeads = await db.select().from(leads).where(eq(leads.mentoradoId, mentorado.id));
+
+    // ===== TRY Z-API FIRST =====
+    if (credentials) {
+      const zapiChats = await zapiService.getChats(credentials);
+      if (zapiChats.length > 0) {
+        // Map Z-API chats to our format
+        return zapiChats.map((chat) => {
+          const normalizedPhone = zapiService.normalizePhoneNumber(chat.phone);
+
+          // Priority: 1) Saved contact name, 2) Lead name, 3) Z-API name
+          let name: string | null = null;
+
+          // Check saved contacts first
+          const savedContact = savedContacts.find((c) =>
+            zapiService.phonesMatch(c.phone, normalizedPhone)
+          );
+          if (savedContact?.name) {
+            name = savedContact.name;
+          }
+
+          // Check leads if no saved contact name
+          if (!name) {
+            const matchedLead = allLeads.find(
+              (lead) => lead.telefone && zapiService.phonesMatch(lead.telefone, normalizedPhone)
+            );
+            if (matchedLead) {
+              name = matchedLead.nome;
+            }
+          }
+
+          // Use Z-API name as fallback
+          if (!name && chat.name) {
+            name = chat.name;
+          }
+
+          return {
+            phone: chat.phone,
+            name,
+            leadId:
+              allLeads.find(
+                (l) => l.telefone && zapiService.phonesMatch(l.telefone, normalizedPhone)
+              )?.id ?? null,
+            lastMessage: null, // Z-API doesn't return message content in get-chats
+            lastMessageAt: chat.lastMessageTime ? new Date(chat.lastMessageTime) : null,
+            unreadCount: Number.parseInt(chat.unread, 10) || 0,
+            profileThumbnail: chat.profileThumbnail,
+          };
+        });
+      }
+    }
+
+    // ===== FALLBACK TO LOCAL DATABASE =====
+    await linkOrphanMessages(mentorado.id);
+
+    const allMessages = await db
+      .select()
+      .from(whatsappMessages)
+      .where(eq(whatsappMessages.mentoradoId, mentorado.id))
+      .orderBy(desc(whatsappMessages.createdAt));
+
+    // Group by normalized phone
+    const conversationMap = new Map<
+      string,
+      {
+        phone: string;
+        name: string | null;
+        leadId: number | null;
+        lastMessage: string | null;
+        lastMessageAt: Date | string | null;
+        unreadCount: number;
+        profileThumbnail: string | null;
+      }
+    >();
+
+    for (const msg of allMessages) {
+      const normalizedPhone = zapiService.normalizePhoneNumber(msg.phone);
+
+      if (!conversationMap.has(normalizedPhone)) {
+        conversationMap.set(normalizedPhone, {
+          phone: msg.phone,
+          name: null,
+          leadId: msg.leadId,
+          lastMessage: msg.content,
+          lastMessageAt: msg.createdAt,
+          unreadCount: 0,
+          profileThumbnail: null,
+        });
+      }
+      const conv = conversationMap.get(normalizedPhone)!;
+      if (msg.direction === "inbound") {
+        conv.unreadCount += 1;
+      }
+      if (!conv.leadId && msg.leadId) {
+        conv.leadId = msg.leadId;
+      }
+    }
+
+    // Enrich with names
+    for (const [normalizedPhone, conv] of conversationMap.entries()) {
+      // Check saved contacts
+      const savedContact = savedContacts.find((c) =>
+        zapiService.phonesMatch(c.phone, normalizedPhone)
+      );
+      if (savedContact?.name) {
+        conv.name = savedContact.name;
+        continue;
+      }
+
+      // Check leads
+      if (!conv.leadId) {
+        const matchedLead = allLeads.find(
+          (lead) => lead.telefone && zapiService.phonesMatch(lead.telefone, normalizedPhone)
+        );
+        if (matchedLead) {
+          conv.leadId = matchedLead.id;
+          conv.name = matchedLead.nome;
+        }
+      } else {
+        const lead = allLeads.find((l) => l.id === conv.leadId);
+        if (lead) {
+          conv.name = lead.nome;
+        }
+      }
+    }
+
+    return Array.from(conversationMap.values()).sort((a, b) => {
+      const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }),
+
+  /**
+   * Manually trigger linking of orphan WhatsApp messages to CRM leads
+   * Useful when leads are added after messages were received
+   */
+  linkContacts: protectedProcedure.mutation(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      return { success: false, linkedCount: 0, message: "Mentorado não encontrado" };
+    }
+
+    const linkedCount = await linkOrphanMessages(mentorado.id);
+    return {
+      success: true,
+      linkedCount,
+      message:
+        linkedCount > 0
+          ? `${linkedCount} mensagem(ns) vinculada(s) a contatos do CRM`
+          : "Nenhuma mensagem nova para vincular",
+    };
+  }),
+
+  /**
+   * Sync conversations from WhatsApp via Z-API
+   * Saves contact names to whatsappContacts table for offline access
+   */
+  syncConversations: protectedProcedure.mutation(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      return { success: false, syncedCount: 0, message: "Mentorado não encontrado" };
+    }
+
+    const credentials = buildCredentials(mentorado);
+    if (!credentials) {
+      return { success: false, syncedCount: 0, message: "Z-API não configurado" };
+    }
+
+    const zapiChats = await zapiService.getChats(credentials);
+    if (zapiChats.length === 0) {
+      return { success: false, syncedCount: 0, message: "WhatsApp desconectado ou sem conversas" };
+    }
+
+    const db = getDb();
+    let syncedCount = 0;
+
+    // Upsert contacts from Z-API
+    for (const chat of zapiChats) {
+      if (!chat.name) continue; // Skip if no name from Z-API
+
+      const normalizedPhone = zapiService.normalizePhoneNumber(chat.phone);
+
+      // Check if contact exists
+      const [existing] = await db
+        .select()
+        .from(whatsappContacts)
+        .where(
+          and(
+            eq(whatsappContacts.mentoradoId, mentorado.id),
+            eq(whatsappContacts.phone, normalizedPhone)
+          )
+        )
+        .limit(1);
+
+      if (!existing) {
+        // Insert new contact
+        await db.insert(whatsappContacts).values({
+          mentoradoId: mentorado.id,
+          phone: normalizedPhone,
+          name: chat.name,
+        });
+        syncedCount++;
+      } else if (!existing.name && chat.name) {
+        // Update only if local name is empty
+        await db
+          .update(whatsappContacts)
+          .set({ name: chat.name, updatedAt: new Date() })
+          .where(eq(whatsappContacts.id, existing.id));
+        syncedCount++;
+      }
+    }
+
+    return {
+      success: true,
+      syncedCount,
+      message: `${zapiChats.length} conversas encontradas, ${syncedCount} contatos sincronizados`,
+    };
+  }),
+
+  /**
+   * Get messages by phone number (for chat page)
+   */
+  getMessagesByPhone: protectedProcedure
+    .input(z.object({ phone: z.string().min(1), limit: z.number().default(50) }))
+    .query(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        return [];
+      }
+
+      const db = getDb();
+      const messages = await db
+        .select()
+        .from(whatsappMessages)
+        .where(
+          and(
+            eq(whatsappMessages.mentoradoId, mentorado.id),
+            eq(whatsappMessages.phone, input.phone)
+          )
+        )
+        .orderBy(desc(whatsappMessages.createdAt))
+        .limit(input.limit);
+
+      return messages.reverse(); // Return in chronological order
+    }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WHATSAPP CONTACTS MANAGEMENT
+  // For managing contact names and notes for conversations
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get a contact by phone number
+   */
+  getContact: protectedProcedure
+    .input(z.object({ phone: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        return null;
+      }
+
+      const db = getDb();
+      const normalizedPhone = zapiService.normalizePhoneNumber(input.phone);
+
+      const [contact] = await db
+        .select()
+        .from(whatsappContacts)
+        .where(
+          and(
+            eq(whatsappContacts.mentoradoId, mentorado.id),
+            eq(whatsappContacts.phone, normalizedPhone)
+          )
+        )
+        .limit(1);
+
+      return contact ?? null;
+    }),
+
+  /**
+   * Create or update a contact
+   */
+  upsertContact: protectedProcedure
+    .input(
+      z.object({
+        phone: z.string().min(1),
+        name: z.string().min(1).max(255),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const db = getDb();
+      const normalizedPhone = zapiService.normalizePhoneNumber(input.phone);
+
+      // Check if contact exists
+      const [existing] = await db
+        .select()
+        .from(whatsappContacts)
+        .where(
+          and(
+            eq(whatsappContacts.mentoradoId, mentorado.id),
+            eq(whatsappContacts.phone, normalizedPhone)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        // Update
+        const [updated] = await db
+          .update(whatsappContacts)
+          .set({
+            name: input.name,
+            notes: input.notes,
+            updatedAt: new Date(),
+          })
+          .where(eq(whatsappContacts.id, existing.id))
+          .returning();
+        return { success: true, contact: updated, action: "updated" as const };
+      }
+
+      // Insert
+      const [created] = await db
+        .insert(whatsappContacts)
+        .values({
+          mentoradoId: mentorado.id,
+          phone: normalizedPhone,
+          name: input.name,
+          notes: input.notes,
+        })
+        .returning();
+
+      return { success: true, contact: created, action: "created" as const };
+    }),
+
+  /**
+   * Delete a contact
+   */
+  deleteContact: protectedProcedure
+    .input(z.object({ phone: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const db = getDb();
+      const normalizedPhone = zapiService.normalizePhoneNumber(input.phone);
+
+      await db
+        .delete(whatsappContacts)
+        .where(
+          and(
+            eq(whatsappContacts.mentoradoId, mentorado.id),
+            eq(whatsappContacts.phone, normalizedPhone)
+          )
+        );
+
+      return { success: true };
+    }),
 
   // ═══════════════════════════════════════════════════════════════════════════
   // INTEGRATOR API PROCEDURES

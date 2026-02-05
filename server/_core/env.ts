@@ -28,4 +28,8 @@ export const ENV = {
   instagramAppSecret: process.env.INSTAGRAM_APP_SECRET,
   instagramRedirectUri:
     process.env.INSTAGRAM_REDIRECT_URI ?? "http://localhost:3000/api/instagram/callback",
+
+  // Resend Email API (optional, for email notifications)
+  resendApiKey: process.env.RESEND_API_KEY,
+  resendFromEmail: process.env.RESEND_FROM_EMAIL ?? "Neon Dashboard <noreply@neondash.com>",
 };

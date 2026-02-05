@@ -4,8 +4,17 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, Loader2, MessageCircle, RefreshCw, Send, Settings } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  AlertCircle,
+  Loader2,
+  MessageCircle,
+  RefreshCw,
+  Send,
+  Settings,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,24 +30,67 @@ interface LeadChatWindowProps {
 
 export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps) {
   const [message, setMessage] = useState("");
+  const [sseConnected, setSseConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Get connection status
   const { data: connectionStatus, isLoading: isLoadingStatus } = trpc.zapi.getStatus.useQuery();
 
-  // Get messages for this lead
+  // Get messages for this lead (initial fetch, no polling - SSE handles updates)
   const {
     data: messages,
     isLoading: isLoadingMessages,
     refetch: refetchMessages,
-  } = trpc.zapi.getMessages.useQuery(
-    { leadId },
-    {
-      enabled: !!leadId,
-      refetchInterval: 5000, // Poll every 5 seconds
-    }
+  } = trpc.zapi.getMessages.useQuery({ leadId }, { enabled: !!leadId });
+
+  // Get TanStack Query utils for cache invalidation
+  const utils = trpc.useUtils();
+
+  // Handle incoming SSE message
+  const handleSSEMessage = useCallback(
+    (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        // Only update if message is for the current lead
+        if (data.leadId === leadId) {
+          utils.zapi.getMessages.invalidate({ leadId });
+        }
+      } catch {
+        // Malformed JSON - ignore
+      }
+    },
+    [leadId, utils.zapi.getMessages]
   );
+
+  // Handle SSE status update
+  const handleSSEStatusUpdate = useCallback(() => {
+    // Invalidate to get updated status icons
+    utils.zapi.getMessages.invalidate({ leadId });
+  }, [leadId, utils.zapi.getMessages]);
+
+  // Setup SSE connection
+  useEffect(() => {
+    if (!leadId || !phone) return;
+
+    const eventSource = new EventSource("/api/chat/events", { withCredentials: true });
+
+    eventSource.onopen = () => setSseConnected(true);
+    eventSource.onerror = () => setSseConnected(false);
+
+    eventSource.addEventListener("message", handleSSEMessage);
+    eventSource.addEventListener("status_update", handleSSEStatusUpdate);
+    eventSource.addEventListener("connected", () => setSseConnected(true));
+
+    return () => eventSource.close();
+  }, [leadId, phone, handleSSEMessage, handleSSEStatusUpdate]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   // Send message mutation
   const sendMutation = trpc.zapi.sendMessage.useMutation({
@@ -48,13 +100,6 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
       textareaRef.current?.focus();
     },
   });
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional - scroll to bottom when messages change
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   const handleSend = () => {
     if (!message.trim() || sendMutation.isPending || !phone) return;
@@ -118,7 +163,14 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
           </div>
           <div>
             <h4 className="font-semibold text-sm text-slate-100">{leadName || "Lead"}</h4>
-            <p className="text-xs text-slate-400 font-medium">{phone}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-slate-400 font-medium">{phone}</p>
+              {sseConnected ? (
+                <Wifi className="w-3 h-3 text-emerald-400" />
+              ) : (
+                <WifiOff className="w-3 h-3 text-amber-400" />
+              )}
+            </div>
           </div>
         </div>
         <Button

@@ -11,8 +11,12 @@ import { eq } from "drizzle-orm";
 import type { Router } from "express";
 import type { Lead } from "../../drizzle/schema";
 import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
+import { createLogger } from "../_core/logger";
 import { getDb } from "../db";
-import { phonesMatch } from "../services/zapiService";
+import { sseService } from "../services/sseService";
+import { phonesMatch, zapiService } from "../services/zapiService";
+
+const logger = createLogger({ service: "zapiWebhook" });
 
 // Webhook payload types
 export interface ZApiMessageReceivedPayload {
@@ -78,6 +82,9 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   // Skip group messages
   if (payload.isGroup) return;
 
+  // Skip outgoing messages (isFromMe = true)
+  if (payload.isFromMe) return;
+
   // Find mentorado by instance
   const mentorado = await findMentoradoByInstance(payload.instanceId);
   if (!mentorado) {
@@ -88,24 +95,83 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   // Extract message content
   const content = payload.text?.message ?? "[Media message]";
 
-  // Find associated lead
-  const lead = await findLeadByPhone(mentorado.id, payload.phone);
+  // Normalize phone for consistent storage (handles +55, 9th digit, etc.)
+  const normalizedPhone = zapiService.normalizePhoneNumber(payload.phone);
 
-  // Store message
+  // Find associated lead using flexible matching
+  const lead = await findLeadByPhone(mentorado.id, normalizedPhone);
+
+  // Store message with normalized phone
   const db = getDb();
-  await db.insert(whatsappMessages).values({
-    mentoradoId: mentorado.id,
+  const [savedMessage] = await db
+    .insert(whatsappMessages)
+    .values({
+      mentoradoId: mentorado.id,
+      leadId: lead?.id ?? null,
+      phone: normalizedPhone,
+      direction: "inbound",
+      content,
+      zapiMessageId: payload.messageId,
+      status: "delivered",
+      isFromAi: "nao",
+    })
+    .returning();
+
+  // Broadcast new message to connected SSE clients
+  sseService.broadcast(mentorado.id, "message", {
+    id: savedMessage?.id,
+    phone: normalizedPhone,
     leadId: lead?.id ?? null,
-    phone: payload.phone,
-    direction: payload.isFromMe ? "outbound" : "inbound",
+    direction: "inbound",
     content,
-    zapiMessageId: payload.messageId,
-    status: payload.isFromMe ? "sent" : "delivered",
-    isFromAi: "nao",
+    status: "delivered",
+    createdAt: savedMessage?.createdAt ?? new Date().toISOString(),
   });
 
-  // TODO: If AI agent enabled, process and respond
-  // This will be handled by aiSdrService
+  // ─────────────────────────────────────────────────────────────────────────
+  // AI SDR: Process incoming message and generate automated response
+  // ─────────────────────────────────────────────────────────────────────────
+  try {
+    // Only process if mentorado has Z-API credentials configured
+    if (!mentorado.zapiInstanceId || !mentorado.zapiToken) {
+      return;
+    }
+
+    const { aiSdrService } = await import("../services/aiSdrService");
+    const { zapiService } = await import("../services/zapiService");
+
+    // Build credentials for Z-API
+    const credentials = {
+      instanceId: mentorado.zapiInstanceId,
+      token: mentorado.zapiToken,
+      clientToken: mentorado.zapiClientToken ?? undefined,
+    };
+
+    // If integrator mode, use admin token
+    const finalCredentials =
+      mentorado.zapiManagedByIntegrator === "sim"
+        ? { ...credentials, useIntegrator: true as const }
+        : credentials;
+
+    // Process with AI SDR (checks if enabled, within working hours, etc.)
+    const result = await aiSdrService.processIncomingMessage(
+      mentorado.id,
+      zapiService.normalizePhoneNumber(payload.phone),
+      content,
+      finalCredentials,
+      lead ?? undefined
+    );
+
+    if (result.responded) {
+      logger.info("AI SDR responded", {
+        phone: payload.phone,
+        responsePreview: result.response?.substring(0, 50),
+      });
+    }
+  } catch (error) {
+    // Don't fail the whole webhook if AI response fails
+    logger.error("AI SDR error processing incoming message", { error });
+  }
 }
 
 /**
@@ -123,10 +189,20 @@ async function handleMessageStatus(payload: ZApiMessageStatusPayload): Promise<v
   if (!status) return;
 
   const db = getDb();
-  await db
+  const [updated] = await db
     .update(whatsappMessages)
     .set({ status })
-    .where(eq(whatsappMessages.zapiMessageId, payload.messageId));
+    .where(eq(whatsappMessages.zapiMessageId, payload.messageId))
+    .returning({ mentoradoId: whatsappMessages.mentoradoId, id: whatsappMessages.id });
+
+  // Broadcast status update to connected SSE clients
+  if (updated) {
+    sseService.broadcast(updated.mentoradoId, "status_update", {
+      messageId: updated.id,
+      zapiMessageId: payload.messageId,
+      status,
+    });
+  }
 }
 
 /**

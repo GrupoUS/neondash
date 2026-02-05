@@ -4,9 +4,11 @@ import {
   BarChart3,
   BriefcaseBusiness,
   CalendarRange,
+  MessageCircle,
   Moon,
   Settings2,
   Sun,
+  TrendingUp,
   UsersRound,
 } from "lucide-react";
 import type React from "react";
@@ -57,7 +59,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: BarChart3 },
     { href: "/agenda", label: "Agenda", icon: CalendarRange },
     { href: "/crm/leads", label: "CRM", icon: BriefcaseBusiness },
-
+    { href: "/financeiro", label: "Financeiro", icon: TrendingUp },
+    { href: "/chat", label: "Chat WhatsApp", icon: MessageCircle },
     { href: "/configuracoes", label: "Configurações", icon: Settings2 },
     {
       href: "/admin/mentorados",

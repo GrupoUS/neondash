@@ -1,6 +1,7 @@
 import { Check, CheckCircle2, Instagram, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,6 +114,7 @@ export function SubmitMetricsForm({
   defaultMes,
   lockPeriod = false,
 }: SubmitMetricsFormProps) {
+  const [, navigate] = useLocation();
   const currentDate = new Date();
 
   // Priority: explicit defaults > suggestNextMonth > current date
@@ -304,7 +306,12 @@ export function SubmitMetricsForm({
       // Invalidate queries to refresh dashboard data
       utils.mentorados.invalidate();
 
-      if (onSuccess) onSuccess();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Default: redirect to metrics page after successful submission
+        navigate("/metricas");
+      }
     },
     onError: (error) => {
       toast.error("Erro ao enviar métricas", {

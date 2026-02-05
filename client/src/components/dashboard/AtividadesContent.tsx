@@ -7,6 +7,7 @@ import {
 import {
   Bookmark,
   CheckCircle2,
+  ChevronRight,
   ListTodo,
   Loader2,
   MessageSquarePlus,
@@ -14,10 +15,12 @@ import {
   Play,
   Plus,
   Sparkles,
+  Star,
   StickyNote,
   Trophy,
   X,
 } from "lucide-react";
+
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
 import {
@@ -57,6 +60,11 @@ interface TaskPopoverState {
   taskTitle: string;
 }
 
+interface GradePopoverState {
+  grade: number | null;
+  feedback: string;
+}
+
 /**
  * Componente interativo para atividades do PLAY NEON
  * - Lista atividades expansíveis (Accordion)
@@ -66,6 +74,7 @@ interface TaskPopoverState {
  * - Criação de tarefas a partir de atividades (Popover inline)
  * - Anel de progresso circular animado
  * - Módulos coloridos por etapa
+ * - Admin grading and feedback
  */
 export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
   // Celebration effect
@@ -79,6 +88,9 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
   // Local state for popover content editing
   const [noteStates, setNoteStates] = useState<Record<string, NotePopoverState>>({});
   const [taskStates, setTaskStates] = useState<Record<string, TaskPopoverState>>({});
+  const [gradeStates, setGradeStates] = useState<Record<string, GradePopoverState>>({});
+  // Track which steps have expanded details
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
   // Fetch progress from server
   const progressQuery = mentoradoId
@@ -95,6 +107,12 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
   });
 
   const updateNoteMutation = trpc.atividades.updateNote.useMutation({
+    onSuccess: () => {
+      progressQuery.refetch();
+    },
+  });
+
+  const updateGradeMutation = trpc.atividades.updateGrade.useMutation({
     onSuccess: () => {
       progressQuery.refetch();
     },
@@ -180,6 +198,44 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
     },
     [taskStates, createTaskMutation]
   );
+
+  // Admin grading handlers
+  const handleGradeChange = useCallback((key: string, grade: number | null, feedback: string) => {
+    setGradeStates((prev) => ({
+      ...prev,
+      [key]: { grade, feedback },
+    }));
+  }, []);
+
+  const saveGrade = useCallback(
+    (atividadeCodigo: string, stepCodigo: string) => {
+      if (!mentoradoId) return;
+      const key = `${atividadeCodigo}:${stepCodigo}`;
+      const gradeState = gradeStates[key];
+      if (!gradeState) return;
+
+      updateGradeMutation.mutate({
+        mentoradoId,
+        atividadeCodigo,
+        stepCodigo,
+        grade: gradeState.grade,
+        feedback: gradeState.feedback || null,
+      });
+    },
+    [mentoradoId, gradeStates, updateGradeMutation]
+  );
+
+  const toggleStepExpanded = useCallback((key: string) => {
+    setExpandedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
 
   const isReadOnly = !!mentoradoId;
 
@@ -474,22 +530,191 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
 
                                     {/* Conteúdo do step */}
                                     <div className="flex-1 min-w-0">
-                                      <label
-                                        htmlFor={key}
-                                        className={cn(
-                                          "text-lg font-medium cursor-pointer select-none block transition-all leading-relaxed",
-                                          isCompleted
-                                            ? "text-muted-foreground line-through opacity-70"
-                                            : "text-foreground"
+                                      <div className="flex items-center gap-2">
+                                        <label
+                                          htmlFor={key}
+                                          className={cn(
+                                            "text-lg font-medium cursor-pointer select-none block transition-all leading-relaxed flex-1",
+                                            isCompleted
+                                              ? "text-muted-foreground line-through opacity-70"
+                                              : "text-foreground"
+                                          )}
+                                        >
+                                          {step.label}
+                                        </label>
+                                        {/* Expand/collapse button for details */}
+                                        {(step.detalhes || isReadOnly) && (
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleStepExpanded(key)}
+                                            className="p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer flex-shrink-0"
+                                            title={
+                                              expandedSteps.has(key)
+                                                ? "Recolher"
+                                                : "Expandir detalhes"
+                                            }
+                                          >
+                                            <ChevronRight
+                                              className={cn(
+                                                "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                                                expandedSteps.has(key) && "rotate-90"
+                                              )}
+                                            />
+                                          </button>
                                         )}
-                                      >
-                                        {step.label}
-                                      </label>
+                                      </div>
                                       {step.descricao && (
                                         <p className="text-base text-muted-foreground/80 mt-1.5 line-clamp-2">
                                           {step.descricao}
                                         </p>
                                       )}
+
+                                      {/* Expandable details section */}
+                                      <AnimatePresence>
+                                        {expandedSteps.has(key) && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="overflow-hidden"
+                                          >
+                                            <div className="mt-4 space-y-4">
+                                              {/* Implementation Guide */}
+                                              {step.detalhes && (
+                                                <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                                                  <h5 className="font-semibold text-sm text-foreground mb-2 flex items-center gap-2">
+                                                    <Sparkles className="w-4 h-4 text-primary" />
+                                                    Guia de Implementação
+                                                  </h5>
+                                                  <div
+                                                    className="prose prose-sm prose-slate dark:prose-invert max-w-none"
+                                                    dangerouslySetInnerHTML={{
+                                                      __html: step.detalhes,
+                                                    }}
+                                                  />
+                                                </div>
+                                              )}
+
+                                              {/* User notes (readonly for admin) */}
+                                              {isReadOnly && savedNote && (
+                                                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+                                                  <h5 className="font-semibold text-sm text-foreground mb-2 flex items-center gap-2">
+                                                    <StickyNote className="w-4 h-4 text-primary" />
+                                                    Notas do Mentorado
+                                                  </h5>
+                                                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                                    {savedNote}
+                                                  </p>
+                                                </div>
+                                              )}
+
+                                              {/* Admin grading section */}
+                                              {isReadOnly && (
+                                                <div className="p-4 rounded-lg bg-card border border-border">
+                                                  <h5 className="font-semibold text-sm text-foreground mb-3 flex items-center gap-2">
+                                                    <Star className="w-4 h-4 text-amber-500" />
+                                                    Avaliação do Mentor
+                                                  </h5>
+                                                  <div className="grid gap-4 sm:grid-cols-[auto_1fr]">
+                                                    {/* Grade input */}
+                                                    <div className="space-y-1.5">
+                                                      <label
+                                                        htmlFor={`grade-${key}`}
+                                                        className="text-xs text-muted-foreground"
+                                                      >
+                                                        Nota (0-10)
+                                                      </label>
+                                                      <Input
+                                                        id={`grade-${key}`}
+                                                        type="number"
+                                                        min={0}
+                                                        max={10}
+                                                        step={1}
+                                                        value={
+                                                          gradeStates[key]?.grade ??
+                                                          stepData.grade ??
+                                                          ""
+                                                        }
+                                                        onChange={(e) =>
+                                                          handleGradeChange(
+                                                            key,
+                                                            e.target.value
+                                                              ? Number(e.target.value)
+                                                              : null,
+                                                            gradeStates[key]?.feedback ??
+                                                              stepData.feedback ??
+                                                              ""
+                                                          )
+                                                        }
+                                                        className="w-20"
+                                                        placeholder="—"
+                                                      />
+                                                    </div>
+                                                    {/* Feedback textarea */}
+                                                    <div className="space-y-1.5">
+                                                      <label
+                                                        htmlFor={`feedback-${key}`}
+                                                        className="text-xs text-muted-foreground"
+                                                      >
+                                                        Feedback
+                                                      </label>
+                                                      <Textarea
+                                                        id={`feedback-${key}`}
+                                                        value={
+                                                          gradeStates[key]?.feedback ??
+                                                          stepData.feedback ??
+                                                          ""
+                                                        }
+                                                        onChange={(e) =>
+                                                          handleGradeChange(
+                                                            key,
+                                                            gradeStates[key]?.grade ??
+                                                              stepData.grade ??
+                                                              null,
+                                                            e.target.value
+                                                          )
+                                                        }
+                                                        placeholder="Escreva seu feedback para o mentorado..."
+                                                        className="min-h-[80px] resize-y"
+                                                      />
+                                                    </div>
+                                                  </div>
+                                                  <div className="mt-3 flex justify-end">
+                                                    <Button
+                                                      size="sm"
+                                                      onClick={() =>
+                                                        saveGrade(atividade.codigo, step.codigo)
+                                                      }
+                                                      disabled={updateGradeMutation.isPending}
+                                                      className="bg-primary hover:bg-primary/90 cursor-pointer"
+                                                    >
+                                                      {updateGradeMutation.isPending ? (
+                                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                      ) : (
+                                                        <Star className="w-4 h-4 mr-2" />
+                                                      )}
+                                                      Salvar Avaliação
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+
+                                      {/* Show existing grade badge inline when collapsed */}
+                                      {isReadOnly &&
+                                        stepData.grade != null &&
+                                        !expandedSteps.has(key) && (
+                                          <div className="mt-2 flex items-center gap-2">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
+                                              <Star className="w-3 h-3" />
+                                              Nota: {stepData.grade}/10
+                                            </span>
+                                          </div>
+                                        )}
                                     </div>
 
                                     {/* Botão de nota - estilo pill */}

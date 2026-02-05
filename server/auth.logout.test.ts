@@ -1,5 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
+
+// Mock email service (must be before appRouter import)
+vi.mock("./emailService", () => ({
+  sendEmail: vi.fn(() => Promise.resolve(true)),
+  getEmailTemplate: vi.fn(() => "<html>mock email</html>"),
+  sendWelcomeEmail: vi.fn(() => Promise.resolve(true)),
+}));
+
+// Mock notification service
+vi.mock("./services/notificationService", () => ({
+  notificationService: {
+    sendBadgeUnlocked: vi.fn(() => Promise.resolve({ inAppSuccess: true, emailSuccess: true })),
+    sendMetricsReminder: vi.fn(() => Promise.resolve({ inAppSuccess: true, emailSuccess: true })),
+  },
+}));
+
 import { appRouter } from "./routers";
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;

@@ -20,7 +20,35 @@ import {
 import { defaultModel, isAIConfigured } from "../_core/aiProvider";
 import { ENV } from "../_core/env";
 import { getDb } from "../db";
+import { getFinancialContext } from "./financialContextService";
 import { getEvents, refreshAccessToken } from "./googleCalendarService";
+
+// Keywords to detect financial intent
+const FINANCIAL_KEYWORDS = [
+  "financeiro",
+  "finanças",
+  "dinheiro",
+  "lucro",
+  "faturamento",
+  "gasto",
+  "despesa",
+  "conta",
+  "caixa",
+  "margem",
+  "investimento",
+  "preço",
+  "custo",
+  "receita",
+  "venda",
+  "pagamento",
+  "dívida",
+  "economiz",
+  "balanço",
+];
+
+function isFinancialQuery(content: string): boolean {
+  return FINANCIAL_KEYWORDS.some((kw) => content.toLowerCase().includes(kw));
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -595,6 +623,8 @@ function createTools(ctx: ChatContext) {
 // MAIN CHAT FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Keywords to detect financial intent
+
 /**
  * Process a chat message and generate a response using AI with tools.
  */
@@ -610,10 +640,44 @@ export async function chat(messages: AIMessage[], context: ChatContext): Promise
 
   try {
     const tools = createTools(context);
+    const lastMessage = messages[messages.length - 1];
+
+    // Detect financial intent and inject context if needed
+    let effectiveSystemPrompt = SYSTEM_PROMPT;
+
+    if (lastMessage && lastMessage.role === "user" && isFinancialQuery(lastMessage.content)) {
+      try {
+        const financialContext = await getFinancialContext(context.mentoradoId);
+
+        const financialInstruction = `
+\n\n═══════════════════════════════════════════════════════════════════════════
+🚨 MODO CONSULTOR FINANCEIRO ATIVADO 🚨
+═══════════════════════════════════════════════════════════════════════════
+O usuário fez uma pergunta sobre FINANÇAS. Você recebeu acesso IMEDIATO aos dados financeiros reais do mentorado (últimos 3 meses).
+
+DADOS FINANCEIROS ATUAIS (JSON):
+${financialContext.formatted}
+
+DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
+1. **Use os números reais** acima. NUNCA invente valores.
+2. **Conversão**: Os valores no JSON estão em CENTAVOS. Divida por 100 para falar em Reais (ex: 50000 = R$ 500,00).
+3. **Análise Crítica**:
+   - Compare Receitas vs Despesas.
+   - Analise a Margem Líquida (Ideal > 20% para serviços).
+   - Se Saldo for negativo ou baixo, ALERTE e sugira redução de custos.
+4. **Seja Consultivo**: Não apenas relate os números, diga o que eles SIGNIFICAM para o negócio.
+5. **Ação**: Sugira 1 ação prática baseada nestes números ao final.
+`;
+        effectiveSystemPrompt += financialInstruction;
+      } catch (err) {
+        console.error("Error fetching financial context:", err);
+        // Continue without financial context if fetch fails
+      }
+    }
 
     const result = await generateText({
       model: defaultModel,
-      system: SYSTEM_PROMPT,
+      system: effectiveSystemPrompt,
       messages: messages.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,

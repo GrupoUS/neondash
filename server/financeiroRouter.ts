@@ -13,6 +13,7 @@ import {
 } from "../drizzle/schema";
 import { mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import { getFinancialContext } from "./services/financialContextService";
 
 export const financeiroRouter = router({
   // ═══════════════════════════════════════════════════════════════════════════
@@ -466,6 +467,18 @@ export const financeiroRouter = router({
         return { totalReceitas, totalDespesas, saldo };
       }),
 
+    deleteAll: mentoradoProcedure.mutation(async ({ ctx }) => {
+      const db = getDb();
+
+      // Delete all transactions for this mentorado
+      const result = await db
+        .delete(transacoes)
+        .where(eq(transacoes.mentoradoId, ctx.mentorado.id))
+        .returning({ id: transacoes.id });
+
+      return { deleted: result.length };
+    }),
+
     importCsv: mentoradoProcedure
       .input(
         z.object({
@@ -737,53 +750,9 @@ export const financeiroRouter = router({
 
       const systemPrompt = settings[0]?.value || defaultPrompt;
 
-      // 2. Get Financial Data (Last 3 months)
-      const today = new Date();
-      const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 1);
-
-      const recentTransacoes = await db
-        .select({
-          data: transacoes.data,
-          tipo: transacoes.tipo,
-          valor: transacoes.valor,
-          categoria: categoriasFinanceiras.nome,
-        })
-        .from(transacoes)
-        .leftJoin(categoriasFinanceiras, eq(transacoes.categoriaId, categoriasFinanceiras.id))
-        .where(
-          and(
-            eq(transacoes.mentoradoId, mentoradoId),
-            gte(transacoes.data, threeMonthsAgo.toISOString().split("T")[0])
-          )
-        )
-        .orderBy(desc(transacoes.data));
-
-      // 3. Calculate summary metrics
-      const totalReceitas = recentTransacoes
-        .filter((t) => t.tipo === "receita")
-        .reduce((sum, t) => sum + t.valor, 0);
-      const totalDespesas = recentTransacoes
-        .filter((t) => t.tipo === "despesa")
-        .reduce((sum, t) => sum + t.valor, 0);
-      const saldo = totalReceitas - totalDespesas;
-      const margem = totalReceitas > 0 ? ((saldo / totalReceitas) * 100).toFixed(1) : 0;
-
-      // 4. Prepare Context
-      const context = JSON.stringify({
-        periodo: "Últimos 3 meses",
-        resumo: {
-          totalReceitas: `R$ ${(totalReceitas / 100).toFixed(2)}`,
-          totalDespesas: `R$ ${(totalDespesas / 100).toFixed(2)}`,
-          saldo: `R$ ${(saldo / 100).toFixed(2)}`,
-          margemLiquida: `${margem}%`,
-        },
-        transacoes: recentTransacoes.slice(0, 30).map((t) => ({
-          data: t.data,
-          tipo: t.tipo,
-          valor: `R$ ${(t.valor / 100).toFixed(2)}`,
-          categoria: t.categoria || "Sem categoria",
-        })),
-      });
+      // 2. Get Financial Data (Last 3 months) via Shared Service
+      const financialData = await getFinancialContext(mentoradoId);
+      const context = financialData.formatted;
 
       // 5. Invoke LLM
       const { invokeLLM } = await import("./_core/llm");

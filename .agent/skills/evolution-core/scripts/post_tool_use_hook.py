@@ -44,7 +44,10 @@ def get_or_create_session_id() -> str:
 def main():
     """Main function - captures tool observation and stores it."""
     try:
-        # Ensure database exists
+        # Ensure database exists (auto-initialize if needed)
+        db_dir = DEFAULT_DB_PATH.parent
+        if not db_dir.exists():
+            db_dir.mkdir(parents=True, exist_ok=True)
         if not DEFAULT_DB_PATH.exists():
             init_database()
         

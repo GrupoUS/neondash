@@ -35,9 +35,15 @@ def check_security():
 def check_errors():
     """Check for recent errors in observations."""
     try:
+        # Auto-initialize if database doesn't exist
         if not DEFAULT_DB_PATH.exists():
-            print("[Auto-Correção] ✓ Banco de dados não inicializado ainda.")
-            return True
+            db_dir = DEFAULT_DB_PATH.parent
+            if not db_dir.exists():
+                db_dir.mkdir(parents=True, exist_ok=True)
+            # Import and run init
+            from memory_manager import init_database
+            init_database()
+            print("[Auto-Init] ✓ Banco de dados inicializado automaticamente.")
             
         conn = get_db_connection()
         cursor = conn.cursor()

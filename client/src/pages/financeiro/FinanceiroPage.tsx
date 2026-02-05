@@ -1,4 +1,12 @@
-import { Album, BookOpen, CreditCard, FileSpreadsheet, Package, TrendingUp } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Calculator,
+  Package,
+  Sparkles,
+  Tags,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 
 import DashboardLayout from "@/components/DashboardLayout";
@@ -37,27 +45,27 @@ export default function FinanceiroPage() {
           <div className="flex justify-center mb-6">
             <NeonTabsList>
               <NeonTabsTrigger value="transacoes" className="gap-1.5">
-                <FileSpreadsheet className="h-4 w-4" />
+                <ArrowRightLeft className="h-4 w-4" />
                 Transações
               </NeonTabsTrigger>
               <NeonTabsTrigger value="analise" className="gap-1.5">
-                <Album className="h-4 w-4" />
-                Análise IA
+                <Sparkles className="h-4 w-4" />
+                Insights IA
               </NeonTabsTrigger>
               <NeonTabsTrigger value="categorias" className="gap-1.5">
-                <BookOpen className="h-4 w-4" />
+                <Tags className="h-4 w-4" />
                 Categorias
               </NeonTabsTrigger>
               <NeonTabsTrigger value="pagamento" className="gap-1.5">
-                <CreditCard className="h-4 w-4" />
-                Formas de Pagamento
+                <Wallet className="h-4 w-4" />
+                Pagamentos
               </NeonTabsTrigger>
               <NeonTabsTrigger value="insumos" className="gap-1.5">
                 <Package className="h-4 w-4" />
                 Insumos
               </NeonTabsTrigger>
               <NeonTabsTrigger value="precificacao" className="gap-1.5">
-                <TrendingUp className="h-4 w-4" />
+                <Calculator className="h-4 w-4" />
                 Precificação
               </NeonTabsTrigger>
             </NeonTabsList>

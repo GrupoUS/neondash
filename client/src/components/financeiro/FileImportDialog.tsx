@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type ParsedTransaction, parseTransactions } from "@/lib/csvParser";
+import { type DetectedPeriod, type ParsedTransaction, parseTransactions } from "@/lib/csvParser";
 import { trpc } from "@/lib/trpc";
 
 interface FileImportDialogProps {
@@ -33,6 +33,7 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedTransaction[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [detectedPeriod, setDetectedPeriod] = useState<DetectedPeriod | null>(null);
 
   const utils = trpc.useUtils();
   const importMutation = trpc.financeiro.transacoes.importCsv.useMutation({
@@ -43,6 +44,7 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
       setIsOpen(false);
       setParsedData([]);
       setFileName(null);
+      setDetectedPeriod(null);
       onSuccess?.();
     },
     onError: (e) => toast.error(e.message),
@@ -74,9 +76,12 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
 
       setParsedData(result.transactions);
       setFileName(file.name);
-      toast.success(
-        `${result.transactions.length} transações encontradas de ${result.totalRows} linhas`
-      );
+      setDetectedPeriod(result.detectedPeriod);
+
+      const periodInfo = result.detectedPeriod
+        ? ` (${result.detectedPeriod.mes.toString().padStart(2, "0")}/${result.detectedPeriod.ano})`
+        : "";
+      toast.success(`${result.transactions.length} transações encontradas${periodInfo}`);
     };
 
     reader.onerror = () => {
@@ -99,14 +104,8 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
   const handleImport = () => {
     if (parsedData.length === 0) return;
 
-    // Convert back to CSV format for the existing backend
-    const csvLines = ["data,descricao,valor"];
-    for (const t of parsedData) {
-      const valorStr = t.tipo === "despesa" ? -t.valor / 100 : t.valor / 100;
-      csvLines.push(`${t.data},${t.descricao},${valorStr}`);
-    }
-
-    importMutation.mutate({ csvContent: csvLines.join("\n") });
+    // Send parsed transactions directly to backend
+    importMutation.mutate({ transactions: parsedData });
   };
 
   const removeTransaction = (index: number) => {
@@ -116,6 +115,7 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
   const clearData = () => {
     setParsedData([]);
     setFileName(null);
+    setDetectedPeriod(null);
   };
 
   const formatCurrency = (cents: number) =>
@@ -174,6 +174,14 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
                 <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{fileName}</span>
                 <Badge variant="secondary">{parsedData.length} transações</Badge>
+                {detectedPeriod && (
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-500/10 text-blue-500 border-blue-500/20"
+                  >
+                    {detectedPeriod.mes.toString().padStart(2, "0")}/{detectedPeriod.ano}
+                  </Badge>
+                )}
               </div>
               <Button variant="ghost" size="sm" onClick={clearData}>
                 <X className="h-4 w-4 mr-1" />
@@ -185,10 +193,11 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
               <Table>
                 <TableHeader className="sticky top-0 z-20 bg-card shadow-sm">
                   <TableRow>
-                    <TableHead className="w-[120px]">Data</TableHead>
-                    <TableHead className="w-[100px]">Tipo</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right w-[140px]">Valor</TableHead>
+                    <TableHead className="w-[100px]">Data</TableHead>
+                    <TableHead className="w-[90px]">Tipo</TableHead>
+                    <TableHead className="min-w-[150px]">Categoria</TableHead>
+                    <TableHead className="min-w-[200px]">Descrição</TableHead>
+                    <TableHead className="text-right w-[120px]">Valor</TableHead>
                     <TableHead className="w-[50px]" />
                   </TableRow>
                 </TableHeader>
@@ -208,7 +217,16 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
                           {t.tipo === "receita" ? "Receita" : "Despesa"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm max-w-[300px] truncate" title={t.descricao}>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs max-w-[140px] truncate"
+                          title={t.suggestedCategory}
+                        >
+                          {t.suggestedCategory}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm max-w-[200px] truncate" title={t.descricao}>
                         {t.descricao}
                       </TableCell>
                       <TableCell

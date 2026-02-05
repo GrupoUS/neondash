@@ -467,36 +467,82 @@ export const financeiroRouter = router({
       }),
 
     importCsv: mentoradoProcedure
-      .input(z.object({ csvContent: z.string() }))
+      .input(
+        z.object({
+          transactions: z.array(
+            z.object({
+              data: z.string(), // YYYY-MM-DD
+              descricao: z.string(),
+              valor: z.number(), // in centavos
+              tipo: z.enum(["receita", "despesa"]),
+              suggestedCategory: z.string(),
+            })
+          ),
+        })
+      )
       .mutation(async ({ ctx, input }) => {
         const db = getDb();
-        const lines = input.csvContent.trim().split("\n");
-
-        // Skip header row
-        const dataLines = lines.slice(1);
         let imported = 0;
+        let categoriesCreated = 0;
 
-        for (const line of dataLines) {
-          const [dataStr, descricao, valorStr] = line.split(",").map((s: string) => s.trim());
-          if (!dataStr || !descricao || !valorStr) continue;
+        // Cache categories to avoid repeated lookups
+        const categoryCache = new Map<string, number>();
 
-          const valor = Math.round(Number(valorStr.replace(",", ".")) * 100);
-          if (Number.isNaN(valor)) continue;
+        for (const t of input.transactions) {
+          // Build cache key: tipo + nome
+          const cacheKey = `${t.tipo}:${t.suggestedCategory}`;
 
-          const tipo = valor >= 0 ? "receita" : "despesa";
-          const valorAbs = Math.abs(valor);
+          let categoriaId: number | null = categoryCache.get(cacheKey) ?? null;
 
+          // If not in cache, try to find existing category
+          if (categoriaId === null) {
+            const [existing] = await db
+              .select({ id: categoriasFinanceiras.id })
+              .from(categoriasFinanceiras)
+              .where(
+                and(
+                  eq(categoriasFinanceiras.mentoradoId, ctx.mentorado.id),
+                  eq(categoriasFinanceiras.tipo, t.tipo),
+                  eq(categoriasFinanceiras.nome, t.suggestedCategory)
+                )
+              )
+              .limit(1);
+
+            if (existing) {
+              categoriaId = existing.id;
+              categoryCache.set(cacheKey, categoriaId);
+            } else {
+              // Create new category
+              const [newCat] = await db
+                .insert(categoriasFinanceiras)
+                .values({
+                  mentoradoId: ctx.mentorado.id,
+                  tipo: t.tipo,
+                  nome: t.suggestedCategory,
+                })
+                .returning({ id: categoriasFinanceiras.id });
+
+              if (newCat) {
+                categoriaId = newCat.id;
+                categoryCache.set(cacheKey, categoriaId);
+                categoriesCreated++;
+              }
+            }
+          }
+
+          // Insert transaction with category
           await db.insert(transacoes).values({
             mentoradoId: ctx.mentorado.id,
-            data: dataStr,
-            tipo,
-            descricao,
-            valor: valorAbs,
+            data: t.data,
+            tipo: t.tipo,
+            descricao: t.descricao,
+            valor: t.valor,
+            categoriaId,
           });
           imported++;
         }
 
-        return { imported };
+        return { imported, categoriesCreated };
       }),
 
     dailyFlow: mentoradoProcedure
@@ -651,20 +697,45 @@ export const financeiroRouter = router({
   // ═══════════════════════════════════════════════════════════════════════════
 
   coach: router({
+    /**
+     * Quick analysis for card preview - returns concise insights
+     */
     analyze: mentoradoProcedure.mutation(async ({ ctx }) => {
       const db = getDb();
       const mentoradoId = ctx.mentorado.id;
 
-      // 1. Get System Prompt
+      // 1. Get custom or default system prompt
       const settings = await db
         .select()
         .from(systemSettings)
         .where(eq(systemSettings.key, "financial_coach_prompt"))
         .limit(1);
 
-      const systemPrompt =
-        settings[0]?.value ||
-        "Você é um especialista financeiro. Analise os dados e dê dicas curtas.";
+      // Comprehensive prompt based on docs/financeiro/instrucoes.md
+      const defaultPrompt = `Você é um assistente financeiro especializado para profissionais da saúde estética avançada no Brasil.
+
+**Seu papel:**
+- Organizar e analisar fluxo de caixa
+- Calcular KPIs relevantes (margem líquida, capital de giro)
+- Orientar rotinas de provisões (13º, férias, FGTS)
+- Identificar oportunidades de economia
+
+**Dores que você entende:**
+- Falta de controle de fluxo de caixa e incerteza sobre entradas/saídas
+- Dependência de crédito e impacto do MDR (taxas de maquininha)
+- Insegurança para formar preço com margem adequada
+- Medo de não conseguir pagar encargos trabalhistas
+- Dificuldade em entender o capital de giro necessário
+
+**Formato de resposta:**
+- Seja DIRETO, CLARO e NUMÉRICO
+- Máximo 3 insights PRÁTICOS e ACIONÁVEIS
+- Use emojis moderadamente para engajamento
+- Termine com 1 call-to-action específico
+
+**IMPORTANTE:** Os valores estão em CENTAVOS (dividir por 100 para reais).`;
+
+      const systemPrompt = settings[0]?.value || defaultPrompt;
 
       // 2. Get Financial Data (Last 3 months)
       const today = new Date();
@@ -687,24 +758,45 @@ export const financeiroRouter = router({
         )
         .orderBy(desc(transacoes.data));
 
-      // 3. Prepare Context
+      // 3. Calculate summary metrics
+      const totalReceitas = recentTransacoes
+        .filter((t) => t.tipo === "receita")
+        .reduce((sum, t) => sum + t.valor, 0);
+      const totalDespesas = recentTransacoes
+        .filter((t) => t.tipo === "despesa")
+        .reduce((sum, t) => sum + t.valor, 0);
+      const saldo = totalReceitas - totalDespesas;
+      const margem = totalReceitas > 0 ? ((saldo / totalReceitas) * 100).toFixed(1) : 0;
+
+      // 4. Prepare Context
       const context = JSON.stringify({
-        summary: "Últimas transações (valores em centavos)",
-        data: recentTransacoes.slice(0, 50), // Limit to 50 for token saving
+        periodo: "Últimos 3 meses",
+        resumo: {
+          totalReceitas: `R$ ${(totalReceitas / 100).toFixed(2)}`,
+          totalDespesas: `R$ ${(totalDespesas / 100).toFixed(2)}`,
+          saldo: `R$ ${(saldo / 100).toFixed(2)}`,
+          margemLiquida: `${margem}%`,
+        },
+        transacoes: recentTransacoes.slice(0, 30).map((t) => ({
+          data: t.data,
+          tipo: t.tipo,
+          valor: `R$ ${(t.valor / 100).toFixed(2)}`,
+          categoria: t.categoria || "Sem categoria",
+        })),
       });
 
-      // 4. Invoke LLM
+      // 5. Invoke LLM
       const { invokeLLM } = await import("./_core/llm");
       const result = await invokeLLM({
         messages: [
           { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `Analise estes dados financeiros e me dê 3 insights práticos e motivadores:\n${context}`,
+            content: `Analise estes dados financeiros da clínica e me dê 3 insights práticos:\n\n${context}`,
           },
         ],
-        maxTokens: 500,
-        model: "gemini-3-flash-preview", // Use same model as dashboard coach
+        maxTokens: 600,
+        model: "gemini-3-flash-preview",
       });
 
       const choice = result.choices[0];
@@ -712,6 +804,281 @@ export const financeiroRouter = router({
 
       if (!content || typeof content !== "string") {
         return "Não consegui analisar seus dados agora. Tente novamente mais tarde.";
+      }
+
+      return content;
+    }),
+
+    /**
+     * Detailed metrics for full analysis page
+     */
+    getDetailedMetrics: mentoradoProcedure.query(async ({ ctx }) => {
+      const db = getDb();
+      const mentoradoId = ctx.mentorado.id;
+
+      const today = new Date();
+      const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+
+      // 1. Get all transactions for last 6 months
+      const allTransacoes = await db
+        .select({
+          data: transacoes.data,
+          tipo: transacoes.tipo,
+          valor: transacoes.valor,
+          categoriaId: transacoes.categoriaId,
+          categoriaNome: categoriasFinanceiras.nome,
+          formaPagamentoId: transacoes.formaPagamentoId,
+          formaPagamentoNome: formasPagamento.nome,
+          taxaPercentual: formasPagamento.taxaPercentual,
+        })
+        .from(transacoes)
+        .leftJoin(categoriasFinanceiras, eq(transacoes.categoriaId, categoriasFinanceiras.id))
+        .leftJoin(formasPagamento, eq(transacoes.formaPagamentoId, formasPagamento.id))
+        .where(
+          and(
+            eq(transacoes.mentoradoId, mentoradoId),
+            gte(transacoes.data, sixMonthsAgo.toISOString().split("T")[0])
+          )
+        )
+        .orderBy(desc(transacoes.data));
+
+      // 2. Calculate monthly breakdown
+      const monthlyData = new Map<string, { receitas: number; despesas: number }>();
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        monthlyData.set(key, { receitas: 0, despesas: 0 });
+      }
+
+      allTransacoes.forEach((t) => {
+        const month = t.data.substring(0, 7);
+        const current = monthlyData.get(month);
+        if (current) {
+          if (t.tipo === "receita") current.receitas += t.valor;
+          else current.despesas += t.valor;
+        }
+      });
+
+      const monthlyBreakdown = Array.from(monthlyData.entries())
+        .map(([month, values]) => ({
+          month,
+          receitas: values.receitas,
+          despesas: values.despesas,
+          saldo: values.receitas - values.despesas,
+          margem:
+            values.receitas > 0 ? ((values.receitas - values.despesas) / values.receitas) * 100 : 0,
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      // 3. Category breakdown (current month)
+      const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+      const categoriaBreakdown = new Map<string, { tipo: string; total: number }>();
+
+      allTransacoes
+        .filter((t) => t.data.startsWith(currentMonth))
+        .forEach((t) => {
+          const key = t.categoriaNome || "Sem categoria";
+          const current = categoriaBreakdown.get(key) || { tipo: t.tipo, total: 0 };
+          current.total += t.valor;
+          categoriaBreakdown.set(key, current);
+        });
+
+      const categorias = Array.from(categoriaBreakdown.entries())
+        .map(([nome, data]) => ({ nome, ...data }))
+        .sort((a, b) => b.total - a.total);
+
+      // 4. Payment method analysis (MDR impact)
+      const formasBreakdown = new Map<string, { total: number; taxa: number }>();
+
+      allTransacoes
+        .filter((t) => t.tipo === "receita" && t.formaPagamentoNome)
+        .forEach((t) => {
+          const key = t.formaPagamentoNome!;
+          const current = formasBreakdown.get(key) || { total: 0, taxa: t.taxaPercentual || 0 };
+          current.total += t.valor;
+          formasBreakdown.set(key, current);
+        });
+
+      const formasPagamentoAnalise = Array.from(formasBreakdown.entries())
+        .map(([nome, data]) => ({
+          nome,
+          total: data.total,
+          taxa: data.taxa,
+          custoMDR: Math.round((data.total * data.taxa) / 10000), // taxa is in basis points
+        }))
+        .sort((a, b) => b.total - a.total);
+
+      // 5. Calculate KPIs
+      const currentMonthData = monthlyBreakdown.find((m) => m.month === currentMonth) || {
+        receitas: 0,
+        despesas: 0,
+        saldo: 0,
+        margem: 0,
+      };
+
+      const previousMonth =
+        monthlyBreakdown.length > 1 ? monthlyBreakdown[monthlyBreakdown.length - 2] : null;
+
+      const totalReceitas6m = monthlyBreakdown.reduce((sum, m) => sum + m.receitas, 0);
+      const totalDespesas6m = monthlyBreakdown.reduce((sum, m) => sum + m.despesas, 0);
+      const tendencia = previousMonth
+        ? ((currentMonthData.receitas - previousMonth.receitas) / (previousMonth.receitas || 1)) *
+          100
+        : 0;
+
+      return {
+        kpis: {
+          saldoAtual: currentMonthData.saldo,
+          margemLiquida: currentMonthData.margem,
+          tendenciaMensal: tendencia,
+          mediaReceitaMensal: Math.round(totalReceitas6m / 6),
+          mediaDespesaMensal: Math.round(totalDespesas6m / 6),
+          totalMDR: formasPagamentoAnalise.reduce((sum, f) => sum + f.custoMDR, 0),
+        },
+        monthlyBreakdown,
+        categorias,
+        formasPagamento: formasPagamentoAnalise,
+        periodo: {
+          inicio: sixMonthsAgo.toISOString().split("T")[0],
+          fim: today.toISOString().split("T")[0],
+        },
+      };
+    }),
+
+    /**
+     * Full AI analysis for detailed page
+     */
+    getFullAnalysis: mentoradoProcedure.mutation(async ({ ctx }) => {
+      const db = getDb();
+      const mentoradoId = ctx.mentorado.id;
+
+      // Get custom or default prompt
+      const settings = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, "financial_coach_prompt"))
+        .limit(1);
+
+      // Extended prompt for full analysis
+      const fullPrompt = `Você é um assistente financeiro especializado para profissionais da saúde estética avançada no Brasil.
+
+**Seu papel completo:**
+1. Organizar e analisar fluxo de caixa segundo DFC (NBC TG 03)
+2. Calcular e explicar KPIs: margem líquida, capital de giro, ciclo de caixa
+3. Simular cenários: redução de MDR, migração para PIX, negociação de prazos
+4. Orientar provisões: 13º (8,33%), férias (8,33%), 1/3 férias, FGTS (dia 20)
+5. Gerar projeções com cenários base, estressado e otimista
+6. Apontar alertas de vencimentos e riscos
+
+**Dores específicas de clínicas estéticas:**
+- Falta de controle de fluxo de caixa
+- Dependência de crédito e alto MDR
+- No-show e agenda mal preenchida
+- Insegurança na precificação
+- Medo de não pagar encargos
+- Estoques com risco de perda
+
+**Formato da análise completa:**
+## 📊 Diagnóstico Financeiro
+[Resumo da situação atual com números]
+
+## 💡 Insights Principais
+[3-5 insights detalhados com cálculos]
+
+## ⚠️ Alertas
+[Riscos identificados e pontos de atenção]
+
+## 🎯 Plano de Ação (Próximas 2 Semanas)
+[Ações específicas e mensuráveis]
+
+## 📈 Projeção
+[Impacto esperado das ações sugeridas]
+
+**IMPORTANTE:** Valores em centavos. Seja ESPECÍFICO e PRÁTICO.`;
+
+      const systemPrompt = settings[0]?.value || fullPrompt;
+
+      // Get 6 months of data for comprehensive analysis
+      const today = new Date();
+      const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+
+      const allTransacoes = await db
+        .select({
+          data: transacoes.data,
+          tipo: transacoes.tipo,
+          valor: transacoes.valor,
+          categoria: categoriasFinanceiras.nome,
+          formaPagamento: formasPagamento.nome,
+        })
+        .from(transacoes)
+        .leftJoin(categoriasFinanceiras, eq(transacoes.categoriaId, categoriasFinanceiras.id))
+        .leftJoin(formasPagamento, eq(transacoes.formaPagamentoId, formasPagamento.id))
+        .where(
+          and(
+            eq(transacoes.mentoradoId, mentoradoId),
+            gte(transacoes.data, sixMonthsAgo.toISOString().split("T")[0])
+          )
+        )
+        .orderBy(desc(transacoes.data));
+
+      // Calculate detailed metrics
+      const totalReceitas = allTransacoes
+        .filter((t) => t.tipo === "receita")
+        .reduce((sum, t) => sum + t.valor, 0);
+      const totalDespesas = allTransacoes
+        .filter((t) => t.tipo === "despesa")
+        .reduce((sum, t) => sum + t.valor, 0);
+
+      // Group by category
+      const porCategoria = new Map<string, number>();
+      allTransacoes.forEach((t) => {
+        const key = `${t.tipo}:${t.categoria || "Outros"}`;
+        porCategoria.set(key, (porCategoria.get(key) || 0) + t.valor);
+      });
+
+      const context = JSON.stringify({
+        periodo: "Últimos 6 meses",
+        resumo: {
+          totalReceitas: `R$ ${(totalReceitas / 100).toFixed(2)}`,
+          totalDespesas: `R$ ${(totalDespesas / 100).toFixed(2)}`,
+          lucroLiquido: `R$ ${((totalReceitas - totalDespesas) / 100).toFixed(2)}`,
+          margemLiquida:
+            totalReceitas > 0
+              ? `${(((totalReceitas - totalDespesas) / totalReceitas) * 100).toFixed(1)}%`
+              : "0%",
+          mediaReceitaMensal: `R$ ${(totalReceitas / 600).toFixed(2)}`,
+          mediaDespesaMensal: `R$ ${(totalDespesas / 600).toFixed(2)}`,
+        },
+        distribuicaoPorCategoria: Object.fromEntries(
+          Array.from(porCategoria.entries()).map(([k, v]) => [k, `R$ ${(v / 100).toFixed(2)}`])
+        ),
+        ultimasTransacoes: allTransacoes.slice(0, 50).map((t) => ({
+          data: t.data,
+          tipo: t.tipo,
+          valor: `R$ ${(t.valor / 100).toFixed(2)}`,
+          categoria: t.categoria || "Sem categoria",
+          pagamento: t.formaPagamento || "-",
+        })),
+      });
+
+      const { invokeLLM } = await import("./_core/llm");
+      const result = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Faça uma análise financeira COMPLETA desta clínica de estética:\n\n${context}`,
+          },
+        ],
+        maxTokens: 1500,
+        model: "gemini-3-flash-preview",
+      });
+
+      const choice = result.choices[0];
+      const content = choice?.message?.content;
+
+      if (!content || typeof content !== "string") {
+        return "Não consegui gerar a análise completa. Tente novamente mais tarde.";
       }
 
       return content;

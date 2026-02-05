@@ -1,0 +1,21 @@
+{
+    "ISS": 0.05,
+    "regime": "Simples_Anexo_III",
+    "MDR": {
+        "pix": 0.0,
+        "debito": 0.01,
+        "credito": 0.03
+    },
+    "prazos": {
+        "pix": "D+0",
+        "boleto": "D+0/D+1",
+        "debito": "D+1",
+        "credito": "D+30"
+    },
+    "provisoes": {
+        "decimo_terceiro": 0.08333333333333333,
+        "ferias": 0.08333333333333333,
+        "terco_ferias": 0.3333333333333333,
+        "FGTS_dia": 20
+    }
+}

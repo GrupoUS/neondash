@@ -1,8 +1,9 @@
-import { ArrowDownCircle, ArrowUpCircle, Plus, Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { BentoCard, BentoCardContent, BentoGrid } from "@/components/ui/bento-grid";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,7 +32,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useFinancialMetrics } from "@/hooks/use-financial-metrics";
 import { trpc } from "@/lib/trpc";
+import { FinancialSummaryCard } from "./cards/FinancialSummaryCard";
+import { GoalCard } from "./cards/GoalCard";
+import { NeonCoachCard } from "./cards/NeonCoachCard";
+import { QuickActionCard } from "./cards/QuickActionCard";
+import { StreakCard } from "./cards/StreakCard";
+import { DailyBalanceChart } from "./DailyBalanceChart";
 import { OnboardingCard } from "./OnboardingCard";
 
 export function TransacoesTab() {
@@ -65,6 +73,7 @@ export function TransacoesTab() {
   const { data: resumo } = trpc.financeiro.transacoes.resumo.useQuery({ ano, mes });
   const { data: categorias } = trpc.financeiro.categorias.list.useQuery();
   const { data: formasPagamento } = trpc.financeiro.formasPagamento.list.useQuery();
+  const { streak } = useFinancialMetrics();
 
   const createMutation = trpc.financeiro.transacoes.create.useMutation({
     onSuccess: () => {
@@ -155,7 +164,6 @@ export function TransacoesTab() {
       <NeonCard className="p-6">
         <div className="space-y-4">
           <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-64 w-full" />
         </div>
       </NeonCard>
     );
@@ -173,41 +181,53 @@ export function TransacoesTab() {
           "Ou importe várias transações de uma vez via CSV",
         ]}
       />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <NeonCard className="p-4 bg-emerald-500/10 border-emerald-500/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Receitas</p>
-              <p className="text-2xl font-bold text-emerald-500">
-                {formatCurrency(resumo?.totalReceitas ?? 0)}
-              </p>
-            </div>
-            <ArrowUpCircle className="h-8 w-8 text-emerald-500/50" />
-          </div>
-        </NeonCard>
-        <NeonCard className="p-4 bg-red-500/10 border-red-500/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Despesas</p>
-              <p className="text-2xl font-bold text-red-500">
-                {formatCurrency(resumo?.totalDespesas ?? 0)}
-              </p>
-            </div>
-            <ArrowDownCircle className="h-8 w-8 text-red-500/50" />
-          </div>
-        </NeonCard>
-        <NeonCard className="p-4 bg-primary/10 border-primary/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Saldo</p>
-              <p
-                className={`text-2xl font-bold ${(resumo?.saldo ?? 0) >= 0 ? "text-primary" : "text-red-500"}`}
-              >
-                {formatCurrency(resumo?.saldo ?? 0)}
-              </p>
-            </div>
-          </div>
-        </NeonCard>
+      <div className="mb-8">
+        <BentoGrid className="grid-cols-1 md:grid-cols-3 auto-rows-[minmax(180px,auto)]">
+          {/* Hero Card: Summary (Span 2 on Desktop) */}
+          <BentoCard className="md:col-span-2 md:row-span-1">
+            <BentoCardContent className="h-full p-0">
+              <FinancialSummaryCard
+                saldo={resumo?.saldo ?? 0}
+                totalReceitas={resumo?.totalReceitas ?? 0}
+                totalDespesas={resumo?.totalDespesas ?? 0}
+                isLoading={isLoading}
+              />
+            </BentoCardContent>
+          </BentoCard>
+
+          {/* Quick Action */}
+          <BentoCard className="md:col-span-1">
+            <BentoCardContent className="h-full p-0">
+              <QuickActionCard onClick={() => setIsDialogOpen(true)} />
+            </BentoCardContent>
+          </BentoCard>
+
+          {/* Streak Card */}
+          <BentoCard className="md:col-span-1">
+            <BentoCardContent className="h-full p-0">
+              <StreakCard streak={streak} isLoading={isLoading} />
+            </BentoCardContent>
+          </BentoCard>
+
+          {/* Goal Card */}
+          <BentoCard className="md:col-span-1">
+            <BentoCardContent className="h-full p-0">
+              <GoalCard currentRevenue={resumo?.totalReceitas ?? 0} />
+            </BentoCardContent>
+          </BentoCard>
+
+          {/* Neon Coach Card */}
+          <BentoCard className="md:col-span-1 border-neon-gold/50">
+            <BentoCardContent className="h-full p-0">
+              <NeonCoachCard />
+            </BentoCardContent>
+          </BentoCard>
+        </BentoGrid>
+      </div>
+
+      {/* Daily Balance Chart */}
+      <div className="mb-8 animate-in slide-in-from-bottom-4 duration-700 delay-150">
+        <DailyBalanceChart ano={ano} mes={mes} />
       </div>
 
       {/* Filtros e Ações */}

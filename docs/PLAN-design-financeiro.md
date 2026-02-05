@@ -15,9 +15,10 @@
 - **Theme:** "Opulence" - Deep Navy backgrounds (`bg-slate-950` / `bg-neon-blue-dark`), Gold Accents (`text-neon-gold`), Glassmorphism cards.
 - **Hierarchy:**
   1.  **Hero Section:** Financial Health Score + Current Balance (Glow effect).
-  2.  **Gamification:** "Streak" of days tracking finance + "Level" based on consistency.
-  3.  **Action Area:** Quick Add Transaction (Floating Action/Prominent Button).
-  4.  **Data:** Recent Activity (Bento or clean list) + Month Summary.
+  2.  **Neon Coach:** AI-powered financial advisor card (Full Width or Prominent).
+  3.  **Gamification:** "Streak" of days tracking finance + "Level" based on consistency.
+  4.  **Action Area:** Quick Add Transaction (Floating Action/Prominent Button).
+  5.  **Data:** Recent Activity (Bento or clean list) + Month Summary.
 - **Typography:** Manrope (headings), JetBrains Mono (numbers/currency).
 
 ## Gamification Strategy
@@ -31,10 +32,28 @@
 #### [MODIFY] `TransacoesTab.tsx`
 - Replace simple grid with `BentoGrid`.
 - **Card 1 (Hero):** "Saldo Atual" - Uses `NeonCard` variant="glow". Animated Counter for value.
-- **Card 2 (Income/Expense):** Split view with mini trend indicators.
-- **Card 3 (Gamification):** "Ofensiva Financeira" (Streak). Show fire icon + days count.
-- **Card 4 (Goal):** "Meta Mensal" - Circular progress ring.
+- **Card 2 (Neon Coach):** "Neon Coach Financeiro" - AI Insights card.
+  - Textarea/Display area for AI suggestions.
+  - "Gerar Análise" button triggering AI.
+- **Card 3 (Income/Expense):** Split view with mini trend indicators.
+- **Card 4 (Gamification):** "Ofensiva Financeira" (Streak). Show fire icon + days count.
+- **Card 5 (Goal):** "Meta Mensal" - Circular progress ring.
 - **Charts:** Add a simple AreaChart (Recharts) for 30-day cash flow in a wide Bento card.
+
+### Phase 1.5: Neon Coach & Settings
+#### [NEW] `client/src/pages/admin/FinancialCoachSettings.tsx`
+- Configuration page for Financial Coach.
+- Fields: `Master Prompt`, `Analysis Focus` (e.g., Cost reduction, Revenue growth).
+- Save to `adminSettings` or similar table.
+
+#### [NEW] `client/src/components/financeiro/NeonCoachCard.tsx`
+- Component to display AI analysis.
+- Connects to a new tRPC endpoint `financeiro.analyze`.
+
+#### [MODIFY] `server/routers/financeiroRouter.ts`
+- Add `analyze` mutation.
+- Fetches financial data (summary, recent transactions).
+- Calls AI service (mock or real) using the configured Master Prompt.
 
 ### Phase 2: Visual Polish
 - **Icons:** Replace standard Lucide icons with animated versions or larger, styled icons (Gold/Gradient).
@@ -58,10 +77,16 @@
 - [ ] Create `StreakCard` (Gamification).
 - [ ] Create `QuickActionCard` (New Transaction).
 
-### AT-003: Integrate Charts
+### AT-003: Implement Neon Coach (Financeiro)
+- [ ] Create `FinancialCoachSettings` page in `client/src/pages/admin/`.
+- [ ] Update `adminRouter` to handle financial coach settings keys (`financial_coach_prompt`, `financial_coach_config`).
+- [ ] Create `NeonCoachCard` component in `client/src/components/financeiro/`.
+- [ ] Implement `financeiro.analyze` procedure in backend (calls AI with context).
+
+### AT-004: Integrate Charts
 - [ ] Add `Recharts` AreaChart for daily balance evolution.
 
-### AT-004: Apply Neon/Gold Theme
+### AT-005: Apply Neon/Gold Theme
 - [ ] Update all colors to use `var(--color-neon-gold)` and `var(--color-neon-blue-dark)`.
 - [ ] Add `celebration-effect` triggering on positive balance.
 

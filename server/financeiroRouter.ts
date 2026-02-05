@@ -1,10 +1,16 @@
 /**
  * Financeiro Router - CRUD for financial transactions, categories and payment methods
  */
+
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { categoriasFinanceiras, formasPagamento, transacoes } from "../drizzle/schema";
+import {
+  categoriasFinanceiras,
+  formasPagamento,
+  systemSettings,
+  transacoes,
+} from "../drizzle/schema";
 import { mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 
@@ -401,7 +407,7 @@ export const financeiroRouter = router({
         let imported = 0;
 
         for (const line of dataLines) {
-          const [dataStr, descricao, valorStr] = line.split(",").map((s) => s.trim());
+          const [dataStr, descricao, valorStr] = line.split(",").map((s: string) => s.trim());
           if (!dataStr || !descricao || !valorStr) continue;
 
           const valor = Math.round(Number(valorStr.replace(",", ".")) * 100);
@@ -421,6 +427,62 @@ export const financeiroRouter = router({
         }
 
         return { imported };
+      }),
+
+    dailyFlow: mentoradoProcedure
+      .input(
+        z.object({
+          ano: z.number(),
+          mes: z.number(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const db = getDb();
+        const dataInicio = `${input.ano}-${String(input.mes).padStart(2, "0")}-01`;
+        const nextMonth = input.mes === 12 ? 1 : input.mes + 1;
+        const nextYear = input.mes === 12 ? input.ano + 1 : input.ano;
+        const dataFim = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
+
+        const result = await db
+          .select({
+            date: transacoes.data,
+            tipo: transacoes.tipo,
+            total: sql<number>`SUM(${transacoes.valor})`.as("total"),
+          })
+          .from(transacoes)
+          .where(
+            and(
+              eq(transacoes.mentoradoId, ctx.mentorado.id),
+              gte(transacoes.data, dataInicio),
+              lte(transacoes.data, dataFim)
+            )
+          )
+          .groupBy(transacoes.data, transacoes.tipo)
+          .orderBy(transacoes.data);
+
+        // Transform into daily breakdown
+        const dailyMap = new Map<string, { receita: number; despesa: number }>();
+
+        // Initialize all days in month
+        const daysInMonth = new Date(input.ano, input.mes, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+          const dayStr = `${input.ano}-${String(input.mes).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+          dailyMap.set(dayStr, { receita: 0, despesa: 0 });
+        }
+
+        result.forEach((r) => {
+          const current = dailyMap.get(r.date) || { receita: 0, despesa: 0 };
+          if (r.tipo === "receita") current.receita += r.total;
+          else current.despesa += r.total;
+          dailyMap.set(r.date, current);
+        });
+
+        return Array.from(dailyMap.entries()).map(([date, values]) => ({
+          date,
+          receita: values.receita,
+          despesa: values.despesa,
+          saldo: values.receita - values.despesa,
+        }));
       }),
   }),
 
@@ -512,5 +574,77 @@ export const financeiroRouter = router({
     }
 
     return { categoriasCriadas, formasCriadas };
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEON COACH (AI ANALYSIS)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  coach: router({
+    analyze: mentoradoProcedure.mutation(async ({ ctx }) => {
+      const db = getDb();
+      const mentoradoId = ctx.mentorado.id;
+
+      // 1. Get System Prompt
+      const settings = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, "financial_coach_prompt"))
+        .limit(1);
+
+      const systemPrompt =
+        settings[0]?.value ||
+        "Você é um especialista financeiro. Analise os dados e dê dicas curtas.";
+
+      // 2. Get Financial Data (Last 3 months)
+      const today = new Date();
+      const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+
+      const recentTransacoes = await db
+        .select({
+          data: transacoes.data,
+          tipo: transacoes.tipo,
+          valor: transacoes.valor,
+          categoria: categoriasFinanceiras.nome,
+        })
+        .from(transacoes)
+        .leftJoin(categoriasFinanceiras, eq(transacoes.categoriaId, categoriasFinanceiras.id))
+        .where(
+          and(
+            eq(transacoes.mentoradoId, mentoradoId),
+            gte(transacoes.data, threeMonthsAgo.toISOString().split("T")[0])
+          )
+        )
+        .orderBy(desc(transacoes.data));
+
+      // 3. Prepare Context
+      const context = JSON.stringify({
+        summary: "Últimas transações (valores em centavos)",
+        data: recentTransacoes.slice(0, 50), // Limit to 50 for token saving
+      });
+
+      // 4. Invoke LLM
+      const { invokeLLM } = await import("./_core/llm");
+      const result = await invokeLLM({
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Analise estes dados financeiros e me dê 3 insights práticos e motivadores:\n${context}`,
+          },
+        ],
+        maxTokens: 500,
+        model: "gemini-2.0-flash-exp", // Fast and good
+      });
+
+      const choice = result.choices[0];
+      const content = choice?.message?.content;
+
+      if (!content || typeof content !== "string") {
+        return "Não consegui analisar seus dados agora. Tente novamente mais tarde.";
+      }
+
+      return content;
+    }),
   }),
 });

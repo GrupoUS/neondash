@@ -1,6 +1,7 @@
 import { Bot, Sparkles } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NeonCard } from "@/components/ui/neon-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +13,11 @@ export function NeonCoachCard() {
   const { mutate: analyze, isPending } = trpc.financeiro.coach.analyze.useMutation({
     onSuccess: (data) => {
       setAnalysis(data);
+    },
+    onError: (error) => {
+      toast.error("Erro ao gerar análise", {
+        description: error.message || "Tente novamente mais tarde.",
+      });
     },
   });
 

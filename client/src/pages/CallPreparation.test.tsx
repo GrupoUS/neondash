@@ -5,9 +5,8 @@
  * Covers loading states, error handling, section rendering, and form submission.
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Mock } from "vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock wouter
@@ -361,7 +360,7 @@ describe("CallPreparation Page", () => {
     it("should have accessible section landmarks", () => {
       render(<CallPreparation />);
 
-      const sections = screen.getAllByRole("region", { hidden: true });
+      const _sectionsCount = screen.getAllByRole("region", { hidden: true }).length;
       // The component uses aria-label on sections
       expect(document.querySelector('[aria-label="Informações do mentorado"]')).toBeInTheDocument();
       expect(document.querySelector('[aria-label="Alertas"]')).toBeInTheDocument();

@@ -52,5 +52,32 @@ export default defineConfig({
     ],
     fileParallelism: false,
     isolate: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      reportsDirectory: "./coverage",
+      include: [
+        "server/**/*.ts",
+        "client/src/**/*.{ts,tsx}",
+      ],
+      exclude: [
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}",
+        "**/test/**",
+        "**/__tests__/**",
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/_core/**",
+        "**/seeds/**",
+        "**/scripts/**",
+        "**/types/**",
+      ],
+      thresholds: {
+        statements: 70,
+        branches: 70,
+        functions: 70,
+        lines: 70,
+      },
+    },
   },
 });

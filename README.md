@@ -34,6 +34,19 @@ O **NEON Dashboard** é uma plataforma completa de gestão de mentorias focada n
 | **💬 WhatsApp** | Integração Z-API para comunicação |
 | **📸 Instagram** | Sync automático de métricas (posts/stories) |
 
+### 🎯 Phase 1 - Mentor Call Preparation
+
+O sistema de preparação para calls oferece ferramentas completas para mentores:
+
+| Feature | Descrição |
+|---------|-----------|
+| **📊 Alert Service** | Cálculos estatísticos com Z-score e fallback para identificar métricas críticas |
+| **📞 Call Preparation** | Tela completa com 8 seções: header, alertas, métricas, gráficos, radar comparativo, notas anteriores, sugestões de tópicos e formulário |
+| **📅 Upcoming Calls** | Visualização de próximas calls com integração Google Calendar e alertas por mentorado |
+| **🤖 AI Topic Suggestions** | Sugestões inteligentes de tópicos baseadas em alertas e métricas |
+| **📝 Call Notes** | Registro de insights, ações acordadas e próximos passos por call |
+
+
 ---
 
 ## 🛠️ Tech Stack

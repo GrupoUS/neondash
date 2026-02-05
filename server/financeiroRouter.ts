@@ -704,7 +704,7 @@ export const financeiroRouter = router({
           },
         ],
         maxTokens: 500,
-        model: "gemini-2.0-flash-exp", // Fast and good
+        model: "gemini-3-flash-preview", // Use same model as dashboard coach
       });
 
       const choice = result.choices[0];

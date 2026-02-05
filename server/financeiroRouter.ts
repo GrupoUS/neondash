@@ -496,12 +496,54 @@ export const financeiroRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = getDb();
         let imported = 0;
+        let skipped = 0;
         let categoriesCreated = 0;
 
         // Cache categories to avoid repeated lookups
         const categoryCache = new Map<string, number>();
 
+        // Pre-fetch existing transactions for duplicate detection
+        // Build date range from transactions
+        const dates = input.transactions.map((t) => t.data);
+        const minDate = dates.reduce((a, b) => (a < b ? a : b), dates[0] || "");
+        const maxDate = dates.reduce((a, b) => (a > b ? a : b), dates[0] || "");
+
+        // Fetch existing transactions in the date range
+        const existingTransactions = await db
+          .select({
+            data: transacoes.data,
+            descricao: transacoes.descricao,
+            valor: transacoes.valor,
+            tipo: transacoes.tipo,
+          })
+          .from(transacoes)
+          .where(
+            and(
+              eq(transacoes.mentoradoId, ctx.mentorado.id),
+              gte(transacoes.data, minDate),
+              lte(transacoes.data, maxDate)
+            )
+          );
+
+        // Create a Set of fingerprints for fast lookup
+        // Fingerprint = data:descricao:valor:tipo
+        const existingFingerprints = new Set(
+          existingTransactions.map(
+            (t) => `${t.data}:${t.descricao.toLowerCase()}:${t.valor}:${t.tipo}`
+          )
+        );
+
         for (const t of input.transactions) {
+          // Check for duplicate
+          const fingerprint = `${t.data}:${t.descricao.toLowerCase()}:${t.valor}:${t.tipo}`;
+          if (existingFingerprints.has(fingerprint)) {
+            skipped++;
+            continue;
+          }
+
+          // Add to set to prevent duplicates within same import
+          existingFingerprints.add(fingerprint);
+
           // Build cache key: tipo + nome
           const cacheKey = `${t.tipo}:${t.suggestedCategory}`;
 
@@ -555,7 +597,7 @@ export const financeiroRouter = router({
           imported++;
         }
 
-        return { imported, categoriesCreated };
+        return { imported, skipped, categoriesCreated };
       }),
 
     dailyFlow: mentoradoProcedure

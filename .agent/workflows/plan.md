@@ -112,6 +112,33 @@ RESEARCH_DELIVERABLES:
 
 ---
 
+## Phase 0.5: Historical Context Retrieval (AUTOMATIC)
+
+> [!NOTE]
+> **Self-Evolving Agent Integration** - Runs automatically before research
+
+Before starting research, the `self-evolving-agent` skill automatically:
+
+1. **Query Memory**: Searches for similar past tasks via `memory_manager.py load_context`
+2. **Retrieve Observations**: Loads relevant tool usage patterns and outcomes
+3. **Inject Learnings**: Provides compressed historical context to inform planning
+4. **Suggest Approaches**: Recommends proven strategies based on success scores
+
+```yaml
+HISTORICAL_CONTEXT:
+  trigger: "Automatic at /plan start"
+  data_sources:
+    - Similar sessions (semantic search)
+    - Successful patterns from past planning
+    - Common pitfalls and their solutions
+  injection_point: "Before APEX Research Phase 1"
+  token_budget: 2000  # Max tokens from historical context
+```
+
+This phase is **passive** - it enhances research without requiring explicit action.
+
+---
+
 ## 🔴 MANDATORY: Plan File Creation
 
 > [!IMPORTANT]

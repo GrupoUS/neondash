@@ -94,6 +94,53 @@ CORE_STANDARDS:
     - "quality_perspective: Standards enforcement and continuous improvement"
 ```
 
+## Self-Evolution & Systematic Learning
+
+> **ACTIVATION:** Automatic via `self-evolving-agent` skill at session lifecycle hooks
+
+### Permanent Memory Architecture
+
+- **Storage**: SQLite database at `.agent/brain/memory.db`
+- **Semantic Search**: FTS5 for text queries across sessions and learnings
+- **Compression**: AI-powered summarization for token efficiency
+- **Retrieval**: Progressive disclosure (index → timeline → details)
+
+### Learning Mechanisms
+
+| Mechanism              | Description                                        |
+| ---------------------- | -------------------------------------------------- |
+| Runtime Analysis       | Continuous observation of tool usage and outcomes  |
+| Pattern Recognition    | Cross-project aggregation of successful approaches |
+| Mutation Generation    | Autonomous suggestions for workflow improvements   |
+| Context Preservation   | Pre-compaction flush to survive summarization      |
+
+### Evolution Protocols
+
+| Trigger                  | Action                                 | Frequency      |
+| ------------------------ | -------------------------------------- | -------------- |
+| Session Start            | Inject historical context              | Every session  |
+| Post-Error               | Analyze pattern and suggest fixes      | After errors   |
+| Planning Phase           | Review past decisions                  | During /plan   |
+| Implementation Checkpoint| Validate approach                      | Every 5 steps  |
+| Session End              | Compress and store                     | Every session  |
+
+### Safety Guardrails
+
+- **Mutation Approval**: Explicit confirmation required
+- **Confidence Threshold**: Only suggest mutations > 80% confidence
+- **Rollback Support**: Pre-mutation state always preserved
+- **Rate Limiting**: Max 3 mutations per session
+
+### MCP Trigger: Self-Evolving Agent
+
+| Trigger                              | Ação                                          |
+| ------------------------------------ | --------------------------------------------- |
+| Início de qualquer sessão            | `memory_manager.py load_context`              |
+| Após qualquer erro                   | `evolution_engine.py analyze_failure`         |
+| A cada 5 passos de implementação     | `evolution_engine.py checkpoint_progress`     |
+| Antes de compactação de contexto     | `context_preserver.py flush_critical_facts`   |
+| Fim de sessão                        | `memory_manager.py compress_and_store`        |
+
 ## Universal Conventions
 
 **Code Style:**

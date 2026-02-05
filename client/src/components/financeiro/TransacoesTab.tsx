@@ -1,5 +1,5 @@
 import { Filter, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { useFinancialMetrics } from "@/hooks/use-financial-metrics";
 import { trpc } from "@/lib/trpc";
+import { AIInsightsSection } from "./AIInsightsSection";
 import { FinancialSummaryCard } from "./cards/FinancialSummaryCard";
 import { GoalCard } from "./cards/GoalCard";
 import { NeonCoachCard } from "./cards/NeonCoachCard";
@@ -42,6 +43,7 @@ import { StreakCard } from "./cards/StreakCard";
 import { DailyBalanceChart } from "./DailyBalanceChart";
 import { FileImportDialog } from "./FileImportDialog";
 import { OnboardingCard } from "./OnboardingCard";
+import { getDateRangeForPeriod, PeriodSelector, type PeriodType } from "./PeriodSelector";
 
 export function TransacoesTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -55,9 +57,14 @@ export function TransacoesTab() {
     nomeClienteFornecedor: "",
   });
 
+  // Period selection (replaces month/year)
+  const [periodType, setPeriodType] = useState<PeriodType>("mensal");
+  const { dataInicio, dataFim } = useMemo(() => getDateRangeForPeriod(periodType), [periodType]);
+
+  // For resumo query - extract year/month from current period
   const now = new Date();
-  const [ano, setAno] = useState(now.getFullYear());
-  const [mes, setMes] = useState(now.getMonth() + 1);
+  const ano = now.getFullYear();
+  const mes = now.getMonth() + 1;
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -65,11 +72,6 @@ export function TransacoesTab() {
   // Filter states
   const [filterCategoria, setFilterCategoria] = useState<string>("all");
   const [filterTipo, setFilterTipo] = useState<"all" | "receita" | "despesa">("all");
-
-  const dataInicio = `${ano}-${String(mes).padStart(2, "0")}-01`;
-  const nextMonth = mes === 12 ? 1 : mes + 1;
-  const nextYear = mes === 12 ? ano + 1 : ano;
-  const dataFim = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
   const utils = trpc.useUtils();
   const { data: transacoes, isLoading } = trpc.financeiro.transacoes.list.useQuery({
@@ -188,21 +190,6 @@ export function TransacoesTab() {
     }).format(cents / 100);
   };
 
-  const meses = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ];
-
   if (isLoading) {
     return (
       <NeonCard className="p-6">
@@ -269,6 +256,14 @@ export function TransacoesTab() {
         </BentoGrid>
       </div>
 
+      {/* AI Insights Section */}
+      <div className="mb-8 animate-in slide-in-from-bottom-4 duration-500 delay-100">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
+          Insights do Período
+        </h3>
+        <AIInsightsSection periodType={periodType} />
+      </div>
+
       {/* Daily Balance Chart */}
       <div className="mb-8 animate-in slide-in-from-bottom-4 duration-700 delay-150">
         <DailyBalanceChart ano={ano} mes={mes} />
@@ -279,31 +274,8 @@ export function TransacoesTab() {
         {/* Toolbar: Filters Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div className="flex flex-wrap items-center gap-2">
-            {/* Month/Year Filters */}
-            <Select value={String(mes)} onValueChange={(v) => setMes(parseInt(v, 10))}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {meses.map((m, i) => (
-                  <SelectItem key={m} value={String(i + 1)}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={String(ano)} onValueChange={(v) => setAno(parseInt(v, 10))}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Period Selector */}
+            <PeriodSelector value={periodType} onChange={setPeriodType} />
 
             <div className="h-6 w-px bg-border mx-1" />
 

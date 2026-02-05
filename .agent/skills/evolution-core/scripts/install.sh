@@ -9,6 +9,9 @@ set -e
 echo "🧬 Evolution Core - Setup"
 echo "========================="
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Check Python version
 PYTHON_VERSION=$(python3 --version 2>&1)
 echo "✓ Python: $PYTHON_VERSION"
@@ -16,20 +19,41 @@ echo "✓ Python: $PYTHON_VERSION"
 # Check SQLite support (built into Python)
 python3 -c "import sqlite3; print(f'✓ SQLite: {sqlite3.sqlite_version}')"
 
-# Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # Initialize database
 echo ""
-echo "Initializing memory database..."
+echo "📦 Initializing memory database..."
 python3 "$SCRIPT_DIR/memory_manager.py" init
+
+# Verify all scripts work
+echo ""
+echo "🔍 Verifying scripts..."
+python3 "$SCRIPT_DIR/memory_manager.py" stats > /dev/null && echo "  ✓ memory_manager.py"
+python3 "$SCRIPT_DIR/heartbeat.py" --help > /dev/null 2>&1 && echo "  ✓ heartbeat.py"
+python3 "$SCRIPT_DIR/nightly_review.py" --help > /dev/null 2>&1 && echo "  ✓ nightly_review.py"
+python3 "$SCRIPT_DIR/setup_hooks.py" --help > /dev/null 2>&1 && echo "  ✓ setup_hooks.py"
 
 echo ""
 echo "✅ Evolution Core installed successfully!"
 echo ""
-echo "Usage:"
-echo "  python3 $SCRIPT_DIR/memory_manager.py --help    # Memory operations"
-echo "  python3 $SCRIPT_DIR/heartbeat.py                # Run self-check"
-echo "  python3 $SCRIPT_DIR/nightly_review.py           # Generate learnings"
+echo "Database: ~/.agent/brain/memory.db"
 echo ""
-echo "Database location: ~/.agent/brain/memory.db"
+
+# Ask about hook installation
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Would you like to install IDE hooks? [y/N]"
+read -r INSTALL_HOOKS
+
+if [[ "$INSTALL_HOOKS" =~ ^[Yy]$ ]]; then
+    echo ""
+    python3 "$SCRIPT_DIR/setup_hooks.py"
+else
+    echo ""
+    echo "📌 To install hooks later, run:"
+    echo "   python3 $SCRIPT_DIR/setup_hooks.py"
+fi
+
+echo ""
+echo "🚀 Quick Commands:"
+echo "   python3 $SCRIPT_DIR/memory_manager.py stats    # View stats"
+echo "   python3 $SCRIPT_DIR/heartbeat.py               # Self-check"
+echo "   python3 $SCRIPT_DIR/nightly_review.py          # Daily review"

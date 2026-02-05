@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { OnboardingCard } from "./OnboardingCard";
 
 export function FormasPagamentoTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -90,6 +91,17 @@ export function FormasPagamentoTab() {
 
   return (
     <div className="space-y-6">
+      <OnboardingCard
+        title="Como cadastrar formas de pagamento?"
+        storageKey="onboarding-formas-pagamento"
+        steps={[
+          "Cadastre as formas de pagamento que você aceita",
+          "Informe a taxa % cobrada (ex: 2,5% no cartão)",
+          "Defina o prazo de recebimento em dias (ex: 30)",
+          "Use essas informações ao registrar transações",
+        ]}
+      />
+
       <div className="flex justify-end">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

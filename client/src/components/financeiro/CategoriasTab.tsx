@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { OnboardingCard } from "./OnboardingCard";
 
 export function CategoriasTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -90,6 +91,17 @@ export function CategoriasTab() {
 
   return (
     <div className="space-y-6">
+      <OnboardingCard
+        title="Como organizar categorias?"
+        storageKey="onboarding-categorias"
+        steps={[
+          "Crie categorias para classificar suas transações",
+          "Defina se é uma categoria de Receita ou Despesa",
+          "Exemplos de Receita: Consultas, Procedimentos, Vendas",
+          "Exemplos de Despesa: Aluguel, Insumos, Marketing",
+        ]}
+      />
+
       <div className="flex justify-end">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

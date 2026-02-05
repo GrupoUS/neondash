@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -23,10 +23,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { OnboardingCard } from "./OnboardingCard";
+
+type InsumoData = {
+  id?: number;
+  nome: string;
+  valorCompra: string;
+  rendimento: string;
+};
 
 export function InsumosTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<InsumoData>({
     nome: "",
     valorCompra: "",
     rendimento: "",
@@ -39,8 +48,16 @@ export function InsumosTab() {
     onSuccess: () => {
       toast.success("Insumo criado");
       utils.precificacao.insumos.list.invalidate();
-      setIsDialogOpen(false);
-      setFormData({ nome: "", valorCompra: "", rendimento: "" });
+      closeDialog();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.precificacao.insumos.update.useMutation({
+    onSuccess: () => {
+      toast.success("Insumo atualizado");
+      utils.precificacao.insumos.list.invalidate();
+      closeDialog();
     },
     onError: (e) => toast.error(e.message),
   });
@@ -52,6 +69,27 @@ export function InsumosTab() {
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingId(null);
+    setFormData({ nome: "", valorCompra: "", rendimento: "" });
+  };
+
+  const openEditDialog = (insumo: {
+    id: number;
+    nome: string;
+    valorCompra: number;
+    rendimento: number;
+  }) => {
+    setEditingId(insumo.id);
+    setFormData({
+      nome: insumo.nome,
+      valorCompra: (insumo.valorCompra / 100).toFixed(2).replace(".", ","),
+      rendimento: String(insumo.rendimento),
+    });
+    setIsDialogOpen(true);
+  };
 
   const handleSubmit = () => {
     if (!formData.nome.trim()) {
@@ -70,23 +108,23 @@ export function InsumosTab() {
       return;
     }
 
-    createMutation.mutate({
-      nome: formData.nome,
-      valorCompra,
-      rendimento,
-    });
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, nome: formData.nome, valorCompra, rendimento });
+    } else {
+      createMutation.mutate({ nome: formData.nome, valorCompra, rendimento });
+    }
   };
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(cents / 100);
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+      cents / 100
+    );
   };
 
-  const calcCustoPorUso = (valorCompra: number, rendimento: number) => {
-    return Math.round(valorCompra / rendimento);
-  };
+  const calcCustoPorUso = (valorCompra: number, rendimento: number) =>
+    Math.round(valorCompra / rendimento);
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
     return (
@@ -101,17 +139,29 @@ export function InsumosTab() {
 
   return (
     <div className="space-y-6">
+      <OnboardingCard
+        title="Como cadastrar insumos?"
+        storageKey="onboarding-insumos"
+        steps={[
+          "Clique em 'Novo Insumo' para adicionar um produto",
+          "Informe o nome do insumo (ex: Ácido Hialurônico)",
+          "Digite o valor total de compra do produto",
+          "Informe quantas aplicações/usos o produto rende",
+          "O custo por uso será calculado automaticamente",
+        ]}
+      />
+
       <div className="flex justify-end">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeDialog()}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5">
+            <Button size="sm" className="gap-1.5" onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4" />
               Novo Insumo
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Novo Insumo</DialogTitle>
+              <DialogTitle>{editingId ? "Editar Insumo" : "Novo Insumo"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -141,8 +191,8 @@ export function InsumosTab() {
                   />
                 </div>
               </div>
-              <Button onClick={handleSubmit} disabled={createMutation.isPending} className="w-full">
-                {createMutation.isPending ? "Salvando..." : "Criar Insumo"}
+              <Button onClick={handleSubmit} disabled={isSaving} className="w-full">
+                {isSaving ? "Salvando..." : editingId ? "Salvar Alterações" : "Criar Insumo"}
               </Button>
             </div>
           </DialogContent>
@@ -157,7 +207,7 @@ export function InsumosTab() {
               <TableHead>Valor de Compra</TableHead>
               <TableHead>Rendimento</TableHead>
               <TableHead>Custo por Uso</TableHead>
-              <TableHead className="w-[50px]" />
+              <TableHead className="w-[80px]" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -177,14 +227,24 @@ export function InsumosTab() {
                     {formatCurrency(calcCustoPorUso(i.valorCompra, i.rendimento))}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteMutation.mutate({ id: i.id })}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => openEditDialog(i)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteMutation.mutate({ id: i.id })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

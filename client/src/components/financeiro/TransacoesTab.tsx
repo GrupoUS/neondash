@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { OnboardingCard } from "./OnboardingCard";
 
 export function TransacoesTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -162,7 +163,16 @@ export function TransacoesTab() {
 
   return (
     <div className="space-y-6">
-      {/* Resumo */}
+      <OnboardingCard
+        title="Como registrar transações?"
+        storageKey="onboarding-transacoes"
+        steps={[
+          "Use 'Nova Transação' para registrar uma receita ou despesa",
+          "Informe data, tipo (receita/despesa) e valor",
+          "Selecione categoria e forma de pagamento (opcional)",
+          "Ou importe várias transações de uma vez via CSV",
+        ]}
+      />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <NeonCard className="p-4 bg-emerald-500/10 border-emerald-500/20">
           <div className="flex items-center justify-between">

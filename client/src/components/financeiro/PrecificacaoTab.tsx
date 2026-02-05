@@ -1,4 +1,4 @@
-import { Calculator, Plus, Trash2 } from "lucide-react";
+import { Calculator, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,33 +22,47 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-
 import { trpc } from "@/lib/trpc";
+import { OnboardingCard } from "./OnboardingCard";
 
 type InsumoProcedimento = {
   insumoId: number;
   quantidade: number;
 };
 
+type FormData = {
+  id?: number;
+  nome: string;
+  precoVenda: string;
+  custoOperacional: string;
+  custoInvestimento: string;
+  percentualParceiro: string;
+  percentualImposto: string;
+  insumos: InsumoProcedimento[];
+};
+
+const emptyForm: FormData = {
+  nome: "",
+  precoVenda: "",
+  custoOperacional: "",
+  custoInvestimento: "",
+  percentualParceiro: "",
+  percentualImposto: "7",
+  insumos: [],
+};
+
 export function PrecificacaoTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedProcedimentoId, setSelectedProcedimentoId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    nome: "",
-    precoVenda: "",
-    custoOperacional: "",
-    custoInvestimento: "",
-    percentualParceiro: "",
-    percentualImposto: "7",
-    insumos: [] as InsumoProcedimento[],
-  });
+  const [formData, setFormData] = useState<FormData>(emptyForm);
   const [tempInsumo, setTempInsumo] = useState({ insumoId: "", quantidade: "1" });
 
   const utils = trpc.useUtils();
   const { data: procedimentos, isLoading } = trpc.precificacao.procedimentos.list.useQuery();
   const { data: insumosDisponiveis } = trpc.precificacao.insumos.list.useQuery();
   const { data: custoCalc } = trpc.precificacao.procedimentos.calcularCusto.useQuery(
-    { id: selectedProcedimentoId! },
+    { id: selectedProcedimentoId ?? 0 },
     { enabled: !!selectedProcedimentoId }
   );
 
@@ -56,8 +70,16 @@ export function PrecificacaoTab() {
     onSuccess: () => {
       toast.success("Procedimento criado");
       utils.precificacao.procedimentos.list.invalidate();
-      setIsDialogOpen(false);
-      resetForm();
+      closeDialog();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const updateMutation = trpc.precificacao.procedimentos.update.useMutation({
+    onSuccess: () => {
+      toast.success("Procedimento atualizado");
+      utils.precificacao.procedimentos.list.invalidate();
+      closeDialog();
     },
     onError: (e) => toast.error(e.message),
   });
@@ -70,17 +92,40 @@ export function PrecificacaoTab() {
     onError: (e) => toast.error(e.message),
   });
 
-  const resetForm = () => {
-    setFormData({
-      nome: "",
-      precoVenda: "",
-      custoOperacional: "",
-      custoInvestimento: "",
-      percentualParceiro: "",
-      percentualImposto: "7",
-      insumos: [],
-    });
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingId(null);
+    setFormData(emptyForm);
     setTempInsumo({ insumoId: "", quantidade: "1" });
+  };
+
+  const openEditDialog = (p: {
+    id: number;
+    nome: string;
+    precoVenda: number;
+    custoOperacional: number | null;
+    custoInvestimento: number | null;
+    percentualParceiro: number | null;
+    percentualImposto: number | null;
+    insumos?: { insumoId: number; quantidade: number | null }[];
+  }) => {
+    setEditingId(p.id);
+    setFormData({
+      id: p.id,
+      nome: p.nome,
+      precoVenda: (p.precoVenda / 100).toFixed(2).replace(".", ","),
+      custoOperacional: p.custoOperacional
+        ? (p.custoOperacional / 100).toFixed(2).replace(".", ",")
+        : "",
+      custoInvestimento: p.custoInvestimento
+        ? (p.custoInvestimento / 100).toFixed(2).replace(".", ",")
+        : "",
+      percentualParceiro: p.percentualParceiro ? (p.percentualParceiro / 100).toFixed(0) : "",
+      percentualImposto: p.percentualImposto ? (p.percentualImposto / 100).toFixed(0) : "7",
+      insumos:
+        p.insumos?.map((i) => ({ insumoId: i.insumoId, quantidade: i.quantidade ?? 1 })) ?? [],
+    });
+    setIsDialogOpen(true);
   };
 
   const handleAddInsumo = () => {
@@ -131,7 +176,7 @@ export function PrecificacaoTab() {
       ? Math.round(Number(formData.percentualImposto.replace(",", ".")) * 100)
       : 700;
 
-    createMutation.mutate({
+    const payload = {
       nome: formData.nome,
       precoVenda,
       custoOperacional,
@@ -139,19 +184,26 @@ export function PrecificacaoTab() {
       percentualParceiro,
       percentualImposto,
       insumos: formData.insumos.length > 0 ? formData.insumos : undefined,
-    });
+    };
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, ...payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(cents / 100);
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+      cents / 100
+    );
   };
 
   const getInsumoName = (insumoId: number) => {
     return insumosDisponiveis?.find((i) => i.id === insumoId)?.nome ?? "Desconhecido";
   };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
     return (
@@ -166,17 +218,30 @@ export function PrecificacaoTab() {
 
   return (
     <div className="space-y-6">
+      <OnboardingCard
+        title="Como precificar procedimentos?"
+        storageKey="onboarding-precificacao"
+        steps={[
+          "Primeiro cadastre seus Insumos na aba anterior",
+          "Clique em 'Novo Procedimento' para criar",
+          "Informe nome e preço de venda ao cliente",
+          "Adicione custos operacionais, investimento e % parceiro",
+          "Vincule os insumos utilizados no procedimento",
+          "Clique na calculadora (📊) para ver o lucro final",
+        ]}
+      />
+
       <div className="flex justify-end">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => !open && closeDialog()}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5">
+            <Button size="sm" className="gap-1.5" onClick={() => setIsDialogOpen(true)}>
               <Plus className="h-4 w-4" />
               Novo Procedimento
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Novo Procedimento</DialogTitle>
+              <DialogTitle>{editingId ? "Editar Procedimento" : "Novo Procedimento"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -287,8 +352,8 @@ export function PrecificacaoTab() {
                 )}
               </div>
 
-              <Button onClick={handleSubmit} disabled={createMutation.isPending} className="w-full">
-                {createMutation.isPending ? "Salvando..." : "Criar Procedimento"}
+              <Button onClick={handleSubmit} disabled={isSaving} className="w-full">
+                {isSaving ? "Salvando..." : editingId ? "Salvar Alterações" : "Criar Procedimento"}
               </Button>
             </div>
           </DialogContent>
@@ -309,7 +374,7 @@ export function PrecificacaoTab() {
                   <h3 className="text-lg font-semibold">{p.nome}</h3>
                   <p className="text-2xl font-bold text-primary">{formatCurrency(p.precoVenda)}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -319,6 +384,14 @@ export function PrecificacaoTab() {
                     className={selectedProcedimentoId === p.id ? "bg-primary/10" : ""}
                   >
                     <Calculator className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={() => openEditDialog(p)}
+                  >
+                    <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"

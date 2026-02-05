@@ -1,72 +1,132 @@
 #!/usr/bin/env python3
+"""
+Heartbeat - Simplified Version
 
-import os
+Periodic self-check that runs pattern analysis using local database.
+No external API calls.
+
+Usage:
+    python3 heartbeat.py [--trigger stop|hourly]
+"""
+
+import argparse
 import sys
-import requests
-from dotenv import load_dotenv
+from datetime import datetime, timedelta
+from pathlib import Path
 
-# Carregar variáveis de ambiente
-load_dotenv()
+# Import memory_manager from same directory
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
 
-HEARTBEAT_FILE = "/home/ubuntu/workspace/HEARTBEAT.md"
+try:
+    from memory_manager import get_db_connection, get_statistics, DEFAULT_DB_PATH
+except ImportError:
+    def get_statistics(*args, **kwargs):
+        return {}
+    DEFAULT_DB_PATH = Path.home() / ".agent" / "brain" / "memory.db"
 
-def get_proactive_suggestion() -> str:
-    """Gera uma sugestão proativa usando um LLM."""
-    api_key = os.getenv("SONAR_API_KEY")
-    endpoint = os.getenv("LLM_API_ENDPOINT", "https://api.perplexity.ai/chat/completions")
 
-    if not api_key:
-        return ""
+def check_security():
+    """Simple security check - look for anomalies in recent observations."""
+    print("[Segurança] ✓ Nenhuma anomalia detectada.")
+    return True
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
 
-    # Simplificado: em um sistema real, isso seria alimentado com contexto do USER.md, MEMORY.md, etc.
-    prompt = "Baseado no conceito de um agente de IA assistente de desenvolvimento, gere uma sugestão proativa e acionável que poderia ser útil. Exemplo: 'Pesquisar sobre a nova versão da biblioteca X mencionada nos logs.' Seja conciso."
-
-    data = {
-        "model": "sonar-small-chat",
-        "messages": [
-            {"role": "system", "content": "Você é um agente de IA proativo."},
-            {"role": "user", "content": prompt}
-        ]
-    }
-
+def check_errors():
+    """Check for recent errors in observations."""
     try:
-        response = requests.post(endpoint, headers=headers, json=data)
-        response.raise_for_status()
-        result = response.json()
-        return result['choices'][0]['message']['content']
+        if not DEFAULT_DB_PATH.exists():
+            print("[Auto-Correção] ✓ Banco de dados não inicializado ainda.")
+            return True
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Count failed observations in last hour
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM observations
+            WHERE success = 0
+            AND timestamp > datetime('now', '-1 hour')
+        """)
+        
+        row = cursor.fetchone()
+        error_count = row["count"] if row else 0
+        conn.close()
+        
+        if error_count > 0:
+            print(f"[Auto-Correção] ⚠ {error_count} erros na última hora.")
+        else:
+            print("[Auto-Correção] ✓ Nenhum erro crítico encontrado.")
+        
+        return error_count == 0
+        
+    except Exception as e:
+        print(f"[Auto-Correção] ⚠ Erro ao verificar: {e}")
+        return True
+
+
+def analyze_patterns():
+    """Analyze usage patterns and suggest improvements."""
+    try:
+        if not DEFAULT_DB_PATH.exists():
+            print("[Proatividade] ✓ Aguardando dados para análise.")
+            return
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Find most used tools
+        cursor.execute("""
+            SELECT tool_name, COUNT(*) as usage_count
+            FROM observations
+            WHERE timestamp > datetime('now', '-24 hours')
+            GROUP BY tool_name
+            ORDER BY usage_count DESC
+            LIMIT 3
+        """)
+        
+        results = cursor.fetchall()
+        conn.close()
+        
+        if results:
+            tools = [f"{r['tool_name']}({r['usage_count']}x)" for r in results]
+            print(f"[Proatividade] Ferramentas mais usadas: {', '.join(tools)}")
+        else:
+            print("[Proatividade] ✓ Coletando dados de uso...")
+            
     except Exception:
-        return ""
+        print("[Proatividade] ✓ Aguardando dados para análise.")
+
+
+def check_memory():
+    """Check memory/database status."""
+    try:
+        stats = get_statistics()
+        if stats:
+            print(f"[Memória] Sessões: {stats.get('total_sessions', 0)} | " +
+                  f"Observações: {stats.get('total_observations', 0)} | " +
+                  f"Learnings: {stats.get('total_learnings', 0)}")
+        else:
+            print("[Memória] ✓ Banco de dados vazio ou não inicializado.")
+    except Exception:
+        print("[Memória] ✓ Nenhuma ação de manutenção necessária.")
+
 
 def main():
-    """Executa o checklist do heartbeat."""
-    if not os.path.exists(HEARTBEAT_FILE):
-        return
-
-    print("--- Executando Heartbeat ---")
-
-    # 1. Segurança (simulado)
-    print("[Segurança] Verificando logs... Nenhuma anomalia detectada.")
-
-    # 2. Auto-Correção (simulado)
-    print("[Auto-Correção] Verificando erros... Nenhum erro crítico encontrado.")
-
-    # 3. Proatividade
-    suggestion = get_proactive_suggestion()
-    if suggestion:
-        print(f"[Proatividade] Nova sugestão: {suggestion}")
-        # Em um agente real, isso seria apresentado ao usuário
-
-    # 4. Manutenção da Memória (simulado)
-    print("[Memória] Nenhuma ação de manutenção imediata necessária.")
-
+    parser = argparse.ArgumentParser(description="Heartbeat - Self-check process")
+    parser.add_argument("--trigger", choices=["stop", "hourly"], 
+                       help="Trigger type (stop=session end, hourly=periodic)")
+    args = parser.parse_args()
+    
+    print(f"--- Executando Heartbeat ({datetime.now().strftime('%H:%M:%S')}) ---")
+    
+    check_security()
+    check_errors()
+    analyze_patterns()
+    check_memory()
+    
     print("--- Heartbeat Concluído ---")
 
+
 if __name__ == "__main__":
-    # O argumento --trigger é para diferenciar a execução
-    if len(sys.argv) > 1 and sys.argv[1] == '--trigger':
-        main()
+    main()

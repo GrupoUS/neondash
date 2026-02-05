@@ -1,4 +1,11 @@
 {
+  "gemini": {
+    "name": "Gemini (Antigravity)",
+    "config_file": "~/.gemini/settings.json",
+    "config_path": ["hooks"],
+    "hook_format": "command",
+    "supported": true
+  },
   "antigravity": {
     "name": "Antigravity",
     "config_file": "~/.antigravity/settings.json",

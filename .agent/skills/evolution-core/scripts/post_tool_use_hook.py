@@ -1,73 +1,87 @@
 #!/usr/bin/env python3
+"""
+Post Tool Use Hook - Simplified Version
 
-import sys
+Captures tool usage observations and stores them directly via memory_manager.
+No external API calls, no HTTP requests.
+
+Usage:
+    Called automatically by agent hooks after each tool use.
+    Reads tool observation from stdin as JSON.
+"""
+
 import json
-import requests
 import os
-from dotenv import load_dotenv
+import sys
+from pathlib import Path
 
-# Carregar variáveis de ambiente
-load_dotenv()
+# Import memory_manager from same directory
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
 
-def get_llm_summary(observation: dict) -> tuple[str, str]:
-    """Gera um título e resumo semântico para uma observação usando um LLM."""
-    api_key = os.getenv("SONAR_API_KEY")
-    endpoint = os.getenv("LLM_API_ENDPOINT", "https://api.perplexity.ai/chat/completions")
+try:
+    from memory_manager import store_observation, init_database, create_session, DEFAULT_DB_PATH
+except ImportError:
+    # Fallback if import fails
+    def store_observation(*args, **kwargs):
+        pass
+    def init_database(*args, **kwargs):
+        pass
+    def create_session(*args, **kwargs):
+        return "unknown"
+    DEFAULT_DB_PATH = Path.home() / ".agent" / "brain" / "memory.db"
 
-    if not api_key:
-        return "Erro: Chave de API não encontrada", ""
 
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+def get_or_create_session_id() -> str:
+    """Get session ID from environment or create a new one."""
+    session_id = os.getenv("EVOLUTION_SESSION_ID")
+    if not session_id:
+        # Use conversation ID if available
+        session_id = os.getenv("CONVERSATION_ID", "default-session")
+    return session_id
 
-    # Prepara o conteúdo para o prompt
-    content = f"""Tool: {observation.get('tool_name')}\nInput: {json.dumps(observation.get('tool_input', {}))}\nOutput: {json.dumps(observation.get('tool_output', ''))}"""
-
-    prompt = f"""Analise a seguinte observação de uso de ferramenta e gere um título conciso (máx 5 palavras) e um resumo semântico (máx 2 frases) do que foi feito. O output deve ser um JSON com as chaves 'title' e 'summary'.\n\nObservação:\n{content}"""
-
-    data = {
-        "model": "sonar-small-chat",
-        "messages": [
-            {"role": "system", "content": "Você é um especialista em sumarizar logs de ferramentas de IA."},
-            {"role": "user", "content": prompt}
-        ]
-    }
-
-    try:
-        response = requests.post(endpoint, headers=headers, json=data)
-        response.raise_for_status()
-        result = response.json()
-        summary_content = json.loads(result['choices'][0]['message']['content'])
-        return summary_content.get("title", "Título não gerado"), summary_content.get("summary", "Resumo não gerado")
-    except Exception as e:
-        return f"Erro ao gerar resumo: {e}", str(e)
 
 def main():
-    """Função principal do hook."""
+    """Main function - captures tool observation and stores it."""
     try:
-        # Lê a observação do stdin
-        observation = json.load(sys.stdin)
-
-        # Gera título e resumo
-        title, summary = get_llm_summary(observation)
-
-        # Adiciona o resumo à observação
-        observation['semantic_summary'] = summary
-        observation['title'] = title
-
-        # Envia para o worker de memória
-        worker_port = os.getenv("MEMORY_WORKER_PORT", 37777)
-        worker_url = f"http://localhost:{worker_port}/observations/"
+        # Ensure database exists
+        if not DEFAULT_DB_PATH.exists():
+            init_database()
         
-        requests.post(worker_url, json=observation)
-
+        # Read observation from stdin
+        if sys.stdin.isatty():
+            # No stdin data, exit silently
+            return
+        
+        observation = json.load(sys.stdin)
+        
+        # Extract relevant fields
+        tool_name = observation.get("tool_name", "unknown")
+        tool_input = observation.get("tool_input", {})
+        tool_output = observation.get("tool_output", "")
+        
+        # Get session ID
+        session_id = get_or_create_session_id()
+        
+        # Store observation
+        store_observation(
+            session_id=session_id,
+            tool_name=tool_name,
+            input_data=json.dumps(tool_input) if isinstance(tool_input, dict) else str(tool_input),
+            output_data=json.dumps(tool_output) if isinstance(tool_output, (dict, list)) else str(tool_output)[:1000],
+            context_snapshot=observation.get("context", ""),
+            success=observation.get("success", True)
+        )
+        
+    except json.JSONDecodeError:
+        # Invalid JSON input, exit silently
+        pass
     except Exception as e:
-        # Em caso de erro, não bloqueia o fluxo, apenas loga
-        with open("/tmp/evolution_core_hook_error.log", "a") as f:
+        # Log error to temp file, don't block agent flow
+        error_log = Path("/tmp/evolution_core_hook_error.log")
+        with open(error_log, "a") as f:
             f.write(f"Error in post_tool_use_hook: {e}\n")
-        sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

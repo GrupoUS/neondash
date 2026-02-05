@@ -187,9 +187,9 @@ class HookInstaller:
         print("=" * 60)
         print("\n📚 Next steps:")
         print("  1. Restart your IDE to load the new hooks")
-        print("  2. Start the memory worker: bash scripts/run_worker.sh")
-        print("  3. Copy assets to your workspace: cp -r assets/* /your/workspace/")
-        print("\n💡 For detailed instructions, see README.md")
+        print("  2. Initialize memory: python3 scripts/memory_manager.py init")
+        print("  3. (Optional) Copy assets: cp -r assets/* /your/workspace/")
+        print("\n💡 For detailed instructions, see SKILL.md")
         print()
 
 def main():

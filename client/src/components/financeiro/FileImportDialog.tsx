@@ -55,24 +55,63 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
 
   const parseCsv = useCallback((content: string): ParsedTransaction[] => {
     const lines = content.trim().split("\n");
-    // Skip header if present
-    const dataLines = lines[0]?.toLowerCase().includes("data") ? lines.slice(1) : lines;
-
     const transactions: ParsedTransaction[] = [];
+
+    // Detect if this is a bank statement format (BTG/Inter style with quoted fields)
+    const isBankStatement =
+      lines[0]?.includes('"Data"') ||
+      lines[0]?.includes('"Descricao"') ||
+      lines[0]?.includes('"Descrição"');
+
+    // Skip header if present
+    const headerLine = lines[0]?.toLowerCase() || "";
+    const hasHeader =
+      headerLine.includes("data") || headerLine.includes("descri") || headerLine.includes("valor");
+    const dataLines = hasHeader ? lines.slice(1) : lines;
 
     for (const line of dataLines) {
       if (!line.trim()) continue;
 
-      // Support both comma and semicolon separators
-      const separator = line.includes(";") ? ";" : ",";
-      const [dataStr, descricao, valorStr] = line.split(separator).map((s) => s.trim());
+      let dataStr: string | undefined;
+      let descricao: string | undefined;
+      let valorStr: string | undefined;
+
+      if (isBankStatement) {
+        // Parse quoted CSV: "Data","Descricao","Credenciadora","Produto","CNPJ","Valor","Saldo"
+        // Match quoted fields, handling commas inside quotes
+        const matches = line.match(/"([^"]*)"/g);
+        if (!matches || matches.length < 2) continue;
+
+        // Remove quotes from matches
+        const fields = matches.map((m) => m.replace(/"/g, "").trim());
+
+        // Fields: 0=Data, 1=Descricao, 2=Credenciadora, 3=Produto, 4=CNPJ, 5=Valor, 6=Saldo
+        dataStr = fields[0]; // DD/MM/YYYY format
+        descricao = fields[1];
+        valorStr = fields[5]; // Brazilian format: "1.234,56" or "-1.234,56"
+
+        // Convert DD/MM/YYYY to YYYY-MM-DD
+        if (dataStr && /^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) {
+          const [day, month, year] = dataStr.split("/");
+          dataStr = `${year}-${month}-${day}`;
+        }
+      } else {
+        // Simple CSV format: data,descricao,valor
+        const separator = line.includes(";") ? ";" : ",";
+        const parts = line.split(separator).map((s) => s.trim());
+        [dataStr, descricao, valorStr] = parts;
+      }
 
       if (!dataStr || !descricao || !valorStr) continue;
 
-      // Parse value: support both . and , as decimal separator
-      const cleanValue = valorStr.replace(/\s/g, "").replace(",", ".");
-      const valor = Math.round(Number.parseFloat(cleanValue) * 100);
+      // Parse Brazilian number format: remove thousand separators (.) and convert decimal (,) to (.)
+      // "1.234,56" -> "1234.56" ; "-791,96" -> "-791.96"
+      const cleanValue = valorStr
+        .replace(/\s/g, "") // remove spaces
+        .replace(/\./g, "") // remove thousand separators
+        .replace(",", "."); // convert decimal separator
 
+      const valor = Math.round(Number.parseFloat(cleanValue) * 100);
       if (Number.isNaN(valor)) continue;
 
       transactions.push({
@@ -196,10 +235,8 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
                   Arraste um arquivo CSV ou clique para selecionar
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Formato esperado: <code>data,descricao,valor</code>
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Valores positivos = receita, negativos = despesa
+                  Suporta extrato bancário (BTG/Inter) ou CSV simples:{" "}
+                  <code>data,descricao,valor</code>
                 </p>
               </>
             )}

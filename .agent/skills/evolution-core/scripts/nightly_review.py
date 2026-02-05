@@ -1,98 +1,196 @@
 #!/usr/bin/env python3
+"""
+Nightly Review - Simplified Version
 
-import sqlite3
-import os
+Aggregates daily observations and generates learnings using SQL analysis.
+No external API calls.
+
+Usage:
+    python3 nightly_review.py [--days N]
+"""
+
+import argparse
 import json
+import sys
 from datetime import datetime, timedelta
-import requests
-from dotenv import load_dotenv
+from pathlib import Path
 
-# Carregar variáveis de ambiente
-load_dotenv()
+# Import memory_manager from same directory
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
 
-DB_FILE = "/home/ubuntu/workspace/.claude-mem/data/sessions.db"
-MEMORY_FILE = "/home/ubuntu/workspace/MEMORY.md"
+try:
+    from memory_manager import get_db_connection, store_learning, DEFAULT_DB_PATH
+except ImportError:
+    def get_db_connection(*args, **kwargs):
+        return None
+    def store_learning(*args, **kwargs):
+        return None
+    DEFAULT_DB_PATH = Path.home() / ".agent" / "brain" / "memory.db"
 
-def get_llm_synthesis(observations: list) -> str:
-    """Gera uma síntese de alto nível das observações do dia usando um LLM."""
-    api_key = os.getenv("SONAR_API_KEY")
-    endpoint = os.getenv("LLM_API_ENDPOINT", "https://api.perplexity.ai/chat/completions")
 
-    if not api_key or not observations:
-        return ""
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    content = "\n".join([f"- {obs['title']}: {obs['semantic_summary']}" for obs in observations])
-
-    prompt = f"""Analise a lista de observações de um agente de IA de hoje. Extraia 3 a 5 aprendizados chave, padrões de sucesso, ou 'gotchas' a serem evitados. Formate como uma lista de pontos. Seja conciso e foque em conhecimento acionável.
-
-Observações do Dia:
-{content}
-
-Síntese dos Aprendizados:"""
-
-    data = {
-        "model": "sonar-small-chat",
-        "messages": [
-            {"role": "system", "content": "Você é um especialista em analisar o comportamento de agentes de IA e extrair lições valiosas."},
-            {"role": "user", "content": prompt}
-        ]
-    }
-
+def get_daily_observations(days: int = 1) -> list:
+    """Get observations from the last N days."""
     try:
-        response = requests.post(endpoint, headers=headers, json=data)
-        response.raise_for_status()
-        result = response.json()
-        return result['choices'][0]['message']['content']
+        if not DEFAULT_DB_PATH.exists():
+            return []
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT o.tool_name, o.context_snapshot, o.success, o.timestamp,
+                   s.project_path, s.task_description
+            FROM observations o
+            LEFT JOIN sessions s ON o.session_id = s.session_id
+            WHERE o.timestamp > datetime('now', ?)
+            ORDER BY o.timestamp DESC
+        """, (f'-{days} days',))
+        
+        results = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return results
+        
     except Exception:
-        return ""
+        return []
+
+
+def analyze_tool_patterns(observations: list) -> list:
+    """Analyze tool usage patterns."""
+    patterns = []
+    
+    # Count tool usage
+    tool_counts = {}
+    for obs in observations:
+        tool = obs.get("tool_name", "unknown")
+        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+    
+    # Find most used tools
+    sorted_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)
+    if sorted_tools:
+        top_tools = sorted_tools[:5]
+        patterns.append({
+            "type": "tool_usage",
+            "description": f"Ferramentas mais usadas: {', '.join([f'{t}({c}x)' for t, c in top_tools])}"
+        })
+    
+    return patterns
+
+
+def analyze_error_patterns(observations: list) -> list:
+    """Analyze error patterns."""
+    patterns = []
+    
+    failures = [obs for obs in observations if not obs.get("success", True)]
+    
+    if failures:
+        # Group by tool
+        error_tools = {}
+        for f in failures:
+            tool = f.get("tool_name", "unknown")
+            error_tools[tool] = error_tools.get(tool, 0) + 1
+        
+        if error_tools:
+            patterns.append({
+                "type": "error_pattern",
+                "description": f"Ferramentas com erros: {', '.join([f'{t}({c}x)' for t, c in error_tools.items()])}"
+            })
+    
+    return patterns
+
+
+def analyze_project_patterns(observations: list) -> list:
+    """Analyze project-specific patterns."""
+    patterns = []
+    
+    # Group by project
+    project_counts = {}
+    for obs in observations:
+        project = obs.get("project_path", "unknown")
+        if project:
+            project_counts[project] = project_counts.get(project, 0) + 1
+    
+    if project_counts:
+        patterns.append({
+            "type": "project_activity",
+            "description": f"Projetos ativos: {len(project_counts)}"
+        })
+    
+    return patterns
+
+
+def save_learnings(patterns: list, source_date: str):
+    """Save patterns as learnings."""
+    for pattern in patterns:
+        try:
+            store_learning(
+                pattern_type=pattern["type"],
+                description=f"[{source_date}] {pattern['description']}",
+                source_sessions=[],
+                confidence_score=0.5
+            )
+        except Exception:
+            pass
+
+
+def append_to_memory_file(patterns: list, date_str: str):
+    """Append learnings to MEMORY.md file."""
+    memory_file = Path.home() / "workspace" / "MEMORY.md"
+    
+    # Try project-local first
+    project_memory = Path.cwd() / "MEMORY.md"
+    if project_memory.exists():
+        memory_file = project_memory
+    
+    if not patterns:
+        return
+    
+    content = f"\n\n## Aprendizados de {date_str}\n\n"
+    for p in patterns:
+        content += f"- **{p['type']}**: {p['description']}\n"
+    
+    try:
+        with open(memory_file, "a") as f:
+            f.write(content)
+        print(f"✓ Aprendizados salvos em {memory_file}")
+    except Exception:
+        print("⚠ Não foi possível salvar em MEMORY.md")
+
 
 def main():
-    """Executa o processo de revisão noturna."""
-    yesterday = datetime.now() - timedelta(days=1)
-    yesterday_str = yesterday.strftime('%Y-%m-%d')
-
-    # 1. Coletar observações do dia anterior do SQLite
-    observations = []
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.execute(
-                "SELECT title, semantic_summary FROM observations WHERE date(timestamp) = ?", (yesterday_str,)
-            )
-            observations = [dict(row) for row in cursor.fetchall()]
-    except sqlite3.Error:
-        # Se o banco de dados não existir ou estiver vazio, não faz nada
-        return
-
+    parser = argparse.ArgumentParser(description="Nightly Review - Aggregate daily learnings")
+    parser.add_argument("--days", type=int, default=1, help="Days to analyze (default: 1)")
+    parser.add_argument("--dry-run", action="store_true", help="Preview without saving")
+    args = parser.parse_args()
+    
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    print(f"--- Revisão Noturna ({yesterday}) ---")
+    
+    # Get observations
+    observations = get_daily_observations(args.days)
+    print(f"Observações encontradas: {len(observations)}")
+    
     if not observations:
+        print("Nenhuma observação para analisar.")
         return
+    
+    # Analyze patterns
+    patterns = []
+    patterns.extend(analyze_tool_patterns(observations))
+    patterns.extend(analyze_error_patterns(observations))
+    patterns.extend(analyze_project_patterns(observations))
+    
+    # Display patterns
+    print("\n📊 Padrões identificados:")
+    for p in patterns:
+        print(f"  - [{p['type']}] {p['description']}")
+    
+    if not args.dry_run and patterns:
+        save_learnings(patterns, yesterday)
+        append_to_memory_file(patterns, yesterday)
+    
+    print("\n--- Revisão Concluída ---")
 
-    # 2. Gerar síntese com LLM
-    synthesis = get_llm_synthesis(observations)
-
-    if not synthesis:
-        return
-
-    # 3. Anexar ao MEMORY.md
-    try:
-        with open(MEMORY_FILE, "a") as f:
-            f.write(f"\n\n## Aprendizados de {yesterday_str}\n\n")
-            f.write(synthesis)
-            f.write("\n")
-    except FileNotFoundError:
-        # Se o arquivo não existir, cria com o conteúdo
-        with open(MEMORY_FILE, "w") as f:
-            f.write(f"# Long-Term Memory\n\n## Aprendizados de {yesterday_str}\n\n")
-            f.write(synthesis)
-            f.write("\n")
-
-    # 4. (Opcional) Fazer commit no Git
-    # os.system("cd /home/ubuntu/workspace && git add MEMORY.md && git commit -m 'feat(memory): compound daily review'")
 
 if __name__ == "__main__":
     main()

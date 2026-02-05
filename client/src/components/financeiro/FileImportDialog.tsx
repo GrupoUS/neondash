@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -131,7 +132,7 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
           Importar CSV
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Importar Transações</DialogTitle>
           <DialogDescription>Arraste um arquivo CSV ou clique para selecionar.</DialogDescription>
@@ -180,31 +181,38 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
               </Button>
             </div>
 
-            <div className="max-h-[300px] overflow-y-auto border rounded-md">
+            <ScrollArea className="h-[60vh] border rounded-md">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-20 bg-card shadow-sm">
                   <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Tipo</TableHead>
+                    <TableHead className="w-[120px]">Data</TableHead>
+                    <TableHead className="w-[100px]">Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="w-[40px]" />
+                    <TableHead className="text-right w-[140px]">Valor</TableHead>
+                    <TableHead className="w-[50px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {parsedData.map((t, idx) => (
-                    <TableRow key={`${t.data}-${t.descricao}-${idx}`}>
-                      <TableCell className="text-sm">{t.data}</TableCell>
+                    <TableRow key={`${t.data}-${t.descricao}-${idx}`} className="hover:bg-muted/30">
+                      <TableCell className="font-mono text-xs">{t.data}</TableCell>
                       <TableCell>
-                        <Badge variant={t.tipo === "receita" ? "default" : "destructive"}>
+                        <Badge
+                          variant="outline"
+                          className={
+                            t.tipo === "receita"
+                              ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20"
+                              : "bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20"
+                          }
+                        >
                           {t.tipo === "receita" ? "Receita" : "Despesa"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm max-w-[200px] truncate">
+                      <TableCell className="text-sm max-w-[300px] truncate" title={t.descricao}>
                         {t.descricao}
                       </TableCell>
                       <TableCell
-                        className={`text-right font-medium ${
+                        className={`text-right font-medium font-mono ${
                           t.tipo === "receita" ? "text-emerald-500" : "text-red-500"
                         }`}
                       >
@@ -215,17 +223,18 @@ export function FileImportDialog({ onSuccess }: FileImportDialogProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
                           onClick={() => removeTransaction(idx)}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={clearData}>

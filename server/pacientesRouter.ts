@@ -3,7 +3,7 @@
  */
 
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   pacientes,
@@ -65,6 +65,11 @@ const createProcedimentoSchema = z.object({
   lotesProdutos: z.string().optional().nullable(),
 });
 
+const updateProcedimentoSchema = createProcedimentoSchema.partial().extend({
+  id: z.number(),
+  pacienteId: z.number(),
+});
+
 const createFotoSchema = z.object({
   pacienteId: z.number(),
   procedimentoRealizadoId: z.number().optional().nullable(),
@@ -92,6 +97,11 @@ const createDocumentoSchema = z.object({
   observacoes: z.string().optional().nullable(),
 });
 
+const updateDocumentoSchema = createDocumentoSchema.partial().extend({
+  id: z.number(),
+  pacienteId: z.number(),
+});
+
 const createChatMessageSchema = z.object({
   pacienteId: z.number(),
   sessionId: z.string(),
@@ -103,6 +113,21 @@ const createChatMessageSchema = z.object({
   tokens: z.number().optional().nullable(),
   metadata: z.any().optional().nullable(),
 });
+
+const saveGeneratedChatImageSchema = z
+  .object({
+    pacienteId: z.number(),
+    chatMessageId: z.number().optional(),
+    sessionId: z.string().optional(),
+    imagemGeradaUrl: z.string().url().optional(),
+    procedimentoRealizadoId: z.number().optional().nullable(),
+    descricao: z.string().optional().nullable(),
+    areaFotografada: z.string().optional().nullable(),
+  })
+  .refine((input) => Boolean(input.imagemGeradaUrl || input.chatMessageId || input.sessionId), {
+    message: "Informe imagemGeradaUrl, chatMessageId ou sessionId",
+    path: ["imagemGeradaUrl"],
+  });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -390,6 +415,33 @@ export const pacientesRouter = router({
       return created;
     }),
 
+    update: mentoradoProcedure.input(updateProcedimentoSchema).mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+      const { id, pacienteId, dataRealizacao, ...updateData } = input;
+      const [updated] = await db
+        .update(pacientesProcedimentos)
+        .set({
+          ...updateData,
+          dataRealizacao: dataRealizacao === undefined ? undefined : new Date(dataRealizacao),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(eq(pacientesProcedimentos.id, id), eq(pacientesProcedimentos.pacienteId, pacienteId))
+        )
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Procedimento não encontrado",
+        });
+      }
+
+      return updated;
+    }),
+
     delete: mentoradoProcedure
       .input(z.object({ id: z.number(), pacienteId: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -539,6 +591,35 @@ export const pacientesRouter = router({
         })
         .returning();
       return created;
+    }),
+
+    update: mentoradoProcedure.input(updateDocumentoSchema).mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+      const { id, pacienteId, dataAssinatura, ...updateData } = input;
+      const [updated] = await db
+        .update(pacientesDocumentos)
+        .set({
+          ...updateData,
+          dataAssinatura:
+            dataAssinatura === undefined
+              ? undefined
+              : dataAssinatura
+                ? new Date(dataAssinatura)
+                : null,
+        })
+        .where(and(eq(pacientesDocumentos.id, id), eq(pacientesDocumentos.pacienteId, pacienteId)))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Documento não encontrado",
+        });
+      }
+
+      return updated;
     }),
 
     delete: mentoradoProcedure
@@ -697,11 +778,17 @@ export const pacientesRouter = router({
           .returning();
 
         // Generate AI response using Gemini
-        const aiResult = await patientChat(messages, {
-          mentoradoId: ctx.mentorado.id,
-          pacienteId: input.pacienteId,
-          patientName: patient.nomeCompleto,
-        });
+        const aiResult = await patientChat(
+          messages,
+          {
+            mentoradoId: ctx.mentorado.id,
+            pacienteId: input.pacienteId,
+            patientName: patient.nomeCompleto,
+          },
+          {
+            generateImage: true,
+          }
+        );
 
         if (!aiResult.success) {
           throw new TRPCError({
@@ -729,6 +816,82 @@ export const pacientesRouter = router({
           toolsUsed: aiResult.toolsUsed,
         };
       }),
+
+    saveGeneratedImageAsFoto: mentoradoProcedure
+      .input(saveGeneratedChatImageSchema)
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        let imageUrl = input.imagemGeradaUrl ?? null;
+        let sourceChatMessageId = input.chatMessageId ?? null;
+        let sourceSessionId = input.sessionId ?? null;
+        let sourceDescription: string | null = null;
+
+        if (!imageUrl) {
+          const conditions = [
+            eq(pacientesChatIa.pacienteId, input.pacienteId),
+            eq(pacientesChatIa.role, "assistant"),
+            isNotNull(pacientesChatIa.imagemGeradaUrl),
+          ];
+
+          if (input.chatMessageId) {
+            conditions.push(eq(pacientesChatIa.id, input.chatMessageId));
+          }
+
+          if (input.sessionId) {
+            conditions.push(eq(pacientesChatIa.sessionId, input.sessionId));
+          }
+
+          const [chatWithImage] = await db
+            .select({
+              id: pacientesChatIa.id,
+              sessionId: pacientesChatIa.sessionId,
+              imagemGeradaUrl: pacientesChatIa.imagemGeradaUrl,
+              content: pacientesChatIa.content,
+            })
+            .from(pacientesChatIa)
+            .where(and(...conditions))
+            .orderBy(desc(pacientesChatIa.createdAt))
+            .limit(1);
+
+          if (!chatWithImage?.imagemGeradaUrl) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Imagem gerada não encontrada no histórico do chat",
+            });
+          }
+
+          imageUrl = chatWithImage.imagemGeradaUrl;
+          sourceChatMessageId = chatWithImage.id;
+          sourceSessionId = chatWithImage.sessionId;
+          sourceDescription = chatWithImage.content;
+        }
+
+        const [createdFoto] = await db
+          .insert(pacientesFotos)
+          .values({
+            pacienteId: input.pacienteId,
+            procedimentoRealizadoId: input.procedimentoRealizadoId ?? null,
+            url: imageUrl,
+            thumbnailUrl: imageUrl,
+            tipo: "simulacao",
+            dataCaptura: new Date(),
+            descricao:
+              input.descricao ??
+              (sourceDescription
+                ? `Simulação IA: ${sourceDescription.slice(0, 200)}`
+                : `Simulação gerada via Chat IA${sourceSessionId ? ` (sessão ${sourceSessionId})` : ""}`),
+            areaFotografada: input.areaFotografada ?? null,
+          })
+          .returning();
+
+        return {
+          foto: createdFoto,
+          sourceChatMessageId,
+          sourceSessionId,
+        };
+      }),
   }),
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -746,7 +909,7 @@ export const pacientesRouter = router({
       const db = getDb();
       await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
 
-      // Union of procedures, photos, and documents ordered by date
+      // Union of procedures, photos, documents and chat events ordered by date
       const procedimentosResult = await db
         .select({
           id: pacientesProcedimentos.id,
@@ -778,6 +941,27 @@ export const pacientesRouter = router({
         .from(pacientesDocumentos)
         .where(eq(pacientesDocumentos.pacienteId, input.pacienteId));
 
+      const chatResult = await db
+        .select({
+          id: pacientesChatIa.id,
+          data: pacientesChatIa.createdAt,
+          titulo: sql<string>`case
+            when ${pacientesChatIa.role} = 'assistant' then 'Chat IA: Resposta'
+            when ${pacientesChatIa.role} = 'user' then 'Chat IA: Mensagem'
+            else 'Chat IA: Sistema'
+          end`,
+          descricao: pacientesChatIa.content,
+          sessionId: pacientesChatIa.sessionId,
+          origemFoto: sql<string | null>`case
+            when ${pacientesChatIa.fotoId} is not null then 'galeria'
+            when ${pacientesChatIa.imagemUrl} is not null then 'url'
+            else null
+          end`,
+          imagemGeradaUrl: pacientesChatIa.imagemGeradaUrl,
+        })
+        .from(pacientesChatIa)
+        .where(eq(pacientesChatIa.pacienteId, input.pacienteId));
+
       // Combine and sort
       const timeline = [
         ...procedimentosResult.map((p) => ({
@@ -794,6 +978,19 @@ export const pacientesRouter = router({
           ...d,
           tipo: "documento" as const,
           documentoId: d.id,
+        })),
+        ...chatResult.map((c) => ({
+          id: c.id,
+          data: c.data,
+          titulo: c.titulo,
+          descricao: c.descricao,
+          tipo: "chat" as const,
+          chatId: c.id,
+          metadata: {
+            sessionId: c.sessionId,
+            origemFoto: c.origemFoto,
+            imagemGeradaUrl: c.imagemGeradaUrl,
+          },
         })),
       ]
         .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())

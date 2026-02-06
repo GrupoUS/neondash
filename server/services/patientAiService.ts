@@ -15,6 +15,7 @@ import {
   pacientesProcedimentos,
 } from "../../drizzle/schema";
 import { defaultModel, isAIConfigured } from "../_core/aiProvider";
+import { generateImage } from "../_core/imageGeneration";
 import { getDb } from "../db";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -39,6 +40,10 @@ export interface PatientChatResult {
   toolsUsed?: string[];
   generatedImageUrl?: string | null;
   error?: string;
+}
+
+export interface PatientChatOptions {
+  generateImage?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -271,6 +276,51 @@ function createPatientTools(ctx: PatientChatContext) {
   };
 }
 
+const IMAGE_GENERATION_KEYWORDS = [
+  "simula",
+  "simulação",
+  "simulacao",
+  "simular",
+  "antes e depois",
+  "harmonização",
+  "harmonizacao",
+  "preenchimento",
+  "botox",
+];
+
+function getLatestUserMessage(messages: PatientChatMessage[]): PatientChatMessage | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.role === "user") {
+      return message;
+    }
+  }
+
+  return null;
+}
+
+function shouldGenerateSimulationImage(message: PatientChatMessage): boolean {
+  if (message.imagemUrl) {
+    return true;
+  }
+
+  const normalizedContent = message.content.toLowerCase();
+  return IMAGE_GENERATION_KEYWORDS.some((keyword) => normalizedContent.includes(keyword));
+}
+
+function buildSimulationImagePrompt(params: {
+  patientName: string;
+  userMessage: string;
+  assistantMessage: string;
+}): string {
+  return [
+    `Simulação estética para o(a) paciente ${params.patientName}.`,
+    `Pedido do profissional: ${params.userMessage}`,
+    `Direcionamento clínico da análise: ${params.assistantMessage}`,
+    "Gere uma imagem de simulação com aparência natural, iluminação clínica neutra e enquadramento facial.",
+  ].join("\n");
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN CHAT FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -280,7 +330,8 @@ function createPatientTools(ctx: PatientChatContext) {
  */
 export async function patientChat(
   messages: PatientChatMessage[],
-  context: PatientChatContext
+  context: PatientChatContext,
+  options: PatientChatOptions = {}
 ): Promise<PatientChatResult> {
   if (!isAIConfigured()) {
     return {
@@ -331,14 +382,45 @@ Use as ferramentas disponíveis para buscar informações do prontuário antes d
       maxSteps: 5, // Allow up to 5 tool calls
     });
 
-    const toolsUsed = result.steps
-      .flatMap((step) => step.toolCalls?.map((tc) => tc.toolName) ?? [])
-      .filter(Boolean);
+    const toolsUsed: string[] = result.steps
+      .flatMap((step) => step.toolCalls?.map((tc) => tc.toolName as string) ?? [])
+      .filter((toolName): toolName is string => toolName.length > 0);
+
+    const uniqueToolsUsed: string[] = Array.from(new Set(toolsUsed));
+    let generatedImageUrl: string | null = null;
+
+    if (options.generateImage !== false) {
+      const latestUserMessage = getLatestUserMessage(messages);
+
+      if (latestUserMessage && shouldGenerateSimulationImage(latestUserMessage)) {
+        try {
+          const imageResult = await generateImage({
+            prompt: buildSimulationImagePrompt({
+              patientName: context.patientName,
+              userMessage: latestUserMessage.content,
+              assistantMessage: result.text,
+            }),
+            originalImages: latestUserMessage.imagemUrl
+              ? [{ url: latestUserMessage.imagemUrl }]
+              : undefined,
+          });
+
+          generatedImageUrl = imageResult.url ?? null;
+
+          if (generatedImageUrl) {
+            uniqueToolsUsed.push("generateImage");
+          }
+        } catch {
+          generatedImageUrl = null;
+        }
+      }
+    }
 
     return {
       success: true,
       message: result.text,
-      toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
+      toolsUsed: uniqueToolsUsed.length > 0 ? uniqueToolsUsed : undefined,
+      generatedImageUrl,
     };
   } catch (error) {
     // biome-ignore lint/suspicious/noConsole: Intentional error logging for debugging

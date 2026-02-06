@@ -32,6 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useFacebookSdk } from "@/hooks/use-facebook-sdk";
 import { trpc } from "@/lib/trpc";
 import type { EmbeddedSignupResponse } from "@/types/facebook-sdk";
 
@@ -41,8 +42,6 @@ export function MetaConnectionCard() {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [error, setError] = useState<string | null>(null);
-  const [fbSdkLoaded, setFbSdkLoaded] = useState(false);
-
   // Get current Meta connection status
   const { data: connectionStatus, refetch: refetchStatus } = trpc.metaApi.getStatus.useQuery(
     undefined,
@@ -84,62 +83,23 @@ export function MetaConnectionCard() {
     }
   }, [connectionStatus]);
 
-  // Load Facebook SDK
-  useEffect(() => {
-    const META_APP_ID = import.meta.env.VITE_META_APP_ID;
-    if (!META_APP_ID) {
-      // META_APP_ID not configured - card will show disabled state
-      return;
-    }
-
-    // Check if already loaded
-    if (window.FB) {
-      setFbSdkLoaded(true);
-      return;
-    }
-
-    // Check if script already exists
-    if (document.getElementById("facebook-jssdk")) {
-      return;
-    }
-
-    // Define async init callback
-    window.fbAsyncInit = () => {
-      window.FB.init({
-        appId: META_APP_ID,
-        autoLogAppEvents: true,
-        xfbml: true,
-        version: "v21.0",
-      });
-      setFbSdkLoaded(true);
-    };
-
-    // Load SDK script
-    const script = document.createElement("script");
-    script.id = "facebook-jssdk";
-    script.src = "https://connect.facebook.net/en_US/sdk.js";
-    script.async = true;
-    script.defer = true;
-    script.crossOrigin = "anonymous";
-
-    script.onload = () => {
-      // SDK script loaded - init will be called via fbAsyncInit
-    };
-
-    script.onerror = () => {
-      // Failed to load FB SDK - user will see disabled state
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup if needed
-    };
-  }, []);
+  // Load Facebook SDK via hook
+  const {
+    isLoaded: fbSdkLoaded,
+    error: sdkError,
+    isLoading: sdkLoading,
+  } = useFacebookSdk({
+    appId: import.meta.env.VITE_META_APP_ID,
+  });
 
   // Handle Embedded Signup launch
   const handleEmbeddedSignup = useCallback(() => {
     const META_CONFIG_ID = import.meta.env.VITE_META_CONFIG_ID;
+
+    if (sdkError) {
+      setError(sdkError.message);
+      return;
+    }
 
     if (!window.FB || !fbSdkLoaded) {
       setError("Facebook SDK não carregado. Recarregue a página.");
@@ -191,7 +151,7 @@ export function MetaConnectionCard() {
         },
       }
     );
-  }, [fbSdkLoaded, configureMutation]);
+  }, [fbSdkLoaded, configureMutation, sdkError]);
 
   const handleDisconnect = () => {
     disconnectMutation.mutate();
@@ -411,10 +371,10 @@ export function MetaConnectionCard() {
                 <Button
                   size="lg"
                   onClick={handleEmbeddedSignup}
-                  disabled={!fbSdkLoaded || configureMutation.isPending}
+                  disabled={!fbSdkLoaded || configureMutation.isPending || !!sdkError}
                   className="w-full max-w-xs bg-blue-600 hover:bg-blue-700"
                 >
-                  {configureMutation.isPending ? (
+                  {configureMutation.isPending || sdkLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Smartphone className="w-4 h-4 mr-2" />
@@ -422,8 +382,14 @@ export function MetaConnectionCard() {
                   Conectar com Facebook
                 </Button>
 
-                {!fbSdkLoaded && (
+                {sdkLoading && (
                   <p className="text-xs text-muted-foreground">Carregando SDK do Facebook...</p>
+                )}
+
+                {sdkError && (
+                  <p className="text-xs text-red-500 font-medium">
+                    Erro no SDK: {sdkError.message}
+                  </p>
                 )}
               </div>
 

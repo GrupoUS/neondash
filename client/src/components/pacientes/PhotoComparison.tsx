@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Camera, Move, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, Camera, Move, RotateCcw, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,9 +27,15 @@ interface PhotoComparisonProps {
   patientId: number;
   initialBefore?: ComparisonPhoto;
   initialAfter?: ComparisonPhoto;
+  onAnalyzeWithAI?: (photo: ComparisonPhoto) => void;
 }
 
-export function PhotoComparison({ patientId, initialBefore, initialAfter }: PhotoComparisonProps) {
+export function PhotoComparison({
+  patientId,
+  initialBefore,
+  initialAfter,
+  onAnalyzeWithAI,
+}: PhotoComparisonProps) {
   const [beforePhoto, setBeforePhoto] = useState<ComparisonPhoto | null>(initialBefore ?? null);
   const [afterPhoto, setAfterPhoto] = useState<ComparisonPhoto | null>(initialAfter ?? null);
   const [sliderPosition, setSliderPosition] = useState(50);
@@ -125,9 +131,23 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
         {/* Photo Selectors */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="before-photo-select" className="text-sm font-medium">
-              Foto Antes
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="before-photo-select" className="text-sm font-medium">
+                Foto Antes
+              </label>
+              {onAnalyzeWithAI && beforePhoto && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs cursor-pointer"
+                  onClick={() => onAnalyzeWithAI(beforePhoto)}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Analisar com IA
+                </Button>
+              )}
+            </div>
             <Select
               value={beforePhoto?.id.toString() ?? ""}
               onValueChange={(v) => {
@@ -152,9 +172,23 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="after-photo-select" className="text-sm font-medium">
-              Foto Depois
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="after-photo-select" className="text-sm font-medium">
+                Foto Depois
+              </label>
+              {onAnalyzeWithAI && afterPhoto && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs cursor-pointer"
+                  onClick={() => onAnalyzeWithAI(afterPhoto)}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Analisar com IA
+                </Button>
+              )}
+            </div>
             <Select
               value={afterPhoto?.id.toString() ?? ""}
               onValueChange={(v) => {
@@ -247,17 +281,44 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
 
         {/* Manual Slider Control */}
         {beforePhoto && afterPhoto && (
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Antes</span>
-            <Slider
-              value={[sliderPosition]}
-              onValueChange={([v]) => setSliderPosition(v)}
-              min={0}
-              max={100}
-              step={1}
-              className="flex-1"
-            />
-            <span className="text-sm text-muted-foreground">Depois</span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">Antes</span>
+              <Slider
+                value={[sliderPosition]}
+                onValueChange={([v]) => setSliderPosition(v)}
+                min={0}
+                max={100}
+                step={1}
+                className="flex-1"
+              />
+              <span className="text-sm text-muted-foreground">Depois</span>
+            </div>
+
+            {onAnalyzeWithAI && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 cursor-pointer"
+                  onClick={() => onAnalyzeWithAI(beforePhoto)}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Analisar foto Antes com IA
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 cursor-pointer"
+                  onClick={() => onAnalyzeWithAI(afterPhoto)}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Analisar foto Depois com IA
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

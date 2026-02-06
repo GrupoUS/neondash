@@ -6,6 +6,7 @@ import {
   Grid3X3,
   ImagePlus,
   List,
+  Sparkles,
   X,
   ZoomIn,
 } from "lucide-react";
@@ -52,6 +53,7 @@ interface PatientPhoto {
 interface PhotoGalleryProps {
   patientId: number;
   onSelectForComparison?: (photo: PatientPhoto) => void;
+  onAnalyzeWithAI?: (photo: PatientPhoto) => void;
 }
 
 const tipoLabels: Record<TipoFoto, string> = {
@@ -68,7 +70,11 @@ const tipoColors: Record<TipoFoto, string> = {
   simulacao: "bg-purple-500",
 };
 
-export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryProps) {
+export function PhotoGallery({
+  patientId,
+  onSelectForComparison,
+  onAnalyzeWithAI,
+}: PhotoGalleryProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterTipo, setFilterTipo] = useState<"all" | TipoFoto>("all");
   const [lightboxPhoto, setLightboxPhoto] = useState<PatientPhoto | null>(null);
@@ -201,19 +207,23 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {photos.map((photo) => (
-                <button
-                  type="button"
+                <div
                   key={photo.id}
-                  className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer text-left"
-                  onClick={() => setLightboxPhoto(photo)}
+                  className="group relative aspect-square rounded-lg overflow-hidden bg-muted"
                 >
+                  <button
+                    type="button"
+                    className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    onClick={() => setLightboxPhoto(photo)}
+                    aria-label={`Abrir foto ${photo.descricao || photo.areaFotografada || photo.id}`}
+                  />
                   <img
                     src={photo.thumbnailUrl || photo.url}
                     alt={photo.descricao || "Foto do paciente"}
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                  <div className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                     <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <Badge className={`absolute top-2 left-2 text-xs ${tipoColors[photo.tipo]}`}>
@@ -227,42 +237,69 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                       {photo.areaFotografada}
                     </Badge>
                   )}
-                </button>
+                  {onAnalyzeWithAI && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="absolute bottom-2 right-2 z-20 h-7 gap-1 px-2 text-[11px] cursor-pointer"
+                      onClick={() => onAnalyzeWithAI(photo)}
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Analisar com IA
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           ) : (
             <div className="space-y-2">
               {photos.map((photo) => (
-                <button
-                  type="button"
-                  key={photo.id}
-                  className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
-                  onClick={() => setLightboxPhoto(photo)}
-                >
-                  <img
-                    src={photo.thumbnailUrl || photo.url}
-                    alt={photo.descricao || "Foto"}
-                    className="h-16 w-16 rounded object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge className={tipoColors[photo.tipo]}>{tipoLabels[photo.tipo]}</Badge>
-                      {photo.areaFotografada && (
-                        <Badge variant="outline">{photo.areaFotografada}</Badge>
+                <div key={photo.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
+                    onClick={() => setLightboxPhoto(photo)}
+                  >
+                    <img
+                      src={photo.thumbnailUrl || photo.url}
+                      alt={photo.descricao || "Foto"}
+                      className="h-16 w-16 rounded object-cover"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge className={tipoColors[photo.tipo]}>{tipoLabels[photo.tipo]}</Badge>
+                        {photo.areaFotografada && (
+                          <Badge variant="outline">{photo.areaFotografada}</Badge>
+                        )}
+                      </div>
+                      {photo.descricao && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                          {photo.descricao}
+                        </p>
                       )}
                     </div>
-                    {photo.descricao && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                        {photo.descricao}
-                      </p>
+                    {photo.dataCaptura && (
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(photo.dataCaptura).toLocaleDateString("pt-BR")}
+                      </span>
                     )}
-                  </div>
-                  {photo.dataCaptura && (
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(photo.dataCaptura).toLocaleDateString("pt-BR")}
-                    </span>
+                  </button>
+
+                  {onAnalyzeWithAI && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 gap-1 cursor-pointer"
+                      onClick={() => onAnalyzeWithAI(photo)}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Analisar com IA</span>
+                      <span className="sm:hidden">IA</span>
+                    </Button>
                   )}
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -320,20 +357,38 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                         <Badge variant="secondary">{lightboxPhoto.areaFotografada}</Badge>
                       )}
                     </div>
-                    {onSelectForComparison && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="gap-1 cursor-pointer"
-                        onClick={() => {
-                          onSelectForComparison(lightboxPhoto);
-                          setLightboxPhoto(null);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                        Usar para Comparação
-                      </Button>
-                    )}
+
+                    <div className="flex items-center gap-2">
+                      {onAnalyzeWithAI && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1 cursor-pointer"
+                          onClick={() => {
+                            onAnalyzeWithAI(lightboxPhoto);
+                            setLightboxPhoto(null);
+                          }}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Analisar com IA
+                        </Button>
+                      )}
+
+                      {onSelectForComparison && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1 cursor-pointer"
+                          onClick={() => {
+                            onSelectForComparison(lightboxPhoto);
+                            setLightboxPhoto(null);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                          Usar para Comparação
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {lightboxPhoto.descricao && (
                     <p className="text-white/80 text-sm mt-2">{lightboxPhoto.descricao}</p>

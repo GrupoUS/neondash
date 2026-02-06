@@ -277,6 +277,9 @@ function PatientDetail({ id }: { id: number }) {
   const [_editDialogOpen, setEditDialogOpen] = useState(false);
   const [_deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [, _navigate] = useLocation();
+  const [chatPhotoContext, setChatPhotoContext] = useState<{ id?: number; url: string } | null>(
+    null
+  );
 
   const { data: paciente, isLoading } = trpc.pacientes.getById.useQuery({ id });
   const utils = trpc.useUtils();
@@ -310,6 +313,11 @@ function PatientDetail({ id }: { id: number }) {
       </Card>
     );
   }
+
+  const handleAnalyzeWithAI = (photo: { id?: number; url: string }) => {
+    setChatPhotoContext(photo);
+    setActiveTab("chat");
+  };
 
   return (
     <div className="space-y-6">
@@ -476,8 +484,8 @@ function PatientDetail({ id }: { id: number }) {
 
         <NeonTabsContent value="fotos">
           <div className="space-y-6">
-            <PhotoGallery patientId={paciente.id} />
-            <PhotoComparison patientId={paciente.id} />
+            <PhotoGallery patientId={paciente.id} onAnalyzeWithAI={handleAnalyzeWithAI} />
+            <PhotoComparison patientId={paciente.id} onAnalyzeWithAI={handleAnalyzeWithAI} />
           </div>
         </NeonTabsContent>
 
@@ -486,7 +494,11 @@ function PatientDetail({ id }: { id: number }) {
         </NeonTabsContent>
 
         <NeonTabsContent value="chat">
-          <AIChatWidget patientId={paciente.id} patientName={paciente.nomeCompleto} />
+          <AIChatWidget
+            patientId={paciente.id}
+            patientName={paciente.nomeCompleto}
+            preloadedPhoto={chatPhotoContext}
+          />
         </NeonTabsContent>
       </NeonTabs>
     </div>

@@ -61,6 +61,10 @@ interface PatientPhoto {
 interface AIChatWidgetProps {
   patientId: number;
   patientName: string;
+  preloadedPhoto?: {
+    id?: number;
+    url: string;
+  } | null;
 }
 
 const messageSchema = z.object({
@@ -148,12 +152,13 @@ const QUICK_PROMPTS = [
   },
 ];
 
-export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
+export function AIChatWidget({ patientId, patientName, preloadedPhoto }: AIChatWidgetProps) {
   const [sessionId] = useState(() => crypto.randomUUID());
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUploadOpen, setImageUploadOpen] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+  const [savingGeneratedMessageId, setSavingGeneratedMessageId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -182,6 +187,22 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
     onError: (e: { message?: string }) => toast.error(e.message || "Erro ao enviar mensagem"),
   });
 
+  const saveGeneratedImageMutation = trpc.pacientes.chatIa.saveGeneratedImageAsFoto.useMutation({
+    onSuccess: async () => {
+      toast.success("Imagem gerada salva na galeria");
+      setSavingGeneratedMessageId(null);
+      await Promise.all([
+        utils.pacientes.fotos.list.invalidate({ pacienteId: patientId }),
+        utils.pacientes.fotos.getComparacoes.invalidate({ pacienteId: patientId }),
+        utils.pacientes.getById.invalidate({ id: patientId }),
+      ]);
+    },
+    onError: (e: { message?: string }) => {
+      setSavingGeneratedMessageId(null);
+      toast.error(e.message || "Erro ao salvar imagem na galeria");
+    },
+  });
+
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(messageSchema),
     defaultValues: {
@@ -200,6 +221,12 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (!preloadedPhoto?.url) return;
+    setImagePreview(preloadedPhoto.url);
+    setImageUploadOpen(false);
+  }, [preloadedPhoto?.id, preloadedPhoto?.url]);
 
   const handleSend = (values: MessageFormValues) => {
     if (!values.content.trim() && !imagePreview) return;
@@ -231,6 +258,16 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
   const handlePhotoSelect = (photo: PatientPhoto) => {
     setImagePreview(photo.url);
     setImageUploadOpen(false);
+  };
+
+  const handleSaveGeneratedImage = (message: ChatMessage) => {
+    if (!message.imagemGeradaUrl) return;
+    setSavingGeneratedMessageId(message.id);
+    saveGeneratedImageMutation.mutate({
+      pacienteId: patientId,
+      chatMessageId: message.id,
+      imagemGeradaUrl: message.imagemGeradaUrl,
+    });
   };
 
   const isLoading = generateResponseMutation.isPending;
@@ -362,11 +399,32 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
                     )}
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     {message.imagemGeradaUrl && (
-                      <div className="mt-2">
-                        <Badge variant="secondary" className="mb-2 gap-1">
-                          <Wand2 className="h-3 w-3" />
-                          Simulação Gerada
-                        </Badge>
+                      <div className="mt-3 space-y-2 rounded-md border border-border/60 bg-background/70 p-2 text-foreground">
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="secondary" className="gap-1">
+                            <Wand2 className="h-3 w-3" />
+                            Simulação Gerada
+                          </Badge>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1 px-2 text-[11px] cursor-pointer"
+                            disabled={
+                              saveGeneratedImageMutation.isPending &&
+                              savingGeneratedMessageId === message.id
+                            }
+                            onClick={() => handleSaveGeneratedImage(message)}
+                          >
+                            {saveGeneratedImageMutation.isPending &&
+                            savingGeneratedMessageId === message.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <ImagePlus className="h-3 w-3" />
+                            )}
+                            Salvar na galeria
+                          </Button>
+                        </div>
                         <img
                           src={message.imagemGeradaUrl}
                           alt="Imagem gerada pela IA"
@@ -407,6 +465,11 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
         {imagePreview && (
           <div className="px-4 py-2 border-t bg-muted/30">
             <div className="relative inline-block">
+              {preloadedPhoto?.url === imagePreview && (
+                <Badge variant="secondary" className="absolute left-1 top-1 z-10 text-[10px]">
+                  Foto selecionada para análise
+                </Badge>
+              )}
               <img src={imagePreview} alt="Preview" className="h-16 rounded border" />
               <Button
                 variant="destructive"

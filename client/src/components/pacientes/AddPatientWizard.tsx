@@ -610,12 +610,8 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
                                   <FormControl>
                                     <Textarea
                                       placeholder="Descreva as principais queixas..."
-                                      className="min-h-[150px] resize-none"
+                                      className="min-h-[120px] max-h-[120px] overflow-y-auto resize-none"
                                       {...field}
-                                      onInput={(e) => {
-                                        e.currentTarget.style.height = "auto";
-                                        e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-                                      }}
                                     />
                                   </FormControl>
                                 </FormItem>
@@ -630,12 +626,8 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
                                   <FormControl>
                                     <Textarea
                                       placeholder="Outras observações importantes..."
-                                      className="min-h-[150px] resize-none"
+                                      className="min-h-[120px] max-h-[120px] overflow-y-auto resize-none"
                                       {...field}
-                                      onInput={(e) => {
-                                        e.currentTarget.style.height = "auto";
-                                        e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-                                      }}
                                     />
                                   </FormControl>
                                 </FormItem>

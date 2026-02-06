@@ -1,5 +1,7 @@
-import { Download, FileText, Image as ImageIcon, Music2, PlayCircle, Video } from "lucide-react";
+import { Download, FileText, Image as ImageIcon, Music2, PlayCircle, Video, X } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export type MediaPreviewType = "image" | "audio" | "video" | "file";
@@ -50,7 +52,54 @@ function isVideoMime(mimeType?: string | null): boolean {
   return Boolean(mimeType?.toLowerCase().startsWith("video/"));
 }
 
+/**
+ * Image lightbox component for enlarging images
+ */
+function ImageLightbox({
+  src,
+  alt,
+  open,
+  onOpenChange,
+}: {
+  src: string;
+  alt: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl p-0 bg-black/95 border-none overflow-hidden">
+        <DialogTitle className="sr-only">{alt}</DialogTitle>
+        <div className="relative flex items-center justify-center min-h-[50vh] max-h-[90vh]">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 z-10 text-white hover:bg-white/20"
+            onClick={() => onOpenChange(false)}
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <img src={src} alt={alt} className="max-h-[90vh] max-w-full object-contain" />
+          <a
+            href={src}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-4 right-4 z-10"
+          >
+            <Button variant="secondary" size="sm" className="gap-2" aria-label="Baixar imagem">
+              <Download className="h-4 w-4" />
+              Baixar
+            </Button>
+          </a>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function MediaPreview({ media, className, compact = false }: MediaPreviewProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const hasUrl = Boolean(media.url && media.url.trim().length > 0);
   const itemLabel = media.fileName ?? "Arquivo";
   const metaText = [
@@ -69,7 +118,11 @@ export function MediaPreview({ media, className, compact = false }: MediaPreview
             src={media.url ?? undefined}
             alt={itemLabel}
             loading="lazy"
-            className={cn("w-full object-cover", compact ? "max-h-36" : "max-h-64")}
+            className={cn(
+              "w-full object-cover cursor-pointer hover:opacity-90 transition-opacity",
+              compact ? "max-h-36" : "max-h-64"
+            )}
+            onClick={() => setLightboxOpen(true)}
           />
         </div>
 
@@ -90,6 +143,13 @@ export function MediaPreview({ media, className, compact = false }: MediaPreview
             </Button>
           ) : null}
         </div>
+
+        <ImageLightbox
+          src={media.url ?? ""}
+          alt={itemLabel}
+          open={lightboxOpen}
+          onOpenChange={setLightboxOpen}
+        />
       </div>
     );
   }

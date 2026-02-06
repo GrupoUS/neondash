@@ -362,8 +362,8 @@ export function SubmitMetricsForm({
       if (onSuccess) {
         onSuccess();
       } else {
-        // Default: redirect to metrics page after successful submission
-        navigate("/metricas");
+        // Default: redirect to dashboard after successful submission
+        navigate("/dashboard");
       }
     },
     onError: (error) => {

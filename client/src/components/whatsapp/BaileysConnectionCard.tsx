@@ -11,6 +11,7 @@ import {
   Wifi,
   XCircle,
 } from "lucide-react";
+import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ type ConnectionStatus = "disconnected" | "connecting" | "connected";
 export function BaileysConnectionCard() {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
+  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
 
   // Get current connection status
   const { data: connectionStatus, refetch: refetchStatus } = trpc.baileys.getStatus.useQuery(
@@ -54,9 +56,28 @@ export function BaileysConnectionCard() {
   const connectMutation = trpc.baileys.connect.useMutation({
     onSuccess: () => {
       setStatus("connecting");
+      setQrImageUrl(null); // Reset QR image
       refetchQr();
     },
   });
+
+  // Convert raw QR string to data URL image
+  useEffect(() => {
+    const rawQr = qrData?.qr || connectionStatus?.qr;
+    if (rawQr && status === "connecting") {
+      // If already a data URL, use directly
+      if (rawQr.startsWith("data:")) {
+        setQrImageUrl(rawQr);
+        return;
+      }
+      // Otherwise, convert using qrcode library
+      QRCode.toDataURL(rawQr, { width: 256, margin: 2 })
+        .then((url) => setQrImageUrl(url))
+        .catch(() => setQrImageUrl(null));
+    } else {
+      setQrImageUrl(null);
+    }
+  }, [qrData?.qr, connectionStatus?.qr, status]);
 
   const disconnectMutation = trpc.baileys.disconnect.useMutation({
     onSuccess: () => {
@@ -224,16 +245,8 @@ export function BaileysConnectionCard() {
                 <div className="relative p-4 bg-white rounded-xl shadow-inner border min-h-[200px] flex items-center justify-center">
                   {isLoadingQr ? (
                     <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                  ) : qrData?.qr || connectionStatus?.qr ? (
-                    <img
-                      src={
-                        (qrData?.qr || connectionStatus?.qr)?.startsWith("data:")
-                          ? qrData?.qr || connectionStatus?.qr
-                          : `data:image/png;base64,${qrData?.qr || connectionStatus?.qr}`
-                      }
-                      alt="QR Code"
-                      className="w-48 h-48"
-                    />
+                  ) : qrImageUrl ? (
+                    <img src={qrImageUrl} alt="QR Code" className="w-48 h-48" />
                   ) : (
                     <div className="text-center text-muted-foreground">
                       <QrCode className="w-12 h-12 mx-auto mb-2 opacity-50" />

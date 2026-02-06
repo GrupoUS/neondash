@@ -439,7 +439,7 @@ export const leadsRouter = router({
     .input(
       z.object({
         periodo: z.enum(["7d", "30d", "90d"]).optional(),
-        mentoradoId: z.number().optional(),
+        mentoradoId: z.number().nullish(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -450,6 +450,21 @@ export const leadsRouter = router({
         if (ctx.user?.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         targetMentoradoId = input.mentoradoId;
       }
+      if (!targetMentoradoId && input.mentoradoId === undefined && ctx.user?.role === "admin") {
+        // If admin and didn't select, maybe allow all? No, logical error.
+        // Actually if input.mentoradoId is null (passed explicitly) or undefined, and ctx.mentorado is null (admin without profile)
+        // we might need to handle it.
+        // Current logic: defaults to ctx.mentorado.id.
+        // If input.mentoradoId is provided (truthy), use it.
+        // If input.mentoradoId is 0 or null, it's falsey.
+      }
+
+      // Fix: correct logic for optional/nullish
+      if (input.mentoradoId != null) {
+        if (ctx.user?.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        targetMentoradoId = input.mentoradoId;
+      }
+
       if (!targetMentoradoId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
       // Calculate date filter based on periodo

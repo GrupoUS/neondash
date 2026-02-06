@@ -131,7 +131,10 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
         )
       : undefined;
 
-    const anosEsteticaNumber = values.anosEstetica ? parseInt(values.anosEstetica, 10) : undefined;
+    const anosEsteticaNumber =
+      values.anosEstetica && !Number.isNaN(parseInt(values.anosEstetica, 10))
+        ? parseInt(values.anosEstetica, 10)
+        : undefined;
 
     // Normalize phone to 55+digits format for WhatsApp compatibility
     const normalizedTelefone = values.telefone
@@ -147,21 +150,21 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
       valorEstimado: valorEstimadoCents,
       indicadoPor: values.indicadoPor,
       profissao: values.profissao,
-      produtoInteresse: values.produtoInteresse,
-      possuiClinica: values.possuiClinica,
+      produtoInteresse: values.produtoInteresse || undefined,
+      possuiClinica: values.possuiClinica || undefined,
       anosEstetica: anosEsteticaNumber,
-      faturamentoMensal: values.faturamentoMensal,
-      dorPrincipal: values.dorPrincipal,
-      desejoPrincipal: values.desejoPrincipal,
-      temperatura: values.temperatura,
+      faturamentoMensal: values.faturamentoMensal || undefined,
+      dorPrincipal: values.dorPrincipal || undefined,
+      desejoPrincipal: values.desejoPrincipal || undefined,
+      temperatura: values.temperatura || undefined,
       // Aesthetic Fields
       dataNascimento: values.dataNascimento || undefined,
-      genero: values.genero,
+      genero: values.genero || undefined,
       procedimentosInteresse: values.procedimentosInteresse,
-      historicoEstetico: values.historicoEstetico,
-      alergias: values.alergias,
-      tipoPele: values.tipoPele,
-      disponibilidade: values.disponibilidade,
+      historicoEstetico: values.historicoEstetico || undefined,
+      alergias: values.alergias || undefined,
+      tipoPele: values.tipoPele || undefined,
+      disponibilidade: values.disponibilidade || undefined,
     });
   };
 
@@ -489,6 +492,58 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
                       <FormLabel>Valor Proposta (R$)</FormLabel>
                       <FormControl>
                         <Input placeholder="0,00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="possuiClinica"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Possui Clínica?</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="sim">Sim</SelectItem>
+                          <SelectItem value="nao">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="anosEstetica"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Anos na Estética</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Ex: 5" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="faturamentoMensal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Faturamento Mensal</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: 10k - 15k" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -4,6 +4,7 @@ import {
   BarChart3,
   BriefcaseBusiness,
   CalendarRange,
+  HeartPulse,
   MessageCircle,
   Moon,
   Settings2,
@@ -11,6 +12,7 @@ import {
   TrendingUp,
   UsersRound,
 } from "lucide-react";
+
 import type React from "react";
 import { useState } from "react";
 import { Link, Redirect, useLocation } from "wouter";
@@ -59,6 +61,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/meu-dashboard", label: "Meu Dashboard", icon: BarChart3 },
     { href: "/agenda", label: "Agenda", icon: CalendarRange },
     { href: "/crm/leads", label: "CRM", icon: BriefcaseBusiness },
+    { href: "/pacientes", label: "Pacientes", icon: HeartPulse },
+
     { href: "/financeiro", label: "Financeiro", icon: TrendingUp },
     { href: "/chat", label: "Chat WhatsApp", icon: MessageCircle },
     { href: "/marketing", label: "Marketing", icon: TrendingUp },

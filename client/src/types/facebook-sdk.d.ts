@@ -42,6 +42,7 @@ declare global {
   interface Window {
     fbAsyncInit: () => void;
     checkLoginState: () => void;
+    checkFacebookAdsLoginState?: () => void;
     FB: {
       init: (params: { appId: string; cookie: boolean; xfbml: boolean; version: string }) => void;
       getLoginStatus: (callback: (response: FacebookLoginStatusResponse) => void) => void;

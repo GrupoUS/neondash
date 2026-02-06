@@ -5,6 +5,7 @@ import { aiAssistantRouter } from "./aiAssistantRouter";
 import { atividadesRouter } from "./atividadesRouter";
 import { crmColumnsRouter } from "./crmColumnsRouter";
 import { diagnosticoRouter } from "./diagnostico";
+import { facebookAdsRouter } from "./facebookAdsRouter";
 import { financeiroRouter } from "./financeiroRouter";
 import { gamificacaoRouter } from "./gamificacaoRouter";
 import { instagramRouter } from "./instagramRouter";
@@ -13,6 +14,7 @@ import { interactionTemplatesRouter } from "./interactionTemplatesRouter";
 import { leadsRouter } from "./leadsRouter";
 import { marketingRouter } from "./marketingRouter";
 import { mentoradosRouter } from "./mentoradosRouter";
+import { metaApiRouter } from "./metaApiRouter";
 import { notificationsRouter } from "./notificationsRouter";
 import { pacientesRouter } from "./pacientesRouter";
 import { precificacaoRouter } from "./precificacaoRouter";
@@ -45,6 +47,7 @@ export const appRouter = router({
   calendar: calendarRouter,
   crmColumns: crmColumnsRouter,
   zapi: zapiRouter,
+  metaApi: metaApiRouter,
   aiAgent: aiAgentRouter,
   instagram: instagramRouter,
   admin: adminRouter,
@@ -55,6 +58,7 @@ export const appRouter = router({
   precificacao: precificacaoRouter,
   marketing: marketingRouter,
   pacientes: pacientesRouter,
+  facebookAds: facebookAdsRouter,
 });
 
 export type AppRouter = typeof appRouter;

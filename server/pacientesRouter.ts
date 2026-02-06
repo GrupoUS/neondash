@@ -15,6 +15,7 @@ import {
 } from "../drizzle/schema";
 import { mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import { patientChat } from "./services/patientAiService";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INPUT SCHEMAS
@@ -626,6 +627,107 @@ export const pacientesRouter = router({
           );
 
         return { success: true };
+      }),
+
+    // AI Response Generation using Gemini
+    generateResponse: mentoradoProcedure
+      .input(
+        z.object({
+          pacienteId: z.number(),
+          sessionId: z.string(),
+          userMessage: z.string().min(1),
+          imagemUrl: z.string().url().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        // Get patient name for context
+        const [patient] = await db
+          .select({ nomeCompleto: pacientes.nomeCompleto })
+          .from(pacientes)
+          .where(eq(pacientes.id, input.pacienteId))
+          .limit(1);
+
+        if (!patient) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Paciente não encontrado" });
+        }
+
+        // Get chat history for context
+        const history = await db
+          .select({
+            role: pacientesChatIa.role,
+            content: pacientesChatIa.content,
+            imagemUrl: pacientesChatIa.imagemUrl,
+          })
+          .from(pacientesChatIa)
+          .where(
+            and(
+              eq(pacientesChatIa.pacienteId, input.pacienteId),
+              eq(pacientesChatIa.sessionId, input.sessionId)
+            )
+          )
+          .orderBy(pacientesChatIa.createdAt);
+
+        // Add user message to history
+        const messages = [
+          ...history.map((m) => ({
+            role: m.role as "user" | "assistant" | "system",
+            content: m.content,
+            imagemUrl: m.imagemUrl,
+          })),
+          {
+            role: "user" as const,
+            content: input.userMessage,
+            imagemUrl: input.imagemUrl,
+          },
+        ];
+
+        // Save user message
+        const [userMsg] = await db
+          .insert(pacientesChatIa)
+          .values({
+            pacienteId: input.pacienteId,
+            sessionId: input.sessionId,
+            role: "user",
+            content: input.userMessage,
+            imagemUrl: input.imagemUrl || null,
+          })
+          .returning();
+
+        // Generate AI response using Gemini
+        const aiResult = await patientChat(messages, {
+          mentoradoId: ctx.mentorado.id,
+          pacienteId: input.pacienteId,
+          patientName: patient.nomeCompleto,
+        });
+
+        if (!aiResult.success) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: aiResult.error || "Erro ao gerar resposta da IA",
+          });
+        }
+
+        // Save AI response
+        const [aiMsg] = await db
+          .insert(pacientesChatIa)
+          .values({
+            pacienteId: input.pacienteId,
+            sessionId: input.sessionId,
+            role: "assistant",
+            content: aiResult.message,
+            imagemGeradaUrl: aiResult.generatedImageUrl || null,
+            metadata: aiResult.toolsUsed ? { toolsUsed: aiResult.toolsUsed } : null,
+          })
+          .returning();
+
+        return {
+          userMessage: userMsg,
+          aiResponse: aiMsg,
+          toolsUsed: aiResult.toolsUsed,
+        };
       }),
   }),
 

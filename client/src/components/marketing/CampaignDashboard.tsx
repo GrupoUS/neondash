@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Clock,
   Instagram,
+  Loader2,
   MessageSquare,
   MoreHorizontal,
   Pause,
@@ -18,15 +19,27 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   NeonCard,
   NeonCardContent,
@@ -34,7 +47,15 @@ import {
   NeonCardTitle,
 } from "@/components/ui/neon-card";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
@@ -247,9 +268,51 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 
 // Main Component
 export function CampaignDashboard() {
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignPlatform, setCampaignPlatform] = useState<"whatsapp" | "instagram" | "both">(
+    "whatsapp"
+  );
+  const [campaignDescription, setCampaignDescription] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
   // Fetch WhatsApp campaigns
-  const { data: whatsappCampaigns, isLoading: isLoadingCampaigns } =
-    trpc.zapi.listCampaigns.useQuery();
+  const {
+    data: whatsappCampaigns,
+    isLoading: isLoadingCampaigns,
+    refetch,
+  } = trpc.zapi.listCampaigns.useQuery();
+
+  // Create campaign mutation
+  const createCampaign = trpc.marketing.createCampaign.useMutation({
+    onSuccess: () => {
+      toast.success("Campanha criada com sucesso!");
+      setIsDialogOpen(false);
+      setCampaignName("");
+      setCampaignDescription("");
+      setIsCreating(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`Erro ao criar campanha: ${error.message}`);
+      setIsCreating(false);
+    },
+  });
+
+  // Handle create campaign
+  const handleCreateCampaign = async () => {
+    if (!campaignName.trim()) {
+      toast.error("Digite um nome para a campanha");
+      return;
+    }
+    setIsCreating(true);
+    await createCampaign.mutateAsync({
+      name: campaignName,
+      platform: campaignPlatform,
+      description: campaignDescription || undefined,
+    });
+  };
 
   // Mock stats (TODO: create aggregate endpoint)
   const stats: CampaignStats = {
@@ -315,7 +378,7 @@ export function CampaignDashboard() {
       <NeonCard>
         <NeonCardHeader className="flex flex-row items-center justify-between">
           <NeonCardTitle className="text-xl">Campanhas Recentes</NeonCardTitle>
-          <Button className="gap-2" size="sm">
+          <Button className="gap-2" size="sm" onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Nova Campanha
           </Button>
@@ -337,7 +400,7 @@ export function CampaignDashboard() {
                 Crie sua primeira campanha de WhatsApp ou Instagram para começar a engajar seus
                 leads.
               </p>
-              <Button className="gap-2">
+              <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Criar Primeira Campanha
               </Button>
@@ -353,6 +416,85 @@ export function CampaignDashboard() {
           )}
         </NeonCardContent>
       </NeonCard>
+
+      {/* Create Campaign Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Nova Campanha</DialogTitle>
+            <DialogDescription>
+              Crie uma nova campanha de marketing para engajar seus leads.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="campaign-name">Nome da Campanha *</Label>
+              <Input
+                id="campaign-name"
+                placeholder="Ex: Promoção de Verão"
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="campaign-platform">Plataforma</Label>
+              <Select
+                value={campaignPlatform}
+                onValueChange={(v) => setCampaignPlatform(v as typeof campaignPlatform)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a plataforma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whatsapp">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-green-600" />
+                      WhatsApp
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="instagram">
+                    <div className="flex items-center gap-2">
+                      <Instagram className="h-4 w-4 text-pink-600" />
+                      Instagram
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="both">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-600" />
+                      Ambos
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="campaign-description">Descrição (opcional)</Label>
+              <Textarea
+                id="campaign-description"
+                placeholder="Descreva o objetivo da campanha..."
+                value={campaignDescription}
+                onChange={(e) => setCampaignDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isCreating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateCampaign} disabled={isCreating || !campaignName.trim()}>
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                "Criar Campanha"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

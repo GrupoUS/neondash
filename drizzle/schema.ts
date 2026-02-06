@@ -154,6 +154,13 @@ export const mentorados = pgTable(
     zapiInstanceDueDate: timestamp("zapi_instance_due_date"), // Trial expiry or next billing date
     zapiInstanceCreatedAt: timestamp("zapi_instance_created_at"), // When instance was provisioned
     zapiManagedByIntegrator: simNaoEnum("zapi_managed_by_integrator").default("nao"), // Distinguishes managed vs legacy
+    // Meta WhatsApp Cloud API Integration
+    metaWabaId: varchar("meta_waba_id", { length: 128 }),
+    metaPhoneNumberId: varchar("meta_phone_number_id", { length: 128 }),
+    metaAccessToken: text("meta_access_token"), // Encrypted - Permanent System User Access Token
+    metaConnected: simNaoEnum("meta_connected").default("nao"),
+    metaConnectedAt: timestamp("meta_connected_at"),
+    metaPhoneNumber: varchar("meta_phone_number", { length: 20 }),
     // Instagram Integration
     instagramConnected: simNaoEnum("instagram_connected").default("nao"),
     instagramBusinessAccountId: varchar("instagram_business_account_id", { length: 100 }),
@@ -986,6 +993,136 @@ export const instagramSyncLog = pgTable(
 
 export type InstagramSyncLog = typeof instagramSyncLog.$inferSelect;
 export type InsertInstagramSyncLog = typeof instagramSyncLog.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FACEBOOK ADS INTEGRATION TABLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Facebook Ads Tokens - OAuth tokens for Facebook Marketing API integration
+ * Modeled after instagramTokens for consistency
+ */
+export const facebookAdsTokens = pgTable(
+  "facebook_ads_tokens",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" })
+      .unique(),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token"),
+    expiresAt: timestamp("expires_at").notNull(),
+    scope: text("scope").notNull(),
+    adAccountId: varchar("ad_account_id", { length: 100 }), // act_XXXXX
+    adAccountName: varchar("ad_account_name", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("facebook_ads_tokens_mentorado_idx").on(table.mentoradoId),
+    index("facebook_ads_tokens_expires_idx").on(table.expiresAt),
+  ]
+);
+
+export type FacebookAdsToken = typeof facebookAdsTokens.$inferSelect;
+export type InsertFacebookAdsToken = typeof facebookAdsTokens.$inferInsert;
+
+/**
+ * Facebook Ad Accounts - Stores linked ad accounts per mentorado
+ * A mentorado may have access to multiple ad accounts
+ */
+export const facebookAdAccounts = pgTable(
+  "facebook_ad_accounts",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    adAccountId: varchar("ad_account_id", { length: 100 }).notNull(), // act_XXXXX
+    accountName: varchar("account_name", { length: 255 }),
+    currency: varchar("currency", { length: 10 }).default("BRL"),
+    timezone: varchar("timezone", { length: 50 }).default("America/Sao_Paulo"),
+    isActive: simNaoEnum("is_active").default("sim").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("facebook_ad_accounts_unique_idx").on(table.mentoradoId, table.adAccountId),
+    index("facebook_ad_accounts_mentorado_idx").on(table.mentoradoId),
+  ]
+);
+
+export type FacebookAdAccount = typeof facebookAdAccounts.$inferSelect;
+export type InsertFacebookAdAccount = typeof facebookAdAccounts.$inferInsert;
+
+/**
+ * Facebook Ads Sync Log - Tracks sync history for Facebook Marketing API
+ */
+export const facebookAdsSyncLog = pgTable(
+  "facebook_ads_sync_log",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    ano: integer("ano").notNull(),
+    mes: integer("mes").notNull(),
+    campaignsCount: integer("campaigns_count").notNull().default(0),
+    syncStatus: syncStatusEnum("sync_status").notNull(),
+    errorMessage: text("error_message"),
+    syncedAt: timestamp("synced_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("facebook_ads_sync_mentorado_periodo_idx").on(table.mentoradoId, table.ano, table.mes),
+    index("facebook_ads_sync_mentorado_idx").on(table.mentoradoId),
+    index("facebook_ads_sync_periodo_idx").on(table.ano, table.mes),
+    index("facebook_ads_sync_status_idx").on(table.syncStatus),
+  ]
+);
+
+export type FacebookAdsSyncLog = typeof facebookAdsSyncLog.$inferSelect;
+export type InsertFacebookAdsSyncLog = typeof facebookAdsSyncLog.$inferInsert;
+
+/**
+ * Facebook Ads Insights - Monthly aggregated metrics from Facebook Marketing API
+ * Stores key advertising metrics for performance tracking
+ */
+export const facebookAdsInsights = pgTable(
+  "facebook_ads_insights",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    adAccountId: varchar("ad_account_id", { length: 100 }).notNull(),
+    ano: integer("ano").notNull(),
+    mes: integer("mes").notNull(),
+    // Core Metrics (stored as integers, amounts in centavos)
+    impressions: integer("impressions").notNull().default(0),
+    clicks: integer("clicks").notNull().default(0),
+    spend: integer("spend").notNull().default(0), // in centavos (BRL)
+    reach: integer("reach").notNull().default(0),
+    // Calculated Metrics (stored for quick access)
+    cpm: integer("cpm").default(0), // Cost per 1000 impressions (centavos)
+    cpc: integer("cpc").default(0), // Cost per click (centavos)
+    ctr: integer("ctr").default(0), // CTR * 10000 for precision (e.g., 1.5% = 150)
+    // Conversion Metrics
+    conversions: integer("conversions").default(0),
+    conversionValue: integer("conversion_value").default(0), // in centavos
+    costPerConversion: integer("cost_per_conversion").default(0), // in centavos
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("facebook_ads_insights_unique_idx").on(table.mentoradoId, table.adAccountId, table.ano, table.mes),
+    index("facebook_ads_insights_mentorado_idx").on(table.mentoradoId),
+    index("facebook_ads_insights_periodo_idx").on(table.ano, table.mes),
+  ]
+);
+
+export type FacebookAdsInsight = typeof facebookAdsInsights.$inferSelect;
+export type InsertFacebookAdsInsight = typeof facebookAdsInsights.$inferInsert;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CALL NOTES TABLE

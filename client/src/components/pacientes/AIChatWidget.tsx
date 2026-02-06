@@ -172,16 +172,12 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
     { staleTime: 30_000 }
   );
 
-  const sendMessageMutation = trpc.pacientes.chatIa.addMessage.useMutation({
+  // Generate AI response mutation (saves user message, generates AI response, saves AI response)
+  const generateResponseMutation = trpc.pacientes.chatIa.generateResponse.useMutation({
     onSuccess: () => {
       form.reset();
       setImagePreview(null);
       utils.pacientes.chatIa.getSession.invalidate({ pacienteId: patientId, sessionId });
-
-      // Simulate AI response after user message (placeholder for real AI integration)
-      setTimeout(() => {
-        simulateAIResponse();
-      }, 1500);
     },
     onError: (e: { message?: string }) => toast.error(e.message || "Erro ao enviar mensagem"),
   });
@@ -207,11 +203,10 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
   const handleSend = (values: MessageFormValues) => {
     if (!values.content.trim() && !imagePreview) return;
 
-    sendMessageMutation.mutate({
+    generateResponseMutation.mutate({
       pacienteId: patientId,
       sessionId,
-      role: "user",
-      content: values.content,
+      userMessage: values.content,
       imagemUrl: imagePreview || undefined,
     });
   };
@@ -237,27 +232,7 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
     setImageUploadOpen(false);
   };
 
-  // Simulated AI response - in production this would call a real AI service
-  const simulateAIResponse = () => {
-    const simulatedResponses = [
-      "Analisando o histórico do paciente... Com base nos procedimentos anteriores, recomendo avaliar uma sessão de bioestimulador para complementar os resultados obtidos.",
-      "Baseado nas fotos anexadas, observo uma boa evolução do tratamento. A área tratada apresenta melhora significativa na textura e firmeza.",
-      "Para este perfil de paciente, sugiro um protocolo combinado de toxina botulínica + ácido hialurônico para resultados mais naturais e duradouros.",
-    ];
-
-    const randomResponse =
-      simulatedResponses[Math.floor(Math.random() * simulatedResponses.length)];
-
-    // Add simulated response to chat
-    sendMessageMutation.mutate({
-      pacienteId: patientId,
-      sessionId,
-      role: "assistant",
-      content: randomResponse,
-    });
-  };
-
-  const isLoading = sendMessageMutation.isPending;
+  const isLoading = generateResponseMutation.isPending;
 
   return (
     <Card className="border-primary/10 flex flex-col h-[600px]">

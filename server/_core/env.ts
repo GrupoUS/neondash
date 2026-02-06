@@ -29,6 +29,12 @@ export const ENV = {
   instagramRedirectUri:
     process.env.INSTAGRAM_REDIRECT_URI ?? "http://localhost:3000/api/instagram/callback",
 
+  // Facebook Marketing API OAuth (optional, for Ads insights sync)
+  facebookAdsAppId: process.env.FACEBOOK_ADS_APP_ID,
+  facebookAdsAppSecret: process.env.FACEBOOK_ADS_APP_SECRET,
+  facebookAdsRedirectUri:
+    process.env.FACEBOOK_ADS_REDIRECT_URI ?? "http://localhost:3000/api/facebook-ads/callback",
+
   // Resend Email API (optional, for email notifications)
   resendApiKey: process.env.RESEND_API_KEY,
   resendFromEmail: process.env.RESEND_FROM_EMAIL ?? "Neon Dashboard <noreply@neondash.com>",

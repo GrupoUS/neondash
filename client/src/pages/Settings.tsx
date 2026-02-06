@@ -10,6 +10,7 @@ import { MarketingAgentSettingsCard } from "@/components/settings/MarketingAgent
 import { SdrAgentSettingsCard } from "@/components/settings/SdrAgentSettingsCard";
 import { Separator } from "@/components/ui/separator";
 import { AIAgentSettingsCard } from "@/components/whatsapp/AIAgentSettingsCard";
+import { MetaConnectionCard } from "@/components/whatsapp/MetaConnectionCard";
 import { WhatsAppConnectionCard } from "@/components/whatsapp/WhatsAppConnectionCard";
 
 export function SettingsPage() {
@@ -38,9 +39,13 @@ export function SettingsPage() {
             <h2 className="text-xl font-semibold">Integração WhatsApp</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Conecte sua conta WhatsApp via Z-API para enviar e receber mensagens diretamente do CRM.
+            Conecte sua conta WhatsApp para enviar e receber mensagens diretamente do CRM. Escolha
+            entre Z-API (QR Code) ou Meta Cloud API (recomendado).
           </p>
-          <WhatsAppConnectionCard />
+          <div className="grid gap-4 md:grid-cols-2">
+            <MetaConnectionCard />
+            <WhatsAppConnectionCard />
+          </div>
         </section>
 
         <Separator />

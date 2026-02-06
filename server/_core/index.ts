@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
 import { appRouter } from "../routers";
 import { handleClerkWebhook } from "../webhooks/clerk";
+import { registerMetaWebhooks } from "../webhooks/metaWebhook";
 import { registerZapiWebhooks } from "../webhooks/zapiWebhook";
 import { createContext } from "./context";
 import { userRateLimiter } from "./rateLimiter";
@@ -57,6 +58,11 @@ async function startServer() {
   // Z-API Webhooks (for WhatsApp integration)
   // ─────────────────────────────────────────────────────────────────────────
   registerZapiWebhooks(app);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Meta WhatsApp Cloud API Webhooks
+  // ─────────────────────────────────────────────────────────────────────────
+  registerMetaWebhooks(app);
 
   // Clerk middleware (must be before tRPC if using auth middleware in procedures, but usually globally applied)
   app.use(clerkMiddleware());

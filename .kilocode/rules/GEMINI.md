@@ -204,7 +204,8 @@ const mutate = useMutation((api as any).leads.updateStatus);
 ### Stack
 
 - [ ] `bun run check` passes?
-- [ ] `bun test` passes?
+- [ ] `bun run lint:check` passes? (Biome)
+- [ ] `bun run test` passes? (Vitest)
 - [ ] No console errors in browser?
 
 ---
@@ -255,15 +256,21 @@ neondash/
 | Backend  | Express + tRPC 11             |
 | Database | Neon PostgreSQL + Drizzle ORM |
 | Auth     | Clerk                         |
+| Linter   | Biome                         |
+| Tests    | Vitest                        |
 
 ---
 
 ## 🚀 Commands
 
 ```bash
-bun dev           # Dev server
-bun run check     # Lint + type check
-bun run format    # Prettier
-bun test          # Vitest
-bun run db:push   # Drizzle migrations
+bun dev             # Dev server
+bun run check       # TypeScript type check
+bun run lint        # Biome lint + format (auto-fix)
+bun run lint:check  # Biome lint + format (check only)
+bun run format      # Biome format only
+bun run test        # Vitest run
+bun run test:watch  # Vitest watch mode
+bun run db:push     # Drizzle migrations
 ```
+

@@ -61,6 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/crm/leads", label: "CRM", icon: BriefcaseBusiness },
     { href: "/financeiro", label: "Financeiro", icon: TrendingUp },
     { href: "/chat", label: "Chat WhatsApp", icon: MessageCircle },
+    { href: "/marketing", label: "Marketing", icon: TrendingUp },
     { href: "/configuracoes", label: "Configurações", icon: Settings2 },
     {
       href: "/admin/mentorados",

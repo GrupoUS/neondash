@@ -14,6 +14,7 @@ import { leadsRouter } from "./leadsRouter";
 import { marketingRouter } from "./marketingRouter";
 import { mentoradosRouter } from "./mentoradosRouter";
 import { notificationsRouter } from "./notificationsRouter";
+import { pacientesRouter } from "./pacientesRouter";
 import { precificacaoRouter } from "./precificacaoRouter";
 import { adminRouter } from "./routers/admin";
 import { authRouter } from "./routers/auth";
@@ -53,6 +54,7 @@ export const appRouter = router({
   financeiro: financeiroRouter,
   precificacao: precificacaoRouter,
   marketing: marketingRouter,
+  pacientes: pacientesRouter,
 });
 
 export type AppRouter = typeof appRouter;

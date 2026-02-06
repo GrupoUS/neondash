@@ -940,4 +940,145 @@ export const zapiRouter = router({
         message: "Instância cancelada. Permanece ativa até o fim do período.",
       };
     }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WHATSAPP CAMPAIGNS
+  // For bulk messaging via Z-API with rate limiting
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Create a new WhatsApp campaign
+   */
+  createCampaign: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).max(255),
+        message: z.string().min(1),
+        targetFilter: z
+          .object({
+            status: z.array(z.string()).optional(),
+            tags: z.array(z.string()).optional(),
+            lastInteractionDaysAgo: z.number().optional(),
+            source: z.array(z.string()).optional(),
+          })
+          .optional(),
+        mediaUrl: z.string().url().optional(),
+        scheduledFor: z.string().datetime().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      // Dynamic import to avoid circular dependencies
+      const { createCampaign } = await import("./services/whatsappCampaignService");
+
+      const campaign = await createCampaign(
+        mentorado.id,
+        input.name,
+        input.message,
+        input.targetFilter as import("./services/whatsappCampaignService").SegmentationFilters,
+        input.mediaUrl,
+        input.scheduledFor ? new Date(input.scheduledFor) : undefined
+      );
+
+      return { success: true, campaignId: campaign.id };
+    }),
+
+  /**
+   * Send a WhatsApp campaign
+   */
+  sendCampaign: protectedProcedure
+    .input(z.object({ campaignId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const credentials = buildCredentials(mentorado);
+      if (!credentials) {
+        throw new Error("Z-API não configurado");
+      }
+
+      // Dynamic imports
+      const { sendCampaign, getCampaign, getContactsFromSegmentation, getAllContacts } =
+        await import("./services/whatsappCampaignService");
+
+      // Get campaign and determine target contacts
+      const campaign = await getCampaign(input.campaignId);
+      if (!campaign) {
+        throw new Error("Campanha não encontrada");
+      }
+
+      // Get contacts based on filter or all
+      const targetContacts = campaign.targetFilter
+        ? await getContactsFromSegmentation(
+            mentorado.id,
+            campaign.targetFilter as import("./services/whatsappCampaignService").SegmentationFilters
+          )
+        : await getAllContacts(mentorado.id);
+
+      const result = await sendCampaign(input.campaignId, credentials, targetContacts);
+
+      return {
+        success: result.success,
+        sent: result.sent,
+        failed: result.failed,
+        total: result.totalContacts,
+      };
+    }),
+
+  /**
+   * List WhatsApp campaigns
+   */
+  listCampaigns: protectedProcedure.query(async ({ ctx }) => {
+    const mentorado = await getMentoradoWithZapi(ctx.user.id);
+    if (!mentorado) {
+      return [];
+    }
+
+    const { getCampaigns } = await import("./services/whatsappCampaignService");
+    return getCampaigns(mentorado.id);
+  }),
+
+  /**
+   * Get campaign statistics
+   */
+  getCampaignStats: protectedProcedure
+    .input(z.object({ campaignId: z.number() }))
+    .query(async ({ input }) => {
+      const { getCampaignStats } = await import("./services/whatsappCampaignService");
+      return getCampaignStats(input.campaignId);
+    }),
+
+  /**
+   * Count contacts matching segmentation filter
+   */
+  countSegmentedContacts: protectedProcedure
+    .input(
+      z.object({
+        filters: z.object({
+          status: z.array(z.string()).optional(),
+          tags: z.array(z.string()).optional(),
+          lastInteractionDaysAgo: z.number().optional(),
+          source: z.array(z.string()).optional(),
+        }),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        return { count: 0 };
+      }
+
+      const { countSegmentedContacts } = await import("./services/whatsappCampaignService");
+      const count = await countSegmentedContacts(
+        mentorado.id,
+        input.filters as import("./services/whatsappCampaignService").SegmentationFilters
+      );
+      return { count };
+    }),
 });

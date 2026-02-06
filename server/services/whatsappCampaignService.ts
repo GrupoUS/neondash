@@ -8,7 +8,7 @@
  */
 
 import { and, eq, gte, inArray } from "drizzle-orm";
-import { type leadStatusEnum, leads } from "../../drizzle/schema";
+import { leads, type statusLeadEnum } from "../../drizzle/schema";
 import {
   type WhatsAppCampaign,
   whatsappCampaignMessages,
@@ -62,7 +62,7 @@ export interface CampaignSendResult {
 }
 
 export interface SegmentationFilters {
-  status?: (typeof leadStatusEnum.enumValues)[number][];
+  status?: (typeof statusLeadEnum.enumValues)[number][];
   tags?: string[];
   lastInteractionDaysAgo?: number;
   source?: string[];
@@ -458,14 +458,12 @@ export async function getCampaignStats(campaignId: number): Promise<{
     .where(eq(whatsappCampaigns.id, campaignId))
     .limit(1);
 
-  return (
-    campaign || {
-      messagesSent: 0,
-      messagesDelivered: 0,
-      messagesRead: 0,
-      messagesFailed: 0,
-    }
-  );
+  return {
+    messagesSent: campaign?.messagesSent ?? 0,
+    messagesDelivered: campaign?.messagesDelivered ?? 0,
+    messagesRead: campaign?.messagesRead ?? 0,
+    messagesFailed: campaign?.messagesFailed ?? 0,
+  };
 }
 
 /**

@@ -1,6 +1,7 @@
 import {
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -81,6 +82,14 @@ export const messageDirectionEnum = pgEnum("message_direction", ["inbound", "out
 export const messageStatusEnum = pgEnum("message_status", ["pending", "sent", "delivered", "read", "failed"]);
 export const zapiInstanceStatusEnum = pgEnum("zapi_instance_status", ["trial", "active", "suspended", "canceled"]);
 export const actionItemStatusEnum = pgEnum("action_item_status", ["pending", "completed"]);
+
+// Patient Management Enums
+export const pacienteStatusEnum = pgEnum("paciente_status", ["ativo", "inativo"]);
+export const pacienteGeneroEnum = pgEnum("paciente_genero", ["masculino", "feminino", "outro", "prefiro_nao_dizer"]);
+export const tipoFotoEnum = pgEnum("tipo_foto", ["antes", "depois", "evolucao", "simulacao"]);
+export const tipoDocumentoEnum = pgEnum("tipo_documento", ["consentimento", "exame", "prescricao", "outro"]);
+export const anguloFotoEnum = pgEnum("angulo_foto", ["frontal", "perfil_esquerdo", "perfil_direito", "obliquo"]);
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLES
@@ -1319,3 +1328,215 @@ export const procedimentoInsumos = pgTable(
 export type ProcedimentoInsumo = typeof procedimentoInsumos.$inferSelect;
 export type InsertProcedimentoInsumo = typeof procedimentoInsumos.$inferInsert;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PATIENT MANAGEMENT TABLES (Prontuário Estético)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Pacientes - Core patient table
+ * Each patient belongs to a mentorado (clinic owner)
+ */
+export const pacientes = pgTable(
+  "pacientes",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nomeCompleto: varchar("nome_completo", { length: 255 }).notNull(),
+    email: varchar("email", { length: 320 }),
+    telefone: varchar("telefone", { length: 20 }),
+    dataNascimento: date("data_nascimento"),
+    genero: pacienteGeneroEnum("genero"),
+    cpf: varchar("cpf", { length: 14 }),
+    endereco: text("endereco"),
+    fotoUrl: text("foto_url"),
+    observacoes: text("observacoes"),
+    status: pacienteStatusEnum("status").default("ativo").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("pacientes_mentorado_idx").on(table.mentoradoId),
+    index("pacientes_status_idx").on(table.mentoradoId, table.status),
+    index("pacientes_nome_idx").on(table.nomeCompleto),
+    index("pacientes_telefone_idx").on(table.telefone),
+    uniqueIndex("pacientes_cpf_mentorado_idx").on(table.mentoradoId, table.cpf),
+  ]
+);
+
+export type Paciente = typeof pacientes.$inferSelect;
+export type InsertPaciente = typeof pacientes.$inferInsert;
+
+/**
+ * Pacientes Info Médica - Medical information for each patient
+ * One-to-one relationship with pacientes
+ */
+export const pacientesInfoMedica = pgTable(
+  "pacientes_info_medica",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" })
+      .unique(),
+    tipoSanguineo: varchar("tipo_sanguineo", { length: 5 }),
+    alergias: text("alergias"),
+    medicamentosAtuais: text("medicamentos_atuais"),
+    condicoesPreexistentes: text("condicoes_preexistentes"),
+    historicoCircurgico: text("historico_cirurgico"),
+    contraindacacoes: text("contraindicacoes"),
+    observacoesClinicas: text("observacoes_clinicas"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("pacientes_info_medica_paciente_idx").on(table.pacienteId)]
+);
+
+export type PacienteInfoMedica = typeof pacientesInfoMedica.$inferSelect;
+export type InsertPacienteInfoMedica = typeof pacientesInfoMedica.$inferInsert;
+
+/**
+ * Pacientes Procedimentos - Procedure history for each patient
+ */
+export const pacientesProcedimentos = pgTable(
+  "pacientes_procedimentos",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    procedimentoId: integer("procedimento_id").references(() => procedimentos.id, {
+      onDelete: "set null",
+    }),
+    nomeProcedimento: varchar("nome_procedimento", { length: 255 }).notNull(),
+    dataRealizacao: timestamp("data_realizacao").notNull(),
+    profissionalResponsavel: varchar("profissional_responsavel", { length: 255 }),
+    valorCobrado: integer("valor_cobrado"), // em centavos
+    valorReal: integer("valor_real"), // valor com desconto, em centavos
+    observacoes: text("observacoes"),
+    resultadoAvaliacao: text("resultado_avaliacao"),
+    // Specific to aesthetic procedures
+    areaAplicacao: varchar("area_aplicacao", { length: 255 }),
+    produtosUtilizados: text("produtos_utilizados"),
+    quantidadeAplicada: varchar("quantidade_aplicada", { length: 100 }),
+    lotesProdutos: text("lotes_produtos"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("pacientes_proc_paciente_idx").on(table.pacienteId),
+    index("pacientes_proc_data_idx").on(table.dataRealizacao),
+    index("pacientes_proc_paciente_data_idx").on(table.pacienteId, table.dataRealizacao),
+  ]
+);
+
+export type PacienteProcedimento = typeof pacientesProcedimentos.$inferSelect;
+export type InsertPacienteProcedimento = typeof pacientesProcedimentos.$inferInsert;
+
+/**
+ * Pacientes Fotos - Photo gallery for each patient (before/after, evolution)
+ */
+export const pacientesFotos = pgTable(
+  "pacientes_fotos",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    procedimentoRealizadoId: integer("procedimento_realizado_id").references(
+      () => pacientesProcedimentos.id,
+      { onDelete: "set null" }
+    ),
+    url: text("url").notNull(),
+    thumbnailUrl: text("thumbnail_url"),
+    tipo: tipoFotoEnum("tipo").notNull(),
+    angulo: anguloFotoEnum("angulo"),
+    dataCaptura: timestamp("data_captura").defaultNow().notNull(),
+    descricao: text("descricao"),
+    areaFotografada: varchar("area_fotografada", { length: 255 }),
+    // Metadata for comparison
+    parComId: integer("par_com_id"), // ID of the paired before/after photo
+    grupoId: varchar("grupo_id", { length: 64 }), // Group photos for comparison sets
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("pacientes_fotos_paciente_idx").on(table.pacienteId),
+    index("pacientes_fotos_tipo_idx").on(table.pacienteId, table.tipo),
+    index("pacientes_fotos_data_idx").on(table.dataCaptura),
+    index("pacientes_fotos_grupo_idx").on(table.grupoId),
+    index("pacientes_fotos_proc_idx").on(table.procedimentoRealizadoId),
+  ]
+);
+
+export type PacienteFoto = typeof pacientesFotos.$inferSelect;
+export type InsertPacienteFoto = typeof pacientesFotos.$inferInsert;
+
+/**
+ * Pacientes Documentos - Document management for patients
+ * (consent forms, exams, prescriptions)
+ */
+export const pacientesDocumentos = pgTable(
+  "pacientes_documentos",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    procedimentoRealizadoId: integer("procedimento_realizado_id").references(
+      () => pacientesProcedimentos.id,
+      { onDelete: "set null" }
+    ),
+    tipo: tipoDocumentoEnum("tipo").notNull(),
+    nome: varchar("nome", { length: 255 }).notNull(),
+    url: text("url").notNull(),
+    mimeType: varchar("mime_type", { length: 100 }),
+    tamanhoBytes: integer("tamanho_bytes"),
+    dataAssinatura: timestamp("data_assinatura"),
+    assinadoPor: varchar("assinado_por", { length: 255 }),
+    observacoes: text("observacoes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("pacientes_docs_paciente_idx").on(table.pacienteId),
+    index("pacientes_docs_tipo_idx").on(table.pacienteId, table.tipo),
+    index("pacientes_docs_proc_idx").on(table.procedimentoRealizadoId),
+  ]
+);
+
+export type PacienteDocumento = typeof pacientesDocumentos.$inferSelect;
+export type InsertPacienteDocumento = typeof pacientesDocumentos.$inferInsert;
+
+/**
+ * Pacientes Chat IA - AI chat history for each patient
+ * Stores conversations with the AI assistant for analysis and simulations
+ */
+export const pacientesChatIa = pgTable(
+  "pacientes_chat_ia",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    sessionId: varchar("session_id", { length: 64 }).notNull(),
+    role: varchar("role", { length: 20 }).notNull(), // 'user' | 'assistant' | 'system'
+    content: text("content").notNull(),
+    // For image-based messages
+    fotoId: integer("foto_id").references(() => pacientesFotos.id, { onDelete: "set null" }),
+    imagemUrl: text("imagem_url"),
+    imagemGeradaUrl: text("imagem_gerada_url"), // AI-generated simulation result
+    // Metadata
+    tokens: integer("tokens"),
+    metadata: jsonb("metadata"), // { procedimento, prompt_type, etc }
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("pacientes_chat_paciente_idx").on(table.pacienteId),
+    index("pacientes_chat_session_idx").on(table.sessionId),
+    index("pacientes_chat_paciente_session_idx").on(table.pacienteId, table.sessionId),
+    index("pacientes_chat_created_idx").on(table.createdAt),
+  ]
+);
+
+export type PacienteChatIa = typeof pacientesChatIa.$inferSelect;
+export type InsertPacienteChatIa = typeof pacientesChatIa.$inferInsert;

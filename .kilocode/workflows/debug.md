@@ -293,6 +293,56 @@ agent-browser close                        # Cleanup obrigatório
 
 ---
 
+## Post-Error Analysis (AUTOMATIC)
+
+> [!NOTE]
+> **Evolution Core Integration** - Store error resolutions for future reference
+
+**EXECUTE AFTER FIXING BUG:**
+
+```bash
+# turbo
+python3 .agent/skills/evolution-core/scripts/memory_manager.py capture "Fixed: [ERROR_TYPE] in [FILE] - Solution: [SOLUTION]" -t "bug_fix"
+```
+
+### Full Debug Session Flow
+
+```bash
+# 1. At debug start - load similar past errors
+python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "[ERROR_MESSAGE]"
+
+# 2. After fix applied - store the solution
+python3 .agent/skills/evolution-core/scripts/memory_manager.py capture "Fixed: TypeScript deep instantiation in router.ts - early cast FunctionReference" -t "bug_fix"
+
+# 3. Check stats
+python3 .agent/skills/evolution-core/scripts/memory_manager.py stats
+```
+
+### Error Pattern Storage
+
+```yaml
+POST_ERROR_ANALYSIS:
+  trigger: "After successful bug fix"
+  actions:
+    - Extract error signature (type, message, file)
+    - Store solution pattern with context
+    - Link to session for future retrieval
+  output:
+    - "✅ Captured: Fixed [error] - Solution: [fix]"
+```
+
+**Example Output**:
+
+```
+🔍 Historical Analysis (3 similar errors found):
+   1. "Type instantiation too deep" - Solution: Early cast (92% success)
+   2. Similar tRPC inference issue - Solution: Explicit generics (87% success)
+   
+💡 Recommended: Apply early cast pattern from AT-015
+```
+
+---
+
 ## Code Review Checklist
 
 ### Security (CRITICAL - Check First)

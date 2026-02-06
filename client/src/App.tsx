@@ -39,6 +39,8 @@ const CallPreparation = lazy(() => import("./pages/CallPreparation"));
 const FinanceiroPage = lazy(() => import("./pages/financeiro/FinanceiroPage"));
 const AnaliseFinanceiraPage = lazy(() => import("./pages/financeiro/AnaliseFinanceiraPage"));
 const FinancialCoachSettings = lazy(() => import("./pages/admin/FinancialCoachSettings"));
+const MarketingPage = lazy(() => import("./pages/marketing/MarketingPage"));
+const PacientesPage = lazy(() => import("./pages/pacientes/PacientesPage"));
 
 // Loading fallback for lazy components
 function PageLoader() {
@@ -74,6 +76,9 @@ function Router() {
       <Route path="/financeiro" component={FinanceiroPage} />
       <Route path="/admin/call-preparation/:mentoradoId" component={CallPreparation} />
       <Route path="/admin/settings/finance-coach" component={FinancialCoachSettings} />
+      <Route path="/marketing" component={MarketingPage} />
+      <Route path="/pacientes/:id" component={PacientesPage} />
+      <Route path="/pacientes" component={PacientesPage} />
       {/* Public Pages - Meta Compliance */}
       <Route path="/account-deletion" component={AccountDeletion} />
 

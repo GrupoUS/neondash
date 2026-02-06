@@ -101,12 +101,10 @@ export function PatientMedicalCard({ patientId, medicalInfo, onUpdate }: Patient
       pacienteId: patientId,
       tipoSanguineo: values.tipoSanguineo || undefined,
       alergias: values.alergias || undefined,
-      medicamentosEmUso: values.medicamentosEmUso || undefined,
-      historicoMedico: values.historicoMedico || undefined,
-      peso: values.peso ?? undefined,
-      altura: values.altura ?? undefined,
-      antecedentesEsteticos: values.antecedentesEsteticos || undefined,
-      expectativas: values.expectativas || undefined,
+      medicamentosAtuais: values.medicamentosEmUso || undefined,
+      historicoCircurgico: values.historicoMedico || undefined,
+      condicoesPreexistentes: values.antecedentesEsteticos || undefined,
+      contraindacacoes: values.expectativas || undefined,
     });
   };
 

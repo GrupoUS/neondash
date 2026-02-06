@@ -319,10 +319,12 @@ function AIContentPanel({
 export function InstagramPublisher() {
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState<string[]>([]);
-  const [imageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState("");
 
   // Get current mentorado for publishing
   const { data: mentorado } = trpc.mentorados.me.useQuery();
@@ -356,10 +358,25 @@ export function InstagramPublisher() {
     },
   });
 
+  // Image generation mutation
+  const generateImageMutation = trpc.marketing.generateImage.useMutation({
+    onSuccess: (data) => {
+      setImageUrl(data.imageUrl ?? null);
+      toast.success("Imagem gerada com sucesso!");
+      setIsGeneratingImage(false);
+    },
+    onError: (error) => {
+      toast.error(`Erro ao gerar imagem: ${error.message}`);
+      setIsGeneratingImage(false);
+    },
+  });
+
   const handleGenerate = async (prompt: string, tone: Tone) => {
     setIsGenerating(true);
+    setCurrentPrompt(prompt);
     const toneOption = toneOptions.find((t) => t.value === tone);
     try {
+      // Generate caption
       await generateContent.mutateAsync({
         topic: prompt,
         toneOfVoice: toneOption?.toneValue || "profissional",
@@ -367,8 +384,35 @@ export function InstagramPublisher() {
         includeHashtags: true,
         includeCallToAction: true,
       });
+
+      // Generate image
+      setIsGeneratingImage(true);
+      const imagePrompt = `Professional Instagram post image for aesthetic clinic: ${prompt}. Style: clean, modern, high-end beauty and wellness. Suitable for ${toneOption?.label || "professional"} tone. 1024x1024, photorealistic.`;
+      await generateImageMutation.mutateAsync({
+        prompt: imagePrompt,
+        size: "1024x1024",
+        quality: "hd",
+      });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleRegenerateImage = async () => {
+    if (!currentPrompt) {
+      toast.error("Digite um tema primeiro");
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const imagePrompt = `Professional Instagram post image for aesthetic clinic: ${currentPrompt}. Style: clean, modern, high-end beauty and wellness. 1024x1024, photorealistic.`;
+      await generateImageMutation.mutateAsync({
+        prompt: imagePrompt,
+        size: "1024x1024",
+        quality: "hd",
+      });
+    } catch {
+      // Error handled by mutation
     }
   };
 
@@ -432,8 +476,20 @@ export function InstagramPublisher() {
         {/* Right: Preview + Actions */}
         <div className="space-y-6">
           {/* Preview */}
-          <div className="flex-1 flex items-center justify-center p-4">
-            <InstagramPreview caption={caption} imageUrl={imageUrl} isLoading={isGenerating} />
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4">
+            <InstagramPreview caption={caption} imageUrl={imageUrl} isLoading={isGeneratingImage} />
+            {imageUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRegenerateImage}
+                disabled={isGeneratingImage || !currentPrompt}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isGeneratingImage ? "animate-spin" : ""}`} />
+                Regenerar Imagem
+              </Button>
+            )}
           </div>
 
           {/* Schedule & Publish */}

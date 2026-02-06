@@ -49,13 +49,21 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
     { staleTime: 30_000 }
   );
 
-  const filteredEvents =
-    filter === "all"
-      ? (timeline?.items ?? [])
-      : (timeline?.items ?? []).filter((e) => e.type === filter);
+  // Backend returns array directly, transform to TimelineEvent format
+  const events = (timeline ?? []).map(
+    (item): TimelineEvent => ({
+      id: item.id,
+      type: item.tipo as TimelineEvent["type"],
+      title: item.titulo,
+      description: item.descricao,
+      date: item.data,
+    })
+  );
+
+  const filteredEvents = filter === "all" ? events : events.filter((e) => e.type === filter);
 
   const groupedByMonth = filteredEvents.reduce(
-    (acc, event) => {
+    (acc: Record<string, TimelineEvent[]>, event) => {
       const monthKey = new Date(event.date).toLocaleDateString("pt-BR", {
         month: "long",
         year: "numeric",
@@ -152,15 +160,16 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
                           {/* Metadata badges */}
                           {event.metadata && (
                             <div className="flex flex-wrap gap-1 mt-2">
-                              {event.type === "procedimento" && event.metadata.valor && (
+                              {event.type === "procedimento" &&
+                              typeof event.metadata.valor === "number" ? (
                                 <Badge variant="secondary" className="text-xs">
                                   <Sparkles className="h-3 w-3 mr-1" />
                                   {new Intl.NumberFormat("pt-BR", {
                                     style: "currency",
                                     currency: "BRL",
-                                  }).format((event.metadata.valor as number) / 100)}
+                                  }).format(event.metadata.valor / 100)}
                                 </Badge>
-                              )}
+                              ) : null}
                             </div>
                           )}
                         </div>

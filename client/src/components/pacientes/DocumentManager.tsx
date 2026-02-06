@@ -56,14 +56,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 
-type TipoDocumento =
-  | "termo_consentimento"
-  | "receita"
-  | "atestado"
-  | "exame"
-  | "orcamento"
-  | "contrato"
-  | "outro";
+type TipoDocumento = "consentimento" | "exame" | "prescricao" | "outro";
 
 interface PatientDocument {
   id: number;
@@ -80,32 +73,23 @@ interface DocumentManagerProps {
 }
 
 const tipoLabels: Record<TipoDocumento, string> = {
-  termo_consentimento: "Termo de Consentimento",
-  receita: "Receita",
-  atestado: "Atestado",
+  consentimento: "Consentimento",
   exame: "Exame",
-  orcamento: "Orçamento",
-  contrato: "Contrato",
+  prescricao: "Prescrição",
   outro: "Outro",
 };
 
 const tipoIcons: Record<TipoDocumento, typeof File> = {
-  termo_consentimento: FileCheck,
-  receita: FileType,
-  atestado: FileText,
+  consentimento: FileCheck,
   exame: FileImage,
-  orcamento: FileWarning,
-  contrato: FileText,
+  prescricao: FileType,
   outro: File,
 };
 
 const tipoBadgeColors: Record<TipoDocumento, string> = {
-  termo_consentimento: "bg-green-500/10 text-green-700",
-  receita: "bg-blue-500/10 text-blue-700",
-  atestado: "bg-purple-500/10 text-purple-700",
+  consentimento: "bg-green-500/10 text-green-700",
   exame: "bg-orange-500/10 text-orange-700",
-  orcamento: "bg-amber-500/10 text-amber-700",
-  contrato: "bg-red-500/10 text-red-700",
+  prescricao: "bg-blue-500/10 text-blue-700",
   outro: "bg-gray-500/10 text-gray-700",
 };
 
@@ -147,7 +131,7 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
   });
 
   const documents = useMemo(() => {
-    let items = (data?.items ?? []) as PatientDocument[];
+    let items = (data ?? []) as unknown as PatientDocument[];
 
     // Filter by type
     if (filterTipo !== "all") {
@@ -163,7 +147,7 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
     }
 
     return items;
-  }, [data?.items, filterTipo, searchQuery]);
+  }, [data, filterTipo, searchQuery]);
 
   const resetUploadForm = () => {
     setUploadTitulo("");
@@ -179,10 +163,10 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
     }
     createMutation.mutate({
       pacienteId: patientId,
-      titulo: uploadTitulo,
+      nome: uploadTitulo,
       tipo: uploadTipo,
       url: uploadUrl,
-      descricao: uploadDescricao || undefined,
+      observacoes: uploadDescricao || undefined,
     });
   };
 
@@ -198,7 +182,9 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
               <FileText className="h-5 w-5 text-primary" />
               Documentos
             </CardTitle>
-            <CardDescription>{data?.total ?? 0} documentos anexados ao prontuário</CardDescription>
+            <CardDescription>
+              {(data as unknown[] | undefined)?.length ?? 0} documentos anexados ao prontuário
+            </CardDescription>
           </div>
 
           <Button size="sm" onClick={() => setIsUploadOpen(true)} className="gap-1 cursor-pointer">
@@ -465,7 +451,9 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => deleteDoc && deleteMutation.mutate({ id: deleteDoc.id })}
+              onClick={() =>
+                deleteDoc && deleteMutation.mutate({ id: deleteDoc.id, pacienteId: patientId })
+              }
             >
               {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>

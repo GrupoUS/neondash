@@ -18,8 +18,8 @@ import { trpc } from "@/lib/trpc";
 interface ComparisonPhoto {
   id: number;
   url: string;
-  tipo: "antes" | "durante" | "depois" | "referencia" | "outro";
-  regiao: string | null;
+  tipo: "antes" | "depois" | "evolucao" | "simulacao";
+  areaFotografada: string | null;
   dataCaptura: Date | null;
 }
 
@@ -46,9 +46,9 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
     { staleTime: 30_000 }
   );
 
-  const photos = (photosData?.items ?? []) as ComparisonPhoto[];
-  const beforePhotos = photos.filter((p) => ["antes", "referencia"].includes(p.tipo));
-  const afterPhotos = photos.filter((p) => ["depois", "durante"].includes(p.tipo));
+  const photos = (photosData ?? []) as unknown as ComparisonPhoto[];
+  const beforePhotos = photos.filter((p) => p.tipo === "antes");
+  const afterPhotos = photos.filter((p) => p.tipo === "depois" || p.tipo === "evolucao");
 
   const handleMouseMove = useCallback(
     (e: MouseEvent | TouchEvent) => {
@@ -139,7 +139,7 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
               <SelectContent>
                 {beforePhotos.map((photo) => (
                   <SelectItem key={photo.id} value={photo.id.toString()}>
-                    {photo.regiao ?? "Foto"} -{" "}
+                    {photo.areaFotografada ?? "Foto"} -{" "}
                     {photo.dataCaptura
                       ? new Date(photo.dataCaptura).toLocaleDateString("pt-BR")
                       : "Sem data"}
@@ -164,7 +164,7 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
               <SelectContent>
                 {afterPhotos.map((photo) => (
                   <SelectItem key={photo.id} value={photo.id.toString()}>
-                    {photo.regiao ?? "Foto"} -{" "}
+                    {photo.areaFotografada ?? "Foto"} -{" "}
                     {photo.dataCaptura
                       ? new Date(photo.dataCaptura).toLocaleDateString("pt-BR")
                       : "Sem data"}
@@ -253,17 +253,18 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {comparisons.map((group) => (
                 <button
-                  key={group.grupoComparacao}
+                  key={group.grupoId}
+                  type="button"
                   className="text-left p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20"
                   onClick={() => {
-                    const before = group.fotos.find((f) => f.tipo === "antes");
-                    const after = group.fotos.find((f) => f.tipo === "depois");
-                    if (before) setBeforePhoto(before as ComparisonPhoto);
-                    if (after) setAfterPhoto(after as ComparisonPhoto);
+                    if (group.antes) setBeforePhoto(group.antes as ComparisonPhoto);
+                    if (group.depois) setAfterPhoto(group.depois as ComparisonPhoto);
                   }}
                 >
-                  <p className="font-medium text-sm">{group.grupoComparacao}</p>
-                  <p className="text-xs text-muted-foreground">{group.fotos.length} fotos</p>
+                  <p className="font-medium text-sm">{group.areaFotografada || group.grupoId}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[group.antes, group.depois].filter(Boolean).length} fotos
+                  </p>
                 </button>
               ))}
             </div>

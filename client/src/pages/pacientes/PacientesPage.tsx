@@ -18,10 +18,18 @@ import { useState } from "react";
 import { Link, useRoute } from "wouter";
 
 import DashboardLayout from "@/components/DashboardLayout";
+import { AIChatWidget } from "@/components/pacientes/AIChatWidget";
+import { DocumentManager } from "@/components/pacientes/DocumentManager";
+import { PatientInfoCard } from "@/components/pacientes/PatientInfoCard";
+import { PatientMedicalCard } from "@/components/pacientes/PatientMedicalCard";
+import { PatientStatsCard } from "@/components/pacientes/PatientStatsCard";
+import { PatientTimeline } from "@/components/pacientes/PatientTimeline";
+import { PhotoComparison } from "@/components/pacientes/PhotoComparison";
+import { PhotoGallery } from "@/components/pacientes/PhotoGallery";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   NeonTabs,
@@ -173,6 +181,7 @@ function PatientDetail({ id }: { id: number }) {
   const [activeTab, setActiveTab] = useState("perfil");
 
   const { data: paciente, isLoading } = trpc.pacientes.getById.useQuery({ id });
+  const utils = trpc.useUtils();
 
   if (isLoading) {
     return (
@@ -299,231 +308,79 @@ function PatientDetail({ id }: { id: number }) {
         </div>
 
         <NeonTabsContent value="perfil">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Personal Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Informações Pessoais</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">CPF</span>
-                  <span>{paciente.cpf || "Não informado"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Gênero</span>
-                  <span className="capitalize">
-                    {paciente.genero?.replace("_", " ") || "Não informado"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Endereço</span>
-                  <span className="text-right">{paciente.endereco || "Não informado"}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Procedures */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Procedimentos Recentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {paciente.procedimentos.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    Nenhum procedimento registrado
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {paciente.procedimentos.slice(0, 5).map((proc) => (
-                      <div
-                        key={proc.id}
-                        className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                      >
-                        <div>
-                          <p className="font-medium">{proc.nomeProcedimento}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(proc.dataRealizacao).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                        {proc.valorReal && (
-                          <Badge variant="outline">R$ {(proc.valorReal / 100).toFixed(2)}</Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-6">
+              <PatientInfoCard
+                patient={{
+                  id: paciente.id,
+                  nomeCompleto: paciente.nomeCompleto,
+                  dataNascimento: paciente.dataNascimento,
+                  telefone: paciente.telefone,
+                  email: paciente.email,
+                  endereco: paciente.endereco,
+                  avatarUrl: paciente.fotoUrl,
+                  status: paciente.status,
+                  observacoes: paciente.observacoes,
+                  createdAt: paciente.createdAt,
+                }}
+                onUpdate={() => utils.pacientes.getById.invalidate({ id: paciente.id })}
+              />
+              <PatientTimeline patientId={paciente.id} />
+            </div>
+            <div>
+              <PatientStatsCard
+                patientId={paciente.id}
+                stats={{
+                  totalProcedimentos: paciente.stats.totalProcedimentos,
+                  totalFotos: paciente.stats.totalFotos,
+                  totalDocumentos: paciente.stats.totalDocumentos,
+                  ultimoProcedimento: paciente.stats.ultimoProcedimento ?? null,
+                }}
+                procedureHistory={paciente.procedimentos.slice(0, 6).map((p) => ({
+                  month: new Date(p.dataRealizacao).toISOString().slice(0, 7),
+                  count: 1,
+                  valor: p.valorReal ?? 0,
+                }))}
+              />
+            </div>
           </div>
-
-          {/* Observações */}
-          {paciente.observacoes && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Observações</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground whitespace-pre-wrap">{paciente.observacoes}</p>
-              </CardContent>
-            </Card>
-          )}
         </NeonTabsContent>
 
         <NeonTabsContent value="medico">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Ficha Médica</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {paciente.infoMedica ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-medium mb-2">Tipo Sanguíneo</h4>
-                    <p className="text-muted-foreground">
-                      {paciente.infoMedica.tipoSanguineo || "Não informado"}
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-2">Alergias</h4>
-                    <p className="text-muted-foreground whitespace-pre-wrap">
-                      {paciente.infoMedica.alergias || "Nenhuma registrada"}
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-2">Medicamentos Atuais</h4>
-                    <p className="text-muted-foreground whitespace-pre-wrap">
-                      {paciente.infoMedica.medicamentosAtuais || "Nenhum registrado"}
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-2">Condições Preexistentes</h4>
-                    <p className="text-muted-foreground whitespace-pre-wrap">
-                      {paciente.infoMedica.condicoesPreexistentes || "Nenhuma registrada"}
-                    </p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <h4 className="font-medium mb-2">Histórico Cirúrgico</h4>
-                    <p className="text-muted-foreground whitespace-pre-wrap">
-                      {paciente.infoMedica.historicoCircurgico || "Nenhum registrado"}
-                    </p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <h4 className="font-medium mb-2">Contraindicações</h4>
-                    <p className="text-muted-foreground whitespace-pre-wrap">
-                      {paciente.infoMedica.contraindacacoes || "Nenhuma registrada"}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground mb-4">Ficha médica não preenchida</p>
-                  <Button variant="outline">Preencher Ficha Médica</Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <PatientMedicalCard
+            patientId={paciente.id}
+            medicalInfo={
+              paciente.infoMedica
+                ? {
+                    id: paciente.infoMedica.id,
+                    tipoSanguineo: paciente.infoMedica.tipoSanguineo,
+                    alergias: paciente.infoMedica.alergias,
+                    medicamentosEmUso: paciente.infoMedica.medicamentosAtuais,
+                    historicoMedico: paciente.infoMedica.historicoCircurgico,
+                    peso: null,
+                    altura: null,
+                    antecedentesEsteticos: paciente.infoMedica.condicoesPreexistentes,
+                    expectativas: paciente.infoMedica.contraindacacoes,
+                  }
+                : null
+            }
+            onUpdate={() => utils.pacientes.getById.invalidate({ id: paciente.id })}
+          />
         </NeonTabsContent>
 
         <NeonTabsContent value="fotos">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Galeria de Fotos</CardTitle>
-              <Button size="sm">
-                <Camera className="h-4 w-4 mr-1" /> Nova Foto
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {paciente.fotosRecentes.length === 0 ? (
-                <div className="text-center py-8">
-                  <Camera className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground mb-4">Nenhuma foto registrada</p>
-                  <Button variant="outline">Adicionar Primeira Foto</Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {paciente.fotosRecentes.map((foto) => (
-                    <div
-                      key={foto.id}
-                      className="aspect-square rounded-lg bg-muted overflow-hidden relative group cursor-pointer"
-                    >
-                      <img
-                        src={foto.thumbnailUrl || foto.url}
-                        alt={foto.descricao || "Foto do paciente"}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Badge className="bg-primary">{foto.tipo}</Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <PhotoGallery patientId={paciente.id} />
+            <PhotoComparison patientId={paciente.id} />
+          </div>
         </NeonTabsContent>
 
         <NeonTabsContent value="documentos">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Documentos</CardTitle>
-              <Button size="sm">
-                <FileText className="h-4 w-4 mr-1" /> Novo Documento
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {paciente.documentos.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground mb-4">Nenhum documento registrado</p>
-                  <Button variant="outline">Adicionar Primeiro Documento</Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {paciente.documentos.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.nome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(doc.createdAt).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="capitalize">
-                        {doc.tipo}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <DocumentManager patientId={paciente.id} />
         </NeonTabsContent>
 
         <NeonTabsContent value="chat">
-          <Card className="h-[600px] flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Assistente IA - Prontuário
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground mb-4">Converse com a IA sobre este paciente</p>
-                <Button>
-                  <Sparkles className="h-4 w-4 mr-1" /> Iniciar Conversa
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <AIChatWidget patientId={paciente.id} patientName={paciente.nomeCompleto} />
         </NeonTabsContent>
       </NeonTabs>
     </div>

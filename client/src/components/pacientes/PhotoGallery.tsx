@@ -36,17 +36,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { trpc } from "@/lib/trpc";
 
-type TipoFoto = "antes" | "durante" | "depois" | "referencia" | "outro";
+type TipoFoto = "antes" | "depois" | "evolucao" | "simulacao";
 
 interface PatientPhoto {
   id: number;
   url: string;
   thumbnailUrl: string | null;
   tipo: TipoFoto;
-  regiao: string | null;
+  areaFotografada: string | null;
   descricao: string | null;
   dataCaptura: Date | null;
-  grupoComparacao: string | null;
+  grupoId: string | null;
 }
 
 interface PhotoGalleryProps {
@@ -56,18 +56,16 @@ interface PhotoGalleryProps {
 
 const tipoLabels: Record<TipoFoto, string> = {
   antes: "Antes",
-  durante: "Durante",
   depois: "Depois",
-  referencia: "Referência",
-  outro: "Outro",
+  evolucao: "Evolução",
+  simulacao: "Simulação",
 };
 
 const tipoColors: Record<TipoFoto, string> = {
   antes: "bg-amber-500",
-  durante: "bg-blue-500",
   depois: "bg-green-500",
-  referencia: "bg-purple-500",
-  outro: "bg-gray-500",
+  evolucao: "bg-blue-500",
+  simulacao: "bg-purple-500",
 };
 
 export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryProps) {
@@ -98,10 +96,10 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
   });
 
   const photos = useMemo(() => {
-    const items = (data?.items ?? []) as PatientPhoto[];
+    const items = (data ?? []) as unknown as PatientPhoto[];
     if (filterTipo === "all") return items;
     return items.filter((p) => p.tipo === filterTipo);
-  }, [data?.items, filterTipo]);
+  }, [data, filterTipo]);
 
   const lightboxIndex = lightboxPhoto ? photos.findIndex((p) => p.id === lightboxPhoto.id) : -1;
 
@@ -122,8 +120,8 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
     createMutation.mutate({
       pacienteId: patientId,
       url: uploadUrl,
-      tipo: uploadTipo,
-      regiao: uploadRegiao || undefined,
+      tipo: uploadTipo as "antes" | "depois" | "evolucao" | "simulacao",
+      areaFotografada: uploadRegiao || undefined,
       descricao: uploadDescricao || undefined,
     });
   };
@@ -138,7 +136,7 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
               Galeria de Fotos
             </CardTitle>
             <CardDescription>
-              {data?.total ?? 0} fotos • Antes e depois de procedimentos
+              {(data ?? []).length} fotos • Antes e depois de procedimentos
             </CardDescription>
           </div>
 
@@ -150,9 +148,9 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="antes">Antes</SelectItem>
-                <SelectItem value="durante">Durante</SelectItem>
                 <SelectItem value="depois">Depois</SelectItem>
-                <SelectItem value="referencia">Referência</SelectItem>
+                <SelectItem value="evolucao">Evolução</SelectItem>
+                <SelectItem value="simulacao">Simulação</SelectItem>
               </SelectContent>
             </Select>
 
@@ -220,12 +218,12 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                   <Badge className={`absolute top-2 left-2 text-xs ${tipoColors[photo.tipo]}`}>
                     {tipoLabels[photo.tipo]}
                   </Badge>
-                  {photo.regiao && (
+                  {photo.areaFotografada && (
                     <Badge
                       variant="secondary"
                       className="absolute bottom-2 left-2 text-xs bg-black/60 text-white"
                     >
-                      {photo.regiao}
+                      {photo.areaFotografada}
                     </Badge>
                   )}
                 </div>
@@ -247,7 +245,9 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Badge className={tipoColors[photo.tipo]}>{tipoLabels[photo.tipo]}</Badge>
-                      {photo.regiao && <Badge variant="outline">{photo.regiao}</Badge>}
+                      {photo.areaFotografada && (
+                        <Badge variant="outline">{photo.areaFotografada}</Badge>
+                      )}
                     </div>
                     {photo.descricao && (
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
@@ -314,8 +314,8 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                       <Badge className={tipoColors[lightboxPhoto.tipo]}>
                         {tipoLabels[lightboxPhoto.tipo]}
                       </Badge>
-                      {lightboxPhoto.regiao && (
-                        <Badge variant="secondary">{lightboxPhoto.regiao}</Badge>
+                      {lightboxPhoto.areaFotografada && (
+                        <Badge variant="secondary">{lightboxPhoto.areaFotografada}</Badge>
                       )}
                     </div>
                     {onSelectForComparison && (
@@ -372,10 +372,9 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="antes">Antes</SelectItem>
-                    <SelectItem value="durante">Durante</SelectItem>
                     <SelectItem value="depois">Depois</SelectItem>
-                    <SelectItem value="referencia">Referência</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
+                    <SelectItem value="evolucao">Evolução</SelectItem>
+                    <SelectItem value="simulacao">Simulação</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

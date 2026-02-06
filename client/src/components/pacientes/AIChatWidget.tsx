@@ -62,18 +62,19 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
 
   const utils = trpc.useUtils();
 
-  const { data: chatHistory, isLoading: isLoadingHistory } = trpc.pacientes.chatIa.history.useQuery(
-    { pacienteId: patientId, sessionId },
-    { staleTime: 10_000 }
-  );
+  const { data: chatHistory, isLoading: isLoadingHistory } =
+    trpc.pacientes.chatIa.getSession.useQuery(
+      { pacienteId: patientId, sessionId },
+      { staleTime: 10_000 }
+    );
 
-  const sendMessageMutation = trpc.pacientes.chatIa.send.useMutation({
+  const sendMessageMutation = trpc.pacientes.chatIa.addMessage.useMutation({
     onSuccess: () => {
       form.reset();
       setImagePreview(null);
-      utils.pacientes.chatIa.history.invalidate({ pacienteId: patientId, sessionId });
+      utils.pacientes.chatIa.getSession.invalidate({ pacienteId: patientId, sessionId });
     },
-    onError: (e) => toast.error(e.message || "Erro ao enviar mensagem"),
+    onError: (e: { message?: string }) => toast.error(e.message || "Erro ao enviar mensagem"),
   });
 
   const form = useForm<MessageFormValues>({

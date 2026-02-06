@@ -3,15 +3,12 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface PatientStatsCardProps {
+  patientId?: number;
   stats: {
     totalProcedimentos: number;
     totalFotos: number;
     totalDocumentos: number;
-    proximoAgendamento: Date | null;
-    ultimoProcedimento: {
-      nome: string;
-      data: Date;
-    } | null;
+    ultimoProcedimento: Date | null;
   };
   procedureHistory?: Array<{
     month: string;
@@ -150,26 +147,11 @@ export function PatientStatsCard({ stats, procedureHistory = [] }: PatientStatsC
         {stats.ultimoProcedimento && (
           <div className="pt-4 border-t">
             <p className="text-xs text-muted-foreground mb-1">Último Procedimento</p>
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{stats.ultimoProcedimento.nome}</span>
-              <span className="text-sm text-muted-foreground">
-                {new Date(stats.ultimoProcedimento.data).toLocaleDateString("pt-BR")}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Next Appointment */}
-        {stats.proximoAgendamento && (
-          <div className="pt-4 border-t border-primary/20 bg-primary/5 -mx-6 -mb-6 px-6 py-4 rounded-b-lg">
-            <p className="text-xs text-muted-foreground mb-1">Próximo Agendamento</p>
-            <p className="font-medium text-primary">
-              {new Date(stats.proximoAgendamento).toLocaleDateString("pt-BR", {
-                weekday: "long",
+            <p className="font-medium">
+              {new Date(stats.ultimoProcedimento).toLocaleDateString("pt-BR", {
                 day: "numeric",
                 month: "long",
-                hour: "2-digit",
-                minute: "2-digit",
+                year: "numeric",
               })}
             </p>
           </div>

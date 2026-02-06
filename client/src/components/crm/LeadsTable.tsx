@@ -43,12 +43,17 @@ export function LeadsTable({
   mentoradoId,
   isReadOnly = false,
 }: LeadsTableProps) {
-  const { data, isLoading } = trpc.leads.list.useQuery({
-    ...filters,
-    page,
-    limit: 10,
-    mentoradoId,
-  });
+  const { data, isLoading } = trpc.leads.list.useQuery(
+    {
+      ...filters,
+      page,
+      limit: 10,
+      mentoradoId,
+    },
+    {
+      enabled: !!mentoradoId,
+    }
+  );
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const utils = trpc.useUtils();

@@ -87,9 +87,14 @@ export function PipelineKanban({
   const [, navigate] = useLocation();
 
   const utils = trpc.useUtils();
-  const { data: leadsData, isLoading } = trpc.leads.list.useQuery({
-    mentoradoId: mentoradoId,
-  });
+  const { data: leadsData, isLoading } = trpc.leads.list.useQuery(
+    {
+      mentoradoId: mentoradoId,
+    },
+    {
+      enabled: !!mentoradoId,
+    }
+  );
 
   const updateStatusMutation = trpc.leads.updateStatus.useMutation({
     onSuccess: () => {

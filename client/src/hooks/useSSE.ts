@@ -7,7 +7,8 @@ export type ChatSSEEventName =
   | "typing-start"
   | "typing-stop"
   | "contact-online"
-  | "contact-offline";
+  | "contact-offline"
+  | "reaction";
 
 interface BaseSSEPayload {
   phone?: string;
@@ -28,6 +29,18 @@ export interface ChatSSENewMessagePayload extends BaseSSEPayload {
   quotedMessageId?: number | null;
   senderName?: string;
   createdAt?: string;
+}
+
+export interface ChatSSEReactionPayload extends BaseSSEPayload {
+  type: "reaction-added" | "reaction-removed";
+  reaction?: {
+    id: number;
+    messageId: number;
+    emoji: string;
+    phone: string;
+  };
+  reactionId?: number;
+  messageId?: number;
 }
 
 export interface ChatSSEMessageReadPayload extends BaseSSEPayload {
@@ -56,6 +69,7 @@ export interface ChatSSEPayloadMap {
   "typing-stop": ChatSSETypingPayload;
   "contact-online": ChatSSEPresencePayload;
   "contact-offline": ChatSSEPresencePayload;
+  reaction: ChatSSEReactionPayload;
 }
 
 type EventHandlerMap = {
@@ -88,6 +102,7 @@ export interface UseSSEReturn {
   onContactOffline: (
     callback: (payload: ChatSSEPayloadMap["contact-offline"]) => void
   ) => () => void;
+  onReaction: (callback: (payload: ChatSSEPayloadMap["reaction"]) => void) => () => void;
 }
 
 const DEFAULT_EVENTS: ChatSSEEventName[] = [
@@ -98,6 +113,7 @@ const DEFAULT_EVENTS: ChatSSEEventName[] = [
   "typing-stop",
   "contact-online",
   "contact-offline",
+  "reaction",
 ];
 
 function createEventHandlerMap(): EventHandlerMap {
@@ -109,6 +125,7 @@ function createEventHandlerMap(): EventHandlerMap {
     "typing-stop": new Set(),
     "contact-online": new Set(),
     "contact-offline": new Set(),
+    reaction: new Set(),
   };
 }
 
@@ -306,5 +323,6 @@ export function useSSE({
     onTypingStop: (callback) => subscribe("typing-stop", callback),
     onContactOnline: (callback) => subscribe("contact-online", callback),
     onContactOffline: (callback) => subscribe("contact-offline", callback),
+    onReaction: (callback) => subscribe("reaction", callback),
   };
 }

@@ -3,9 +3,15 @@
  * Handles WhatsApp connection management and messaging
  */
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { leads, mentorados, whatsappContacts, whatsappMessages } from "../drizzle/schema";
+import {
+  leads,
+  mentorados,
+  whatsappContacts,
+  whatsappMessages,
+  whatsappReactions,
+} from "../drizzle/schema";
 import { protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { encrypt, safeDecrypt } from "./services/crypto";
@@ -632,7 +638,22 @@ export const zapiRouter = router({
         .orderBy(desc(whatsappMessages.createdAt))
         .limit(input.limit);
 
-      return messages.reverse(); // Return in chronological order
+      const messageIds = messages.map((m) => m.id);
+
+      const reactions =
+        messageIds.length > 0
+          ? await db
+              .select()
+              .from(whatsappReactions)
+              .where(inArray(whatsappReactions.messageId, messageIds))
+          : [];
+
+      const messagesWithReactions = messages.map((msg) => ({
+        ...msg,
+        reactions: reactions.filter((r) => r.messageId === msg.id),
+      }));
+
+      return messagesWithReactions.reverse(); // Return in chronological order
     }),
 
   // ═══════════════════════════════════════════════════════════════════════════

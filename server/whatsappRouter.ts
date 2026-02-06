@@ -75,7 +75,7 @@ export const whatsappRouter = router({
         })
         .returning();
 
-      sseService.broadcastToPhone(ctx.mentorado.id, created.phone, "new-message", {
+      sseService.broadcastToPhone(ctx.mentorado.id, created.phone, "reaction", {
         type: "reaction-added",
         reaction: created,
       });
@@ -105,7 +105,7 @@ export const whatsappRouter = router({
 
       await db.delete(whatsappReactions).where(eq(whatsappReactions.id, reaction.id));
 
-      sseService.broadcastToPhone(ctx.mentorado.id, reaction.phone, "new-message", {
+      sseService.broadcastToPhone(ctx.mentorado.id, reaction.phone, "reaction", {
         type: "reaction-removed",
         reactionId: reaction.id,
         messageId: reaction.messageId,

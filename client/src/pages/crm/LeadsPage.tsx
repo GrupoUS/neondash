@@ -68,7 +68,10 @@ export function LeadsPage() {
       periodo: filters.periodo === "all" ? undefined : (filters.periodo as "7d" | "30d" | "90d"),
       mentoradoId: viewMentoradoId,
     },
-    { staleTime: 30000 }
+    {
+      staleTime: 30000,
+      enabled: !isAdmin || !!viewMentoradoId,
+    }
   );
 
   // 3. Columns Logic

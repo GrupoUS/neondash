@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { leads, mentorados, whatsappContacts, whatsappMessages } from "../drizzle/schema";
 import { protectedProcedure, router } from "./_core/trpc";
@@ -194,7 +194,22 @@ export const baileysRouter = router({
         .orderBy(desc(whatsappMessages.createdAt))
         .limit(input.limit);
 
-      return messages.reverse();
+      const messageIds = messages.map((m) => m.id);
+
+      const reactions =
+        messageIds.length > 0
+          ? await db
+              .select()
+              .from(whatsappReactions)
+              .where(inArray(whatsappReactions.messageId, messageIds))
+          : [];
+
+      const messagesWithReactions = messages.map((msg) => ({
+        ...msg,
+        reactions: reactions.filter((r) => r.messageId === msg.id),
+      }));
+
+      return messagesWithReactions.reverse();
     }),
 
   getAllConversations: protectedProcedure.query(async ({ ctx }) => {

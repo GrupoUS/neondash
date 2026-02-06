@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearch } from "wouter";
 import type { ConversationItemData } from "@/components/chat/ConversationItem";
-import type { MessageBubbleData } from "@/components/chat/MessageBubble";
+import type { MessageBubbleData, MessageReaction } from "@/components/chat/MessageBubble";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import type { RenderItem } from "@/components/chat/VirtualizedMessageList";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -60,6 +60,13 @@ interface WhatsAppMessage {
   quotedMessageId?: number | null;
   createdAt: Date | string;
   readAt?: Date | string | null;
+  reactions?: {
+    id: number;
+    messageId: number;
+    phone: string;
+    emoji: string;
+    createdAt: Date | string;
+  }[];
 }
 
 type TypingState = Record<string, { isTyping: boolean; at: number }>;
@@ -122,7 +129,22 @@ function mapMessageToBubble(message: WhatsAppMessage): MessageBubbleData {
           }
         : null,
     quote: null,
-    reactions: undefined,
+    reactions: message.reactions?.reduce((acc: MessageReaction[], reaction) => {
+      const existing = acc.find((r) => r.emoji === reaction.emoji);
+      if (existing) {
+        existing.count = (existing.count || 0) + 1;
+        existing.users?.push(reaction.phone);
+        // If needed, check if reactedByMe (requires current user phone context)
+      } else {
+        acc.push({
+          emoji: reaction.emoji,
+          count: 1,
+          users: [reaction.phone],
+          reactedByMe: false, // TODO: Check against current user phone
+        });
+      }
+      return acc;
+    }, []),
   };
 }
 
@@ -150,6 +172,9 @@ export function ChatPage() {
   const initialPhone = queryParams.get("phone");
   const initialLeadId = queryParams.get("leadId");
 
+  // Get current mentorado
+  const { data: mentorado } = trpc.mentorados.me.useQuery();
+
   // Use extracted hooks for multi-provider support
   const {
     activeProvider,
@@ -160,12 +185,18 @@ export function ChatPage() {
     conversations,
     isLoading: conversationsLoading,
     refetch: refetchConversations,
-  } = useWhatsAppConversations(activeProvider, { refetchIntervalMs: false });
+  } = useWhatsAppConversations(activeProvider, {
+    refetchIntervalMs: false,
+    enabled: !!mentorado?.id,
+  });
   const {
     messages,
     isLoading: messagesLoading,
     refetch: refetchMessages,
-  } = useWhatsAppMessages(activeProvider, selectedPhone, { refetchIntervalMs: false });
+  } = useWhatsAppMessages(activeProvider, selectedPhone, {
+    refetchIntervalMs: false,
+    enabled: !!mentorado?.id && !!selectedPhone,
+  });
 
   // Auto-select conversation from query params
   useEffect(() => {
@@ -234,7 +265,12 @@ export function ChatPage() {
     onTypingStop,
     onContactOnline,
     onContactOffline,
-  } = useSSE({ enabled: Boolean(isAnyConnected) });
+    onReaction,
+  } = useSSE({
+    mentoradoId: mentorado?.id,
+    phone: selectedPhone,
+    enabled: Boolean(isAnyConnected) && !!mentorado?.id,
+  });
 
   const selectedConversationLeadId = useMemo(() => {
     if (!selectedPhone || !conversations) return null;
@@ -291,6 +327,52 @@ export function ChatPage() {
     selectedConversationLeadId,
     selectedPhone,
   ]);
+
+  // Handle reaction events
+  useEffect(() => {
+    return onReaction((payload) => {
+      const { messageId, type, reaction, reactionId } = payload;
+      if (!messageId) return;
+
+      // Find the message in current list or overrides
+      // We rely on functional update of setMessageOverrides to get efficient state update
+      setMessageOverrides((prev) => {
+        // Find existing reactions from message list or previous overrides
+        // Search in messages array first as base
+        const baseMessage = messages?.find((m) => m.id === messageId);
+        // If message is not in current view, we might still want to update if it appears?
+        // For now, if it's not loaded, we can skip or try to update blindly if we trust ID.
+        // But we need base reactions.
+        const prevOverride = prev[messageId] || {};
+        const currentReactions = prevOverride.reactions || baseMessage?.reactions || [];
+
+        let newReactions = [...currentReactions];
+
+        if (type === "reaction-added" && reaction) {
+          // Add if not exists
+          if (!newReactions.find((r) => r.id === reaction.id)) {
+            newReactions.push({
+              id: reaction.id,
+              messageId: reaction.messageId,
+              phone: reaction.phone,
+              emoji: reaction.emoji,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        } else if (type === "reaction-removed" && reactionId) {
+          newReactions = newReactions.filter((r) => r.id !== reactionId);
+        }
+
+        return {
+          ...prev,
+          [messageId]: {
+            ...prevOverride,
+            reactions: newReactions,
+          },
+        };
+      });
+    });
+  }, [onReaction, messages]);
 
   const renderItems = useMemo<RenderItem[]>(() => {
     const items: RenderItem[] = [];

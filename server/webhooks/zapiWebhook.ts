@@ -10,7 +10,13 @@
 import { and, eq } from "drizzle-orm";
 import type { Router } from "express";
 import type { Lead } from "../../drizzle/schema";
-import { leads, mentorados, statusLeadEnum, whatsappMessages } from "../../drizzle/schema";
+import {
+  leads,
+  mentorados,
+  statusLeadEnum,
+  whatsappContacts,
+  whatsappMessages,
+} from "../../drizzle/schema";
 import { createLogger } from "../_core/logger";
 import { getDb } from "../db";
 import { sseService } from "../services/sseService";
@@ -94,12 +100,64 @@ async function findLeadByPhone(mentoradoId: number, phone: string) {
 }
 
 /**
- * Ensure lead exists for inbound WhatsApp contact
+ * Find existing contact in both leads and whatsapp_contacts tables
+ * Returns the lead if found in either table
  */
-async function findOrCreateLead(mentoradoId: number, phone: string, senderName?: string) {
-  const existing = await findLeadByPhone(mentoradoId, phone);
-  if (existing) return existing;
+async function findExistingContact(
+  mentoradoId: number,
+  phone: string
+): Promise<{
+  lead: Lead | null;
+  contact: { id: number; name: string | null } | null;
+}> {
+  const db = getDb();
 
+  // Check leads table with flexible phone matching
+  const allLeads = await db.select().from(leads).where(eq(leads.mentoradoId, mentoradoId));
+  const lead = allLeads.find((l: Lead) => l.telefone && phonesMatch(l.telefone, phone)) ?? null;
+
+  // Check whatsapp_contacts table with normalized phone matching
+  const normalizedPhone = phone.replace(/[-\s+]/g, "");
+  const allContacts = await db
+    .select({ id: whatsappContacts.id, name: whatsappContacts.name, phone: whatsappContacts.phone })
+    .from(whatsappContacts)
+    .where(eq(whatsappContacts.mentoradoId, mentoradoId));
+
+  const contact =
+    allContacts.find((c) => c.phone.replace(/[-\s+]/g, "") === normalizedPhone) ?? null;
+
+  return { lead, contact };
+}
+
+/**
+ * Ensure lead exists for inbound WhatsApp contact
+ * Creates lead only if contact doesn't exist in both leads and whatsapp_contacts
+ */
+async function findOrCreateLead(
+  mentoradoId: number,
+  phone: string,
+  senderName?: string
+): Promise<{
+  lead: Lead | null;
+  isNewLead: boolean;
+}> {
+  // Check both leads and whatsapp_contacts tables
+  const { lead: existingLead, contact } = await findExistingContact(mentoradoId, phone);
+
+  if (existingLead) {
+    return { lead: existingLead, isNewLead: false };
+  }
+
+  // If contact exists in whatsapp_contacts but not in leads, don't create duplicate
+  if (contact) {
+    logger.info("Contact exists in whatsapp_contacts, skipping lead creation", {
+      phone,
+      contactId: contact.id,
+    });
+    return { lead: null, isNewLead: false };
+  }
+
+  // Create new lead - contact doesn't exist in either table
   const db = getDb();
   const fallbackStatus = statusLeadEnum.enumValues[0];
   const targetStatus = statusLeadEnum.enumValues.includes("primeiro_contato")
@@ -118,7 +176,22 @@ async function findOrCreateLead(mentoradoId: number, phone: string, senderName?:
     })
     .returning();
 
-  return created ?? null;
+  if (created) {
+    logger.info("Created new lead from WhatsApp", {
+      leadId: created.id,
+      phone,
+      mentoradoId,
+    });
+
+    // Broadcast new lead event to SSE clients
+    sseService.broadcastToPhone(mentoradoId, phone, "new-lead", {
+      lead: created,
+      source: "whatsapp",
+      phone,
+    });
+  }
+
+  return { lead: created ?? null, isNewLead: true };
 }
 
 /**
@@ -148,9 +221,11 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   const normalizedPhone = zapiService.normalizePhoneNumber(payload.phone);
 
   // Find associated lead using flexible matching
-  const lead = payload.isFromMe
-    ? await findLeadByPhone(mentorado.id, normalizedPhone)
+  // For inbound messages, create lead if doesn't exist in leads or whatsapp_contacts
+  const leadResult = payload.isFromMe
+    ? { lead: await findLeadByPhone(mentorado.id, normalizedPhone), isNewLead: false }
     : await findOrCreateLead(mentorado.id, normalizedPhone, payload.senderName);
+  const lead = leadResult.lead;
 
   let quotedMessageId: number | null = null;
   const quotedExternalId = payload.quotedMessageId ?? payload.quotedMsgId;

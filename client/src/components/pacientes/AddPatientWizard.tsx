@@ -237,7 +237,7 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-5xl p-0 gap-0 overflow-hidden border-border/40 shadow-2xl bg-card">
-        <div className="flex flex-col md:flex-row h-[85vh] md:h-[650px] w-full">
+        <div className="flex flex-col md:flex-row h-[85vh] md:h-[750px] w-full">
           {/* Sidebar - Steps */}
           <div className="w-full md:w-[280px] bg-muted/30 border-r border-border/40 p-6 flex flex-col gap-8">
             <div className="space-y-1">
@@ -311,7 +311,7 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col bg-card/50">
+          <div className="flex-1 flex flex-col bg-card/50 overflow-hidden">
             <DialogHeader className="px-8 py-6 border-b border-border/50">
               <div className="flex items-center justify-between">
                 <div>

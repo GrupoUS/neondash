@@ -4,12 +4,14 @@ export type ChatSSEEvent =
   | "connected"
   | "message"
   | "new-message"
+  | "new-lead"
   | "message-read"
   | "typing-start"
   | "typing-stop"
   | "contact-online"
   | "contact-offline"
-  | "status_update";
+  | "status_update"
+  | "reaction";
 
 interface SSEClient {
   response: Response;

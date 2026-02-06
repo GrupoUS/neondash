@@ -3,50 +3,13 @@
  * Full inbox layout with contact list and conversation view
  */
 
-import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  Bot,
-  ChevronDown,
-  Loader2,
-  MessageCircle,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Search,
-  Settings,
-  Sparkles,
-  Video,
-} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearch } from "wouter";
-import { ConversationItem, type ConversationItemData } from "@/components/chat/ConversationItem";
-import { ConversationSkeleton } from "@/components/chat/ConversationSkeleton";
+import { useSearch } from "wouter";
+import type { ConversationItemData } from "@/components/chat/ConversationItem";
 import type { MessageBubbleData } from "@/components/chat/MessageBubble";
-import { MessageInput } from "@/components/chat/MessageInput";
-import { MessageSkeleton } from "@/components/chat/MessageSkeleton";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
-import { VideoMessageComposer } from "@/components/chat/VideoMessageComposer";
-import { type RenderItem, VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
+import type { RenderItem } from "@/components/chat/VirtualizedMessageList";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSSE } from "@/hooks/useSSE";
 import {
   useWhatsAppConversations,
@@ -56,6 +19,16 @@ import {
 } from "@/hooks/useWhatsAppProvider";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import {
+  ChatConversationHeader,
+  ChatPageHeader,
+  ConversationSidebar,
+  EmptyConversationState,
+  InputArea,
+  MessagesArea,
+  MessagesEmptyState,
+  NotConnectedState,
+} from "./chat/ChatPageComponents";
 
 // Types for conversations
 interface Conversation {
@@ -221,11 +194,7 @@ export function ChatPage() {
 
   // Get AI Agent config
   const { data: aiConfig } = trpc.aiAgent.getConfig.useQuery();
-  const toggleAiMutation = trpc.aiAgent.toggleEnabled.useMutation({
-    onSuccess: () => {
-      // Invalidate the query to get updated state
-    },
-  });
+  const toggleAiMutation = trpc.aiAgent.toggleEnabled.useMutation();
 
   // Send message mutation with success callback
   const sendMutation = useWhatsAppSendMessage(activeProvider, () => {
@@ -582,14 +551,6 @@ export function ChatPage() {
     // Placeholder for audio recording in future phase.
   }, []);
 
-  // Filter conversations by search
-  const filteredConversationItems = conversationItems.filter((conv) => {
-    if (!searchQuery) return true;
-    const nameMatch = conv.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const phoneMatch = conv.phone.includes(searchQuery);
-    return nameMatch || phoneMatch;
-  });
-
   const handleSend = () => {
     if (!message.trim() || sendMutation.isPending || !selectedPhone) return;
 
@@ -616,28 +577,22 @@ export function ChatPage() {
 
   const isAiEnabled = aiConfig?.enabled === "sim";
 
+  const handleTypingTimeout = useCallback(() => {
+    if (!selectedPhone) return;
+    const normalized = normalizePhone(selectedPhone);
+    setTypingByPhone((previous) => {
+      if (!previous[normalized]) return previous;
+      const next = { ...previous };
+      delete next[normalized];
+      return next;
+    });
+  }, [selectedPhone]);
+
   // Not connected state - check if ANY provider is connected
   if (!statusLoading && !isAnyConnected) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center h-[70vh] gap-6">
-          <div className="p-6 rounded-full bg-muted">
-            <MessageCircle className="w-12 h-12 text-muted-foreground" />
-          </div>
-          <div className="text-center max-w-md">
-            <h2 className="text-xl font-bold mb-2">WhatsApp não conectado</h2>
-            <p className="text-muted-foreground">
-              Para usar o Chat, conecte seu WhatsApp nas configurações. Escaneie o QR Code para
-              sincronizar suas conversas.
-            </p>
-          </div>
-          <Button asChild size="lg">
-            <Link href="/configuracoes">
-              <Settings className="w-5 h-5 mr-2" />
-              Ir para Configurações
-            </Link>
-          </Button>
-        </div>
+        <NotConnectedState />
       </DashboardLayout>
     );
   }
@@ -646,153 +601,36 @@ export function ChatPage() {
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-4rem)]">
         {/* Page Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-card/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <MessageCircle className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Chat WhatsApp</h1>
-              <p className="text-sm text-muted-foreground">
-                {conversations?.length ?? 0} conversas ativas
-              </p>
-            </div>
-          </div>
-
-          {/* AI SDR Toggle */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-card border border-border/50">
-              <div className="flex items-center gap-2">
-                <Bot
-                  className={cn("w-4 h-4", isAiEnabled ? "text-teal-500" : "text-muted-foreground")}
-                />
-                <span className="text-sm font-medium">AI SDR</span>
-                {isAiEnabled && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
-                  </span>
-                )}
-              </div>
-              <Switch
-                checked={isAiEnabled}
-                onCheckedChange={() => toggleAiMutation.mutate()}
-                disabled={toggleAiMutation.isPending}
-              />
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/configuracoes">
-                    <Settings className="w-4 h-4" />
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Configurações do AI SDR</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
+        <ChatPageHeader
+          conversationCount={conversations?.length ?? 0}
+          isAiEnabled={isAiEnabled}
+          onToggleAi={() => toggleAiMutation.mutate()}
+          isToggling={toggleAiMutation.isPending}
+        />
 
         {/* Main Content - Inbox Layout */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Contact List Sidebar - Hidden on mobile when conversation selected */}
-          <div
-            className={cn(
-              "border-r border-border/50 flex flex-col bg-card/30",
-              "w-full sm:w-72 md:w-80 lg:w-80",
-              selectedPhone ? "hidden sm:flex" : "flex"
-            )}
-          >
-            {/* Search & Add */}
-            <div className="p-4 space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar contatos..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-background/50"
-                />
-              </div>
-              <Dialog open={addContactOpen} onOpenChange={setAddContactOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full gap-2">
-                    <Plus className="w-4 h-4" />
-                    Adicionar Contato
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Novo Contato</DialogTitle>
-                    <DialogDescription>
-                      Adicione um número de WhatsApp para iniciar uma conversa.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone*</Label>
-                      <Input
-                        id="phone"
-                        placeholder="(11) 99999-9999"
-                        value={newContactPhone}
-                        onChange={(e) => setNewContactPhone(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">Com DDD, sem +55</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome (opcional)</Label>
-                      <Input
-                        id="name"
-                        placeholder="Nome do contato"
-                        value={newContactName}
-                        onChange={(e) => setNewContactName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setAddContactOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button onClick={handleAddContact} disabled={!newContactPhone.trim()}>
-                      Adicionar
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
+          {/* Contact List Sidebar */}
+          <ConversationSidebar
+            conversations={conversationItems}
+            selectedPhone={selectedPhone}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectConversation={(phone) => {
+              setSelectedPhone(phone);
+              setShowSidebar(false);
+            }}
+            isLoading={conversationsLoading}
+            addContactOpen={addContactOpen}
+            onAddContactOpenChange={setAddContactOpen}
+            newContactPhone={newContactPhone}
+            onNewContactPhoneChange={setNewContactPhone}
+            newContactName={newContactName}
+            onNewContactNameChange={setNewContactName}
+            onAddContact={handleAddContact}
+          />
 
-            <Separator />
-
-            {/* Conversations List */}
-            <ScrollArea className="flex-1">
-              {conversationsLoading ? (
-                <ConversationSkeleton count={5} />
-              ) : filteredConversationItems.length > 0 ? (
-                <div className="py-2">
-                  {filteredConversationItems.map((conv) => (
-                    <ConversationItem
-                      key={conv.phone}
-                      conversation={conv}
-                      isSelected={selectedPhone === conv.phone}
-                      onClick={(phone) => {
-                        setSelectedPhone(phone);
-                        setShowSidebar(false);
-                      }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-48 px-4 text-center">
-                  <MessageCircle className="w-10 h-10 text-muted-foreground/50 mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    {searchQuery ? "Nenhum contato encontrado" : "Nenhuma conversa ainda"}
-                  </p>
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-
-          {/* Conversation View - Full width on mobile when selected */}
+          {/* Conversation View */}
           <div
             className={cn(
               "flex-1 flex flex-col bg-slate-900/30",
@@ -802,269 +640,77 @@ export function ChatPage() {
             {selectedPhone ? (
               <>
                 {/* Chat Header */}
-                <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-700/50 bg-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    {/* Back button for mobile */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setSelectedPhone(null);
-                        setShowSidebar(true);
-                      }}
-                      className="sm:hidden text-slate-400 hover:text-slate-100"
-                      aria-label="Voltar para lista de conversas"
-                    >
-                      <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-500/30">
-                      <MessageCircle className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-slate-100">
-                        {selectedConversation?.name || selectedPhone}
-                      </h4>
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs text-slate-400 font-medium">{selectedPhone}</p>
-                        <span
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            normalizedSelectedPhone
-                              ? presenceByPhone[normalizedSelectedPhone]
-                                ? "bg-emerald-500"
-                                : "bg-slate-500"
-                              : "bg-slate-500"
-                          )}
-                          aria-hidden="true"
-                          title={
-                            normalizedSelectedPhone && presenceByPhone[normalizedSelectedPhone]
-                              ? "Contato online"
-                              : "Contato offline"
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isAiEnabled && (
-                      <Badge
-                        variant="outline"
-                        className="bg-teal-500/10 text-teal-400 border-teal-500/30"
-                      >
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        AI Ativo
-                      </Badge>
-                    )}
-                    {/* Edit Contact Button */}
-                    <Dialog open={editContactOpen} onOpenChange={setEditContactOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={openEditContact}
-                          className="text-slate-400 hover:text-slate-100"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Editar Contato</DialogTitle>
-                          <DialogDescription>
-                            Adicione um nome para identificar este contato.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label>Telefone</Label>
-                            <Input value={selectedPhone ?? ""} disabled />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="contactName">Nome*</Label>
-                            <Input
-                              id="contactName"
-                              placeholder="Nome do contato"
-                              value={editContactName}
-                              onChange={(e) => setEditContactName(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="contactNotes">Observações</Label>
-                            <Textarea
-                              id="contactNotes"
-                              placeholder="Notas sobre o contato..."
-                              value={editContactNotes}
-                              onChange={(e) => setEditContactNotes(e.target.value)}
-                              rows={3}
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setEditContactOpen(false)}>
-                            Cancelar
-                          </Button>
-                          <Button
-                            onClick={handleSaveContact}
-                            disabled={!editContactName.trim() || upsertContactMutation.isPending}
-                          >
-                            {upsertContactMutation.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                            ) : null}
-                            Salvar
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => refetchMessages()}
-                      disabled={messagesLoading}
-                      className="text-slate-400 hover:text-slate-100"
-                    >
-                      <RefreshCw className={cn("w-4 h-4", messagesLoading && "animate-spin")} />
-                    </Button>
-                  </div>
-                </div>
+                <ChatConversationHeader
+                  selectedPhone={selectedPhone}
+                  contactName={selectedConversation?.name ?? null}
+                  isOnline={
+                    normalizedSelectedPhone
+                      ? Boolean(presenceByPhone[normalizedSelectedPhone])
+                      : false
+                  }
+                  isAiEnabled={isAiEnabled}
+                  messagesLoading={messagesLoading}
+                  onBack={() => {
+                    setSelectedPhone(null);
+                    setShowSidebar(true);
+                  }}
+                  onRefresh={refetchMessages}
+                  editContactOpen={editContactOpen}
+                  onEditContactOpenChange={setEditContactOpen}
+                  editContactName={editContactName}
+                  onEditContactNameChange={setEditContactName}
+                  editContactNotes={editContactNotes}
+                  onEditContactNotesChange={setEditContactNotes}
+                  onSaveContact={handleSaveContact}
+                  isSavingContact={upsertContactMutation.isPending}
+                  onOpenEditContact={openEditContact}
+                />
 
                 {/* Messages Area */}
-                <div className="flex-1 px-4 py-4 relative">
-                  <div className="h-full max-w-3xl mx-auto">
-                    {messagesLoading ? (
-                      <div className="flex flex-col items-center justify-center h-48">
-                        <MessageSkeleton count={4} />
-                      </div>
-                    ) : (
-                      <VirtualizedMessageList
-                        items={renderItems}
-                        isLoading={messagesLoading}
-                        autoScrollToBottom={shouldAutoScroll}
-                        footer={
-                          <TypingIndicator
-                            isVisible={isSelectedTyping}
-                            label="Contato digitando…"
-                            lastActivityAt={selectedPhoneTyping?.at}
-                            timeoutMs={TYPING_TIMEOUT_MS}
-                            onTimeout={() => {
-                              if (!selectedPhone) return;
-                              const normalized = normalizePhone(selectedPhone);
-                              setTypingByPhone((previous) => {
-                                if (!previous[normalized]) return previous;
-                                const next = { ...previous };
-                                delete next[normalized];
-                                return next;
-                              });
-                            }}
-                          />
-                        }
-                        emptyState={
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="flex flex-col items-center justify-center h-48 text-center"
-                          >
-                            <div className="p-4 rounded-full bg-slate-800 mb-3">
-                              <MessageCircle className="w-8 h-8 text-slate-500" />
-                            </div>
-                            <p className="text-sm text-slate-400 font-medium">
-                              Nenhuma mensagem ainda
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">Envie a primeira mensagem</p>
-                          </motion.div>
-                        }
-                      />
-                    )}
-                  </div>
-                  {showScrollToBottom ? (
-                    <div className="pointer-events-none absolute bottom-4 right-4">
-                      <Button
-                        type="button"
-                        size="icon"
-                        className="pointer-events-auto rounded-full shadow-lg"
-                        onClick={() => {
-                          setShouldAutoScroll(true);
-                          scrollToBottom("smooth");
-                        }}
-                        aria-label="Ir para o fim da conversa"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
+                <MessagesArea
+                  renderItems={renderItems}
+                  isLoading={messagesLoading}
+                  shouldAutoScroll={shouldAutoScroll}
+                  footer={
+                    <TypingIndicator
+                      isVisible={isSelectedTyping}
+                      label="Contato digitando…"
+                      lastActivityAt={selectedPhoneTyping?.at}
+                      timeoutMs={TYPING_TIMEOUT_MS}
+                      onTimeout={handleTypingTimeout}
+                    />
+                  }
+                  emptyState={<MessagesEmptyState />}
+                  showScrollToBottom={showScrollToBottom}
+                  onScrollToBottom={() => {
+                    setShouldAutoScroll(true);
+                    scrollToBottom("smooth");
+                  }}
+                />
 
                 {/* Input Area */}
-                <div className="p-4 border-t border-slate-700/50 bg-slate-800/80">
-                  <div className="flex gap-3 items-end max-w-3xl mx-auto">
-                    {/* Video Button */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setVideoComposerOpen(true)}
-                      disabled={!selectedPhone}
-                      className="shrink-0 h-11 w-11 text-slate-400 hover:text-slate-100 hover:bg-slate-700/50"
-                    >
-                      <Video className="w-5 h-5" />
-                    </Button>
-
-                    <MessageInput
-                      value={message}
-                      onChange={setMessage}
-                      onSend={handleSend}
-                      onTypingChange={handleTypingChange}
-                      onAttachmentSelect={handleAttachmentSelect}
-                      onEmojiSelect={handleEmojiSelect}
-                      onAudioAction={handleAudioAction}
-                      disabled={sendMutation.isPending || !selectedPhone}
-                      placeholder="Digite sua mensagem..."
-                      className="flex-1 rounded-md border-slate-600/50 bg-slate-700/50"
-                    />
-
-                    <Button
-                      onClick={handleSend}
-                      disabled={!message.trim() || sendMutation.isPending}
-                      size="icon"
-                      className="shrink-0 h-11 w-11 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
-                    >
-                      {sendMutation.isPending ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <MessageCircle className="w-5 h-5" />
-                      )}
-                    </Button>
-                  </div>
-                  {sendMutation.isError && (
-                    <p className="text-xs text-red-400 mt-2 text-center">
-                      Erro ao enviar mensagem. Tente novamente.
-                    </p>
-                  )}
-
-                  {/* Video Message Composer */}
-                  <VideoMessageComposer
-                    open={videoComposerOpen}
-                    onOpenChange={setVideoComposerOpen}
-                    phone={selectedPhone ?? ""}
-                    leadId={selectedConversation?.leadId ?? undefined}
-                    onSuccess={() => {
-                      refetchMessages();
-                      refetchConversations();
-                    }}
-                  />
-                </div>
+                <InputArea
+                  message={message}
+                  onMessageChange={setMessage}
+                  onSend={handleSend}
+                  selectedPhone={selectedPhone}
+                  isSending={sendMutation.isPending}
+                  sendError={sendMutation.isError}
+                  onTypingChange={handleTypingChange}
+                  onAttachmentSelect={handleAttachmentSelect}
+                  onEmojiSelect={handleEmojiSelect}
+                  onAudioAction={handleAudioAction}
+                  videoComposerOpen={videoComposerOpen}
+                  onVideoComposerOpenChange={setVideoComposerOpen}
+                  leadId={selectedConversation?.leadId ?? undefined}
+                  onVideoSuccess={() => {
+                    refetchMessages();
+                    refetchConversations();
+                  }}
+                />
               </>
             ) : (
-              /* Empty State */
-              <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                <div className="p-6 rounded-full bg-slate-800/50 mb-4">
-                  <MessageCircle className="w-12 h-12 text-slate-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-200 mb-2">
-                  Selecione uma conversa
-                </h3>
-                <p className="text-sm text-slate-400 max-w-sm">
-                  Escolha um contato da lista ao lado ou adicione um novo para começar a conversar
-                </p>
-              </div>
+              <EmptyConversationState />
             )}
           </div>
         </div>

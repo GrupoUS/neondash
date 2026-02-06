@@ -31,9 +31,9 @@ export function linkify(text: string): LinkifySegment[] {
 
   const segments: LinkifySegment[] = [];
   let lastIndex = 0;
-  let match: RegExpExecArray | null;
+  let match: RegExpExecArray | null = urlRegex.exec(text);
 
-  while ((match = urlRegex.exec(text)) !== null) {
+  while (match !== null) {
     // Add text before the URL
     if (match.index > lastIndex) {
       const textSegment = text.slice(lastIndex, match.index);
@@ -52,6 +52,9 @@ export function linkify(text: string): LinkifySegment[] {
 
     segments.push({ type: "url", content: url });
     lastIndex = urlRegex.lastIndex;
+
+    // Get next match
+    match = urlRegex.exec(text);
   }
 
   // Add remaining text after the last URL

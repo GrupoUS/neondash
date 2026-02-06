@@ -100,6 +100,65 @@ const DEFAULT_PROCEDIMENTOS = [
     ],
   },
   {
+    nome: "Fios de PDO (Lifting)",
+    categoria: "Facial",
+    precoVenda: 250000,
+    custoOperacional: 20000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Fios de PDO", quantidade: 4 }, // Kit fios
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Gaze", quantidade: 2 },
+    ],
+  },
+  {
+    nome: "Bioestimulador (Elleva)",
+    categoria: "Corporal",
+    precoVenda: 180000,
+    custoOperacional: 15000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Elleva 210 Bio", quantidade: 1 },
+      { nome: "Cânula", quantidade: 1 },
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Laser Lavien (Sessão)",
+    categoria: "Facial",
+    precoVenda: 80000,
+    custoOperacional: 10000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Máquina Lavien (Locação Diária)", quantidade: 1 }, // Considerar fração se possível, mas aqui é unitário
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Vitamina Pós Procedimento", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Ultrassom Microfocado (Full Face)",
+    categoria: "Facial",
+    precoVenda: 350000,
+    custoOperacional: 50000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Locação Máquina Microfocado", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Gaze", quantidade: 4 },
+    ],
+  },
+
+  {
     nome: "Limpeza de Pele Profunda",
     categoria: "Facial",
     precoVenda: 25000, // R$ 250,00

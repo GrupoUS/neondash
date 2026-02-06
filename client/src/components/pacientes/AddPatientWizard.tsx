@@ -192,7 +192,7 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[1400px] w-[95vw] p-0 overflow-hidden bg-background border-border/60 gap-0 shadow-2xl"
+        className="max-w-[1600px] w-[95vw] p-0 overflow-hidden bg-background border-border/60 gap-0 shadow-2xl"
         aria-describedby="add-patient-description"
       >
         <DialogTitle className="sr-only">Cadastrar Novo Paciente</DialogTitle>
@@ -370,77 +370,110 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
                     className="space-y-8"
                   >
                     {step === 1 && (
-                      <div className="space-y-8">
-                        {/* Full Name - Featured */}
-                        <FormField
-                          label="Nome Completo"
-                          required
-                          error={form.formState.errors.nomeCompleto?.message}
-                        >
-                          <Input
-                            {...form.register("nomeCompleto")}
-                            placeholder="Ex: Maria Silva Santos"
-                            className="h-14 text-lg px-5"
-                          />
-                        </FormField>
+                      <div className="space-y-12">
+                        {/* Section: Identificação */}
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <User className="w-4 h-4 text-primary" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-foreground">Identificação</h4>
+                          </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                          <FormField label="Nome Preferido" hint="Como gosta de ser chamado(a)">
-                            <Input
-                              {...form.register("nomePreferido")}
-                              placeholder="Ex: Mari"
-                              className="h-12 text-base"
-                            />
-                          </FormField>
+                          <div className="grid grid-cols-12 gap-6">
+                            <div className="col-span-12 lg:col-span-8">
+                              <FormField
+                                label="Nome Completo"
+                                required
+                                error={form.formState.errors.nomeCompleto?.message}
+                              >
+                                <Input
+                                  {...form.register("nomeCompleto")}
+                                  placeholder="Ex: Maria Silva Santos"
+                                  className="h-12 text-base px-4"
+                                />
+                              </FormField>
+                            </div>
 
-                          <FormField label="Data de Nascimento">
-                            <Input
-                              type="date"
-                              {...form.register("dataNascimento")}
-                              className="h-12 text-base"
-                            />
-                          </FormField>
+                            <div className="col-span-12 lg:col-span-4">
+                              <FormField label="Nome Preferido" hint="Como gosta de ser chamado(a)">
+                                <Input
+                                  {...form.register("nomePreferido")}
+                                  placeholder="Ex: Mari"
+                                  className="h-12 text-base"
+                                />
+                              </FormField>
+                            </div>
 
-                          <FormField label="Gênero">
-                            <Select
-                              onValueChange={(val) =>
-                                form.setValue(
-                                  "genero",
-                                  val as "masculino" | "feminino" | "outro" | "prefiro_nao_dizer"
-                                )
-                              }
-                              defaultValue={form.getValues("genero")}
-                            >
-                              <SelectTrigger className="h-12 text-base">
-                                <SelectValue placeholder="Selecione" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="feminino">Feminino</SelectItem>
-                                <SelectItem value="masculino">Masculino</SelectItem>
-                                <SelectItem value="outro">Outro</SelectItem>
-                                <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </FormField>
+                            <div className="col-span-12 md:col-span-6 lg:col-span-4">
+                              <FormField label="Data de Nascimento">
+                                <Input
+                                  type="date"
+                                  {...form.register("dataNascimento")}
+                                  className="h-12 text-base"
+                                />
+                              </FormField>
+                            </div>
+
+                            <div className="col-span-12 md:col-span-6 lg:col-span-4">
+                              <FormField label="Gênero">
+                                <Select
+                                  onValueChange={(val) =>
+                                    form.setValue(
+                                      "genero",
+                                      val as
+                                        | "masculino"
+                                        | "feminino"
+                                        | "outro"
+                                        | "prefiro_nao_dizer"
+                                    )
+                                  }
+                                  defaultValue={form.getValues("genero")}
+                                >
+                                  <SelectTrigger className="h-12 text-base">
+                                    <SelectValue placeholder="Selecione" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="feminino">Feminino</SelectItem>
+                                    <SelectItem value="masculino">Masculino</SelectItem>
+                                    <SelectItem value="outro">Outro</SelectItem>
+                                    <SelectItem value="prefiro_nao_dizer">
+                                      Prefiro não dizer
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormField>
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <FormField label="CPF" hint="Opcional">
-                            <Input
-                              {...form.register("cpf")}
-                              placeholder="000.000.000-00"
-                              onChange={(e) => form.setValue("cpf", formatCPF(e.target.value))}
-                              className="h-12 text-base font-mono"
-                            />
-                          </FormField>
+                        {/* Section: Documentação */}
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-primary" />
+                            </div>
+                            <h4 className="text-lg font-semibold text-foreground">Documentação</h4>
+                          </div>
 
-                          <FormField label="RG" hint="Registro Geral">
-                            <Input
-                              {...form.register("rg")}
-                              placeholder="00.000.000-0"
-                              className="h-12 text-base font-mono"
-                            />
-                          </FormField>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <FormField label="CPF" hint="Digite apenas números">
+                              <Input
+                                {...form.register("cpf")}
+                                placeholder="000.000.000-00"
+                                onChange={(e) => form.setValue("cpf", formatCPF(e.target.value))}
+                                className="h-12 text-base font-mono"
+                              />
+                            </FormField>
+
+                            <FormField label="RG" hint="Registro Geral">
+                              <Input
+                                {...form.register("rg")}
+                                placeholder="00.000.000-0"
+                                className="h-12 text-base font-mono"
+                              />
+                            </FormField>
+                          </div>
                         </div>
                       </div>
                     )}

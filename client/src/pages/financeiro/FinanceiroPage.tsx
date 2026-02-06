@@ -64,9 +64,9 @@ export default function FinanceiroPage() {
                 <Package className="h-4 w-4" />
                 Insumos
               </NeonTabsTrigger>
-              <NeonTabsTrigger value="precificacao" className="gap-1.5">
+              <NeonTabsTrigger value="procedimentos" className="gap-1.5">
                 <Calculator className="h-4 w-4" />
-                Precificação
+                Procedimentos
               </NeonTabsTrigger>
             </NeonTabsList>
           </div>
@@ -91,7 +91,7 @@ export default function FinanceiroPage() {
             <InsumosTab />
           </NeonTabsContent>
 
-          <NeonTabsContent value="precificacao">
+          <NeonTabsContent value="procedimentos">
             <PrecificacaoTab />
           </NeonTabsContent>
         </NeonTabs>

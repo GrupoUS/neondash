@@ -97,7 +97,7 @@ export function InsumosTab() {
       return;
     }
     const valorCompra = Math.round(Number(formData.valorCompra.replace(",", ".")) * 100);
-    const rendimento = parseInt(formData.rendimento, 10);
+    const rendimento = Number.parseFloat(formData.rendimento.replace(",", "."));
 
     if (Number.isNaN(valorCompra) || valorCompra <= 0) {
       toast.error("Valor de compra inválido");
@@ -183,10 +183,9 @@ export function InsumosTab() {
                 <div className="space-y-2">
                   <Label>Rendimento (usos)</Label>
                   <Input
-                    type="number"
                     value={formData.rendimento}
                     onChange={(e) => setFormData({ ...formData, rendimento: e.target.value })}
-                    placeholder="Ex: 5"
+                    placeholder="Ex: 1,5"
                   />
                 </div>
               </div>
@@ -221,7 +220,9 @@ export function InsumosTab() {
                 <TableRow key={i.id}>
                   <TableCell className="font-medium">{i.nome}</TableCell>
                   <TableCell>{formatCurrency(i.valorCompra)}</TableCell>
-                  <TableCell>{i.rendimento} usos</TableCell>
+                  <TableCell>
+                    {i.rendimento % 1 === 0 ? i.rendimento : i.rendimento.toFixed(1)} usos
+                  </TableCell>
                   <TableCell className="text-primary font-medium">
                     {formatCurrency(calcCustoPorUso(i.valorCompra, i.rendimento))}
                   </TableCell>

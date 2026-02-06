@@ -10,7 +10,7 @@ import { MarketingAgentSettingsCard } from "@/components/settings/MarketingAgent
 import { SdrAgentSettingsCard } from "@/components/settings/SdrAgentSettingsCard";
 import { Separator } from "@/components/ui/separator";
 import { AIAgentSettingsCard } from "@/components/whatsapp/AIAgentSettingsCard";
-import { MetaConnectionCard } from "@/components/whatsapp/MetaConnectionCard";
+import { WhatsAppConnectionCard } from "@/components/whatsapp/WhatsAppConnectionCard";
 
 export function SettingsPage() {
   return (
@@ -38,10 +38,10 @@ export function SettingsPage() {
             <h2 className="text-xl font-semibold">Integração WhatsApp</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Conecte sua conta WhatsApp Business para enviar e receber mensagens diretamente do CRM
-            via API Oficial do Meta.
+            Conecte sua conta WhatsApp para enviar e receber mensagens diretamente do CRM via Z-API.
+            Escaneie o QR code com seu celular para conectar.
           </p>
-          <MetaConnectionCard />
+          <WhatsAppConnectionCard />
         </section>
 
         <Separator />

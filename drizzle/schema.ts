@@ -4,6 +4,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  real,
   serial,
   text,
   timestamp,
@@ -1405,7 +1406,7 @@ export const insumos = pgTable(
       .references(() => mentorados.id, { onDelete: "cascade" }),
     nome: varchar("nome", { length: 255 }).notNull(),
     valorCompra: integer("valor_compra").notNull(), // em centavos
-    rendimento: integer("rendimento").notNull().default(1), // número de usos
+    rendimento: real("rendimento").notNull().default(1), // número de usos (aceita decimais, ex: 1.5)
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

@@ -109,7 +109,7 @@ export const precificacaoRouter = router({
         z.object({
           nome: z.string().min(1, "Nome é obrigatório"),
           valorCompra: z.number().positive("Valor deve ser positivo"),
-          rendimento: z.number().int().positive("Rendimento deve ser positivo"),
+          rendimento: z.number().positive("Rendimento deve ser positivo"),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -132,7 +132,7 @@ export const precificacaoRouter = router({
           id: z.number(),
           nome: z.string().optional(),
           valorCompra: z.number().positive().optional(),
-          rendimento: z.number().int().positive().optional(),
+          rendimento: z.number().positive().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {

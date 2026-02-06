@@ -108,7 +108,7 @@ const staggerContainer = {
 };
 
 const ProcedureListDisplay = ({ procedureIds }: { procedureIds: number[] }) => {
-  const { data: procedures } = trpc.procedimentos.procedimentos.list.useQuery();
+  const { data: procedures } = trpc.procedimentos.list.useQuery();
 
   if (!procedureIds || procedureIds.length === 0) {
     return <span className="text-sm text-muted-foreground">—</span>;

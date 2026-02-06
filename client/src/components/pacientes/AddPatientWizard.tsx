@@ -183,7 +183,10 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const onSubmit = (data: FormValues) => {
-    createMutation.mutate(data);
+    createMutation.mutate({
+      ...data,
+      email: data.email || null,
+    });
   };
 
   // Calculate progress percentage

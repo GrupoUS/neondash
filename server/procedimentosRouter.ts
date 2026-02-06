@@ -636,336 +636,334 @@ export const procedimentosRouter = router({
   // PROCEDIMENTOS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  procedimentos: router({
-    list: mentoradoProcedure.query(async ({ ctx }) => {
-      const db = getDb();
-      const mentoradoId = ctx.mentorado.id;
+  // PROCEDIMENTOS
 
-      let procs = await db
+  list: mentoradoProcedure.query(async ({ ctx }) => {
+    const db = getDb();
+    const mentoradoId = ctx.mentorado.id;
+
+    let procs = await db
+      .select()
+      .from(procedimentos)
+      .where(eq(procedimentos.mentoradoId, mentoradoId))
+      .orderBy(procedimentos.nome);
+
+    // Auto-seed if empty
+    if (procs.length === 0) {
+      // console.log("Seeding default procedures for mentorado:", mentoradoId);
+
+      // Ensure insumos exist first (re-run seedDefaults logic internally or assume it's run)
+      // For safety, we verify specific insumos exist or map by name
+      let existingInsumos = await db
+        .select()
+        .from(insumos)
+        .where(eq(insumos.mentoradoId, mentoradoId));
+
+      if (existingInsumos.length === 0) {
+        await db.insert(insumos).values(
+          DEFAULT_INSUMOS.map((i) => ({
+            mentoradoId,
+            nome: i.nome,
+            valorCompra: i.valorCompra,
+            rendimento: i.rendimento,
+          }))
+        );
+
+        existingInsumos = await db
+          .select()
+          .from(insumos)
+          .where(eq(insumos.mentoradoId, mentoradoId));
+      }
+
+      const insumoMap = new Map(existingInsumos.map((i) => [i.nome, i.id]));
+
+      for (const defProc of DEFAULT_PROCEDIMENTOS) {
+        const [newProc] = await db
+          .insert(procedimentos)
+          .values({
+            mentoradoId,
+            nome: defProc.nome,
+            categoria: defProc.categoria,
+            precoVenda: defProc.precoVenda,
+            custoOperacional: defProc.custoOperacional,
+            custoInvestimento: defProc.custoInvestimento,
+            percentualParceiro: defProc.percentualParceiro,
+            percentualImposto: defProc.percentualImposto,
+          })
+          .returning({ id: procedimentos.id });
+
+        if (defProc.insumos) {
+          const insumosToInsert = defProc.insumos
+            .map((i) => {
+              const id = insumoMap.get(i.nome);
+              return id
+                ? { procedimentoId: newProc.id, insumoId: id, quantidade: i.quantidade }
+                : null;
+            })
+            .filter(
+              (i): i is { procedimentoId: number; insumoId: number; quantidade: number } =>
+                i !== null
+            );
+
+          if (insumosToInsert.length > 0) {
+            await db.insert(procedimentoInsumos).values(insumosToInsert);
+          }
+        }
+      }
+
+      // Re-fetch
+      procs = await db
         .select()
         .from(procedimentos)
         .where(eq(procedimentos.mentoradoId, mentoradoId))
         .orderBy(procedimentos.nome);
+    }
 
-      // Auto-seed if empty
-      if (procs.length === 0) {
-        // console.log("Seeding default procedures for mentorado:", mentoradoId);
+    // Get all procedure-insumo relationships
+    const procInsumos = await db
+      .select({
+        procedimentoId: procedimentoInsumos.procedimentoId,
+        insumoId: procedimentoInsumos.insumoId,
+        quantidade: procedimentoInsumos.quantidade,
+        insumoNome: insumos.nome,
+        insumoValorCompra: insumos.valorCompra,
+        insumoRendimento: insumos.rendimento,
+      })
+      .from(procedimentoInsumos)
+      .innerJoin(insumos, eq(procedimentoInsumos.insumoId, insumos.id))
+      .innerJoin(procedimentos, eq(procedimentoInsumos.procedimentoId, procedimentos.id))
+      .where(eq(procedimentos.mentoradoId, mentoradoId));
 
-        // Ensure insumos exist first (re-run seedDefaults logic internally or assume it's run)
-        // For safety, we verify specific insumos exist or map by name
-        let existingInsumos = await db
-          .select()
-          .from(insumos)
-          .where(eq(insumos.mentoradoId, mentoradoId));
+    return procs.map((proc) => ({
+      ...proc,
+      insumos: procInsumos.filter((pi) => pi.procedimentoId === proc.id),
+    }));
+  }),
 
-        if (existingInsumos.length === 0) {
-          await db.insert(insumos).values(
-            DEFAULT_INSUMOS.map((i) => ({
-              mentoradoId,
-              nome: i.nome,
-              valorCompra: i.valorCompra,
-              rendimento: i.rendimento,
-            }))
-          );
-
-          existingInsumos = await db
-            .select()
-            .from(insumos)
-            .where(eq(insumos.mentoradoId, mentoradoId));
-        }
-
-        const insumoMap = new Map(existingInsumos.map((i) => [i.nome, i.id]));
-
-        for (const defProc of DEFAULT_PROCEDIMENTOS) {
-          const [newProc] = await db
-            .insert(procedimentos)
-            .values({
-              mentoradoId,
-              nome: defProc.nome,
-              categoria: defProc.categoria,
-              precoVenda: defProc.precoVenda,
-              custoOperacional: defProc.custoOperacional,
-              custoInvestimento: defProc.custoInvestimento,
-              percentualParceiro: defProc.percentualParceiro,
-              percentualImposto: defProc.percentualImposto,
+  create: mentoradoProcedure
+    .input(
+      z.object({
+        nome: z.string().min(1, "Nome é obrigatório"),
+        categoria: z.string().optional(),
+        precoVenda: z.number().positive("Preço deve ser positivo"),
+        custoOperacional: z.number().optional(),
+        custoInvestimento: z.number().optional(),
+        percentualParceiro: z.number().min(0).max(10000).optional(),
+        percentualImposto: z.number().min(0).max(10000).optional(),
+        insumos: z
+          .array(
+            z.object({
+              insumoId: z.number(),
+              quantidade: z.number().int().positive(),
             })
-            .returning({ id: procedimentos.id });
+          )
+          .optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
 
-          if (defProc.insumos) {
-            const insumosToInsert = defProc.insumos
-              .map((i) => {
-                const id = insumoMap.get(i.nome);
-                return id
-                  ? { procedimentoId: newProc.id, insumoId: id, quantidade: i.quantidade }
-                  : null;
-              })
-              .filter(
-                (i): i is { procedimentoId: number; insumoId: number; quantidade: number } =>
-                  i !== null
-              );
+      const [proc] = await db
+        .insert(procedimentos)
+        .values({
+          mentoradoId: ctx.mentorado.id,
+          nome: input.nome,
+          categoria: input.categoria,
+          precoVenda: input.precoVenda,
+          custoOperacional: input.custoOperacional,
+          custoInvestimento: input.custoInvestimento,
+          percentualParceiro: input.percentualParceiro,
+          percentualImposto: input.percentualImposto,
+        })
+        .returning({ id: procedimentos.id });
 
-            if (insumosToInsert.length > 0) {
-              await db.insert(procedimentoInsumos).values(insumosToInsert);
-            }
-          }
-        }
-
-        // Re-fetch
-        procs = await db
-          .select()
-          .from(procedimentos)
-          .where(eq(procedimentos.mentoradoId, mentoradoId))
-          .orderBy(procedimentos.nome);
+      // Add insumos if provided
+      if (input.insumos && input.insumos.length > 0) {
+        await db.insert(procedimentoInsumos).values(
+          input.insumos.map((i) => ({
+            procedimentoId: proc.id,
+            insumoId: i.insumoId,
+            quantidade: i.quantidade,
+          }))
+        );
       }
 
-      // Get all procedure-insumo relationships
-      const procInsumos = await db
-        .select({
-          procedimentoId: procedimentoInsumos.procedimentoId,
-          insumoId: procedimentoInsumos.insumoId,
-          quantidade: procedimentoInsumos.quantidade,
-          insumoNome: insumos.nome,
-          insumoValorCompra: insumos.valorCompra,
-          insumoRendimento: insumos.rendimento,
-        })
-        .from(procedimentoInsumos)
-        .innerJoin(insumos, eq(procedimentoInsumos.insumoId, insumos.id))
-        .innerJoin(procedimentos, eq(procedimentoInsumos.procedimentoId, procedimentos.id))
-        .where(eq(procedimentos.mentoradoId, mentoradoId));
-
-      return procs.map((proc) => ({
-        ...proc,
-        insumos: procInsumos.filter((pi) => pi.procedimentoId === proc.id),
-      }));
+      return proc;
     }),
 
-    create: mentoradoProcedure
-      .input(
-        z.object({
-          nome: z.string().min(1, "Nome é obrigatório"),
-          categoria: z.string().optional(),
-          precoVenda: z.number().positive("Preço deve ser positivo"),
-          custoOperacional: z.number().optional(),
-          custoInvestimento: z.number().optional(),
-          percentualParceiro: z.number().min(0).max(10000).optional(),
-          percentualImposto: z.number().min(0).max(10000).optional(),
-          insumos: z
-            .array(
-              z.object({
-                insumoId: z.number(),
-                quantidade: z.number().int().positive(),
-              })
-            )
-            .optional(),
+  update: mentoradoProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        nome: z.string().optional(),
+        categoria: z.string().optional(),
+        precoVenda: z.number().positive().optional(),
+        custoOperacional: z.number().optional(),
+        custoInvestimento: z.number().optional(),
+        percentualParceiro: z.number().min(0).max(10000).optional(),
+        percentualImposto: z.number().min(0).max(10000).optional(),
+        insumos: z
+          .array(
+            z.object({
+              insumoId: z.number(),
+              quantidade: z.number().int().positive(),
+            })
+          )
+          .optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      const [proc] = await db
+        .select()
+        .from(procedimentos)
+        .where(eq(procedimentos.id, input.id))
+        .limit(1);
+
+      if (!proc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Procedimento não encontrado" });
+      }
+      if (proc.mentoradoId !== ctx.mentorado.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+      }
+
+      await db
+        .update(procedimentos)
+        .set({
+          nome: input.nome,
+          categoria: input.categoria,
+          precoVenda: input.precoVenda,
+          custoOperacional: input.custoOperacional,
+          custoInvestimento: input.custoInvestimento,
+          percentualParceiro: input.percentualParceiro,
+          percentualImposto: input.percentualImposto,
+          updatedAt: new Date(),
         })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const db = getDb();
+        .where(eq(procedimentos.id, input.id));
 
-        const [proc] = await db
-          .insert(procedimentos)
-          .values({
-            mentoradoId: ctx.mentorado.id,
-            nome: input.nome,
-            categoria: input.categoria,
-            precoVenda: input.precoVenda,
-            custoOperacional: input.custoOperacional,
-            custoInvestimento: input.custoInvestimento,
-            percentualParceiro: input.percentualParceiro,
-            percentualImposto: input.percentualImposto,
-          })
-          .returning({ id: procedimentos.id });
+      // Update insumos if provided
+      if (input.insumos !== undefined) {
+        // Delete existing
+        await db
+          .delete(procedimentoInsumos)
+          .where(eq(procedimentoInsumos.procedimentoId, input.id));
 
-        // Add insumos if provided
-        if (input.insumos && input.insumos.length > 0) {
+        // Insert new
+        if (input.insumos.length > 0) {
           await db.insert(procedimentoInsumos).values(
             input.insumos.map((i) => ({
-              procedimentoId: proc.id,
+              procedimentoId: input.id,
               insumoId: i.insumoId,
               quantidade: i.quantidade,
             }))
           );
         }
+      }
 
-        return proc;
-      }),
+      return { success: true };
+    }),
 
-    update: mentoradoProcedure
-      .input(
-        z.object({
-          id: z.number(),
-          nome: z.string().optional(),
-          categoria: z.string().optional(),
-          precoVenda: z.number().positive().optional(),
-          custoOperacional: z.number().optional(),
-          custoInvestimento: z.number().optional(),
-          percentualParceiro: z.number().min(0).max(10000).optional(),
-          percentualImposto: z.number().min(0).max(10000).optional(),
-          insumos: z
-            .array(
-              z.object({
-                insumoId: z.number(),
-                quantidade: z.number().int().positive(),
-              })
-            )
-            .optional(),
+  delete: mentoradoProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      const [proc] = await db
+        .select()
+        .from(procedimentos)
+        .where(eq(procedimentos.id, input.id))
+        .limit(1);
+
+      if (!proc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Procedimento não encontrado" });
+      }
+      if (proc.mentoradoId !== ctx.mentorado.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+      }
+
+      await db.delete(procedimentos).where(eq(procedimentos.id, input.id));
+      return { success: true };
+    }),
+
+  calcularCusto: mentoradoProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const db = getDb();
+      const [proc] = await db
+        .select()
+        .from(procedimentos)
+        .where(eq(procedimentos.id, input.id))
+        .limit(1);
+
+      if (!proc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Procedimento não encontrado" });
+      }
+      if (proc.mentoradoId !== ctx.mentorado.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+      }
+
+      // Calculate insumos cost
+      const procInsumos = await db
+        .select({
+          quantidade: procedimentoInsumos.quantidade,
+          valorCompra: insumos.valorCompra,
+          rendimento: insumos.rendimento,
         })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const db = getDb();
-        const [proc] = await db
-          .select()
-          .from(procedimentos)
-          .where(eq(procedimentos.id, input.id))
-          .limit(1);
+        .from(procedimentoInsumos)
+        .innerJoin(insumos, eq(procedimentoInsumos.insumoId, insumos.id))
+        .where(eq(procedimentoInsumos.procedimentoId, input.id));
 
-        if (!proc) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Procedimento não encontrado" });
-        }
-        if (proc.mentoradoId !== ctx.mentorado.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
-        }
+      const custoInsumos = procInsumos.reduce((acc, pi) => {
+        const custoPorUso = Math.round((pi.valorCompra ?? 0) / (pi.rendimento ?? 1));
+        return acc + custoPorUso * (pi.quantidade ?? 1);
+      }, 0);
 
-        await db
-          .update(procedimentos)
-          .set({
-            nome: input.nome,
-            categoria: input.categoria,
-            precoVenda: input.precoVenda,
-            custoOperacional: input.custoOperacional,
-            custoInvestimento: input.custoInvestimento,
-            percentualParceiro: input.percentualParceiro,
-            percentualImposto: input.percentualImposto,
-            updatedAt: new Date(),
-          })
-          .where(eq(procedimentos.id, input.id));
+      const custoOperacional = proc.custoOperacional ?? 0;
+      const custoInvestimento = proc.custoInvestimento ?? 0;
+      const custoParceiro = Math.round((proc.precoVenda * (proc.percentualParceiro ?? 0)) / 10000);
+      const custoTotal = custoInsumos + custoOperacional + custoInvestimento + custoParceiro;
+      const lucroParcial = proc.precoVenda - custoTotal;
+      const imposto = Math.round((proc.precoVenda * (proc.percentualImposto ?? 700)) / 10000);
+      const lucroFinal = lucroParcial - imposto;
 
-        // Update insumos if provided
-        if (input.insumos !== undefined) {
-          // Delete existing
-          await db
-            .delete(procedimentoInsumos)
-            .where(eq(procedimentoInsumos.procedimentoId, input.id));
+      // NEW: Calculate additional KPIs for aesthetic clinic owners
+      const precoVenda = proc.precoVenda;
 
-          // Insert new
-          if (input.insumos.length > 0) {
-            await db.insert(procedimentoInsumos).values(
-              input.insumos.map((i) => ({
-                procedimentoId: input.id,
-                insumoId: i.insumoId,
-                quantidade: i.quantidade,
-              }))
-            );
-          }
-        }
+      // Margem Líquida % = (Lucro Final / Preço Venda) × 100
+      const margemLiquidaPercent =
+        precoVenda > 0 ? Math.round((lucroFinal / precoVenda) * 10000) / 100 : 0;
 
-        return { success: true };
-      }),
+      // Margem Bruta % = (Lucro Parcial / Preço Venda) × 100
+      const margemBrutaPercent =
+        precoVenda > 0 ? Math.round((lucroParcial / precoVenda) * 10000) / 100 : 0;
 
-    delete: mentoradoProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const db = getDb();
-        const [proc] = await db
-          .select()
-          .from(procedimentos)
-          .where(eq(procedimentos.id, input.id))
-          .limit(1);
+      // Markup = Preço Venda / Custo Total
+      const markup = custoTotal > 0 ? Math.round((precoVenda / custoTotal) * 100) / 100 : 0;
 
-        if (!proc) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Procedimento não encontrado" });
-        }
-        if (proc.mentoradoId !== ctx.mentorado.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
-        }
+      // Eficiência de Custos = (Custo Insumos / Custo Total) × 100
+      const eficienciaCustos =
+        custoTotal > 0 ? Math.round((custoInsumos / custoTotal) * 10000) / 100 : 0;
 
-        await db.delete(procedimentos).where(eq(procedimentos.id, input.id));
-        return { success: true };
-      }),
+      // ROI do Serviço = (Lucro Final / Custo Total) × 100
+      const roiServico = custoTotal > 0 ? Math.round((lucroFinal / custoTotal) * 10000) / 100 : 0;
 
-    calcularCusto: mentoradoProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ ctx, input }) => {
-        const db = getDb();
-        const [proc] = await db
-          .select()
-          .from(procedimentos)
-          .where(eq(procedimentos.id, input.id))
-          .limit(1);
-
-        if (!proc) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Procedimento não encontrado" });
-        }
-        if (proc.mentoradoId !== ctx.mentorado.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
-        }
-
-        // Calculate insumos cost
-        const procInsumos = await db
-          .select({
-            quantidade: procedimentoInsumos.quantidade,
-            valorCompra: insumos.valorCompra,
-            rendimento: insumos.rendimento,
-          })
-          .from(procedimentoInsumos)
-          .innerJoin(insumos, eq(procedimentoInsumos.insumoId, insumos.id))
-          .where(eq(procedimentoInsumos.procedimentoId, input.id));
-
-        const custoInsumos = procInsumos.reduce((acc, pi) => {
-          const custoPorUso = Math.round((pi.valorCompra ?? 0) / (pi.rendimento ?? 1));
-          return acc + custoPorUso * (pi.quantidade ?? 1);
-        }, 0);
-
-        const custoOperacional = proc.custoOperacional ?? 0;
-        const custoInvestimento = proc.custoInvestimento ?? 0;
-        const custoParceiro = Math.round(
-          (proc.precoVenda * (proc.percentualParceiro ?? 0)) / 10000
-        );
-        const custoTotal = custoInsumos + custoOperacional + custoInvestimento + custoParceiro;
-        const lucroParcial = proc.precoVenda - custoTotal;
-        const imposto = Math.round((proc.precoVenda * (proc.percentualImposto ?? 700)) / 10000);
-        const lucroFinal = lucroParcial - imposto;
-
-        // NEW: Calculate additional KPIs for aesthetic clinic owners
-        const precoVenda = proc.precoVenda;
-
-        // Margem Líquida % = (Lucro Final / Preço Venda) × 100
-        const margemLiquidaPercent =
-          precoVenda > 0 ? Math.round((lucroFinal / precoVenda) * 10000) / 100 : 0;
-
-        // Margem Bruta % = (Lucro Parcial / Preço Venda) × 100
-        const margemBrutaPercent =
-          precoVenda > 0 ? Math.round((lucroParcial / precoVenda) * 10000) / 100 : 0;
-
-        // Markup = Preço Venda / Custo Total
-        const markup = custoTotal > 0 ? Math.round((precoVenda / custoTotal) * 100) / 100 : 0;
-
-        // Eficiência de Custos = (Custo Insumos / Custo Total) × 100
-        const eficienciaCustos =
-          custoTotal > 0 ? Math.round((custoInsumos / custoTotal) * 10000) / 100 : 0;
-
-        // ROI do Serviço = (Lucro Final / Custo Total) × 100
-        const roiServico = custoTotal > 0 ? Math.round((lucroFinal / custoTotal) * 10000) / 100 : 0;
-
-        return {
-          custoInsumos,
-          custoOperacional,
-          custoInvestimento,
-          custoParceiro,
-          custoTotal,
-          lucroParcial,
-          imposto,
-          lucroFinal,
-          // NEW KPIs
-          precoVenda,
-          margemLiquidaPercent,
-          margemBrutaPercent,
-          markup,
-          eficienciaCustos,
-          roiServico,
-        };
-      }),
-  }),
+      return {
+        custoInsumos,
+        custoOperacional,
+        custoInvestimento,
+        custoParceiro,
+        custoTotal,
+        lucroParcial,
+        imposto,
+        lucroFinal,
+        // NEW KPIs
+        precoVenda,
+        margemLiquidaPercent,
+        margemBrutaPercent,
+        markup,
+        eficienciaCustos,
+        roiServico,
+      };
+    }),
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SEED DEFAULTS

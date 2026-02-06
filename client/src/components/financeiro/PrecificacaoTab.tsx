@@ -59,36 +59,40 @@ export function PrecificacaoTab() {
   const [tempInsumo, setTempInsumo] = useState({ insumoId: "", quantidade: "1" });
 
   const utils = trpc.useUtils();
-  const { data: procedimentos, isLoading } = trpc.procedimentos.procedimentos.list.useQuery();
+  const { data: procedimentos, isLoading } = trpc.procedimentos.list.useQuery();
+
   const { data: insumosDisponiveis } = trpc.procedimentos.insumos.list.useQuery();
-  const { data: custoCalc } = trpc.procedimentos.procedimentos.calcularCusto.useQuery(
+  const { data: custoCalc } = trpc.procedimentos.calcularCusto.useQuery(
     { id: selectedProcedimentoId ?? 0 },
     { enabled: !!selectedProcedimentoId }
   );
 
-  const createMutation = trpc.procedimentos.procedimentos.create.useMutation({
+  const createMutation = trpc.procedimentos.create.useMutation({
     onSuccess: () => {
       toast.success("Procedimento criado");
-      utils.procedimentos.procedimentos.list.invalidate();
+      utils.procedimentos.list.invalidate();
       closeDialog();
     },
+
     onError: (e) => toast.error(e.message),
   });
 
-  const updateMutation = trpc.procedimentos.procedimentos.update.useMutation({
+  const updateMutation = trpc.procedimentos.update.useMutation({
     onSuccess: () => {
       toast.success("Procedimento atualizado");
-      utils.procedimentos.procedimentos.list.invalidate();
+      utils.procedimentos.list.invalidate();
       closeDialog();
     },
+
     onError: (e) => toast.error(e.message),
   });
 
-  const deleteMutation = trpc.procedimentos.procedimentos.delete.useMutation({
+  const deleteMutation = trpc.procedimentos.delete.useMutation({
     onSuccess: () => {
       toast.success("Procedimento removido");
-      utils.procedimentos.procedimentos.list.invalidate();
+      utils.procedimentos.list.invalidate();
     },
+
     onError: (e) => toast.error(e.message),
   });
 

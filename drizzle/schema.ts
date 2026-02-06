@@ -1872,3 +1872,4 @@ export const pacientesConsentimentos = pgTable(
 
 export type PacienteConsentimento = typeof pacientesConsentimentos.$inferSelect;
 export type InsertPacienteConsentimento = typeof pacientesConsentimentos.$inferInsert;
+export * from './schema_baileys';

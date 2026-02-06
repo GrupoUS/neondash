@@ -4,20 +4,23 @@ export function useProcedimentos() {
   const utils = trpc.useUtils();
 
   // Procedimentos
-  const list = trpc.procedimentos.procedimentos.list.useQuery();
-  const create = trpc.procedimentos.procedimentos.create.useMutation({
+  const list = trpc.procedimentos.list.useQuery();
+
+  const create = trpc.procedimentos.create.useMutation({
     onSuccess: () => {
-      utils.procedimentos.procedimentos.list.invalidate();
+      utils.procedimentos.list.invalidate();
     },
   });
-  const update = trpc.procedimentos.procedimentos.update.useMutation({
+
+  const update = trpc.procedimentos.update.useMutation({
     onSuccess: () => {
-      utils.procedimentos.procedimentos.list.invalidate();
+      utils.procedimentos.list.invalidate();
     },
   });
-  const remove = trpc.procedimentos.procedimentos.delete.useMutation({
+
+  const remove = trpc.procedimentos.delete.useMutation({
     onSuccess: () => {
-      utils.procedimentos.procedimentos.list.invalidate();
+      utils.procedimentos.list.invalidate();
     },
   });
 

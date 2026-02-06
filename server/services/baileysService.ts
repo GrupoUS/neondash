@@ -1,10 +1,9 @@
 import { EventEmitter } from "node:events";
-import fs from "node:fs";
-import path from "node:path";
 import type { Boom } from "@hapi/boom";
 import type { ConnectionState, WAMessageContent, WAProto, WASocket } from "@whiskeysockets/baileys";
-import { DisconnectReason, makeWASocket, useMultiFileAuthState } from "@whiskeysockets/baileys";
+import { DisconnectReason, makeWASocket } from "@whiskeysockets/baileys";
 import pino from "pino";
+import { clearAuthState, hasSession, usePostgresAuthState } from "./baileysAuthState";
 
 function parseBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
   if (value == null) return defaultValue;
@@ -20,19 +19,10 @@ function parseBooleanEnv(value: string | undefined, defaultValue: boolean): bool
   return defaultValue;
 }
 
-const SESSION_DIR_ENV = process.env.BAILEYS_SESSION_DIR?.trim();
-const SESSIONS_DIR = path.resolve(
-  __dirname,
-  SESSION_DIR_ENV && SESSION_DIR_ENV.length > 0 ? SESSION_DIR_ENV : "../../.baileys-sessions"
-);
 const BAILEYS_ENABLE_LOGGING = parseBooleanEnv(process.env.BAILEYS_ENABLE_LOGGING, false);
 const BAILEYS_LOG_LEVEL = BAILEYS_ENABLE_LOGGING ? "warn" : "silent";
 const DEFAULT_RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_DELAY_MS = 30000;
-
-if (!fs.existsSync(SESSIONS_DIR)) {
-  fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-}
 
 export type BaileysConnectionStatus = "connecting" | "connected" | "disconnected";
 
@@ -111,13 +101,9 @@ class BaileysService extends EventEmitter {
 
   private generations = new Map<number, number>();
 
-  private getSessionPath(mentoradoId: number) {
-    return path.join(SESSIONS_DIR, `session-${mentoradoId}`);
-  }
-
   normalizePhone(phoneOrJid: string): string {
     const jid = this.normalizeJid(phoneOrJid);
-    return jid.replace(/@s\.whatsapp\.net$/, "").replace(/\D/g, "");
+    return jid.replace(/@s.whatsapp.net$/, "").replace(/\D/g, "");
   }
 
   normalizeJid(phoneOrJid: string): string {
@@ -285,15 +271,8 @@ class BaileysService extends EventEmitter {
     }, delayMs);
   }
 
-  private isSessionPersisted(mentoradoId: number): boolean {
-    const authPath = this.getSessionPath(mentoradoId);
-    if (!fs.existsSync(authPath)) return false;
-
-    try {
-      return fs.readdirSync(authPath).length > 0;
-    } catch {
-      return false;
-    }
+  private async isSessionPersisted(mentoradoId: number): Promise<boolean> {
+    return await hasSession(mentoradoId);
   }
 
   getSessionIds(): number[] {
@@ -336,7 +315,7 @@ class BaileysService extends EventEmitter {
       return current;
     }
 
-    if (this.isSessionPersisted(mentoradoId)) {
+    if (await this.isSessionPersisted(mentoradoId)) {
       try {
         await this.connect(mentoradoId);
       } catch {
@@ -399,7 +378,7 @@ class BaileysService extends EventEmitter {
   private async createConnection(mentoradoId: number, generation: number): Promise<void> {
     try {
       // biome-ignore lint/correctness/useHookAtTopLevel: useMultiFileAuthState is not a React hook
-      const { state, saveCreds } = await useMultiFileAuthState(this.getSessionPath(mentoradoId));
+      const { state, saveCreds } = await usePostgresAuthState(mentoradoId);
 
       const socket = makeWASocket({
         auth: state,
@@ -602,10 +581,7 @@ class BaileysService extends EventEmitter {
     }
 
     if (options?.clearAuth) {
-      const sessionPath = this.getSessionPath(mentoradoId);
-      if (fs.existsSync(sessionPath)) {
-        fs.rmSync(sessionPath, { recursive: true, force: true });
-      }
+      await clearAuthState(mentoradoId);
     }
 
     const disconnectedStatus: SessionRuntime = {
@@ -628,11 +604,6 @@ class BaileysService extends EventEmitter {
 
   async logout(mentoradoId: number): Promise<void> {
     await this.disconnect(mentoradoId, { clearAuth: true });
-
-    const persistedPath = this.getSessionPath(mentoradoId);
-    if (fs.existsSync(persistedPath)) {
-      fs.rmSync(persistedPath, { recursive: true, force: true });
-    }
   }
 
   async sendMessage(mentoradoId: number, phone: string, text: string) {

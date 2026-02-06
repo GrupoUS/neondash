@@ -24,7 +24,7 @@ import { patientChat } from "./services/patientAiService";
 const createPacienteSchema = z.object({
   nomeCompleto: z.string().min(1, "Nome é obrigatório"),
   nomePreferido: z.string().optional().nullable(), // NEW
-  email: z.string().email().optional().nullable(),
+  email: z.union([z.string().email(), z.literal(""), z.null(), z.undefined()]),
   telefone: z.string().optional().nullable(),
   dataNascimento: z.string().optional().nullable(),
   genero: z.enum(["masculino", "feminino", "outro", "prefiro_nao_dizer"]).optional().nullable(),
@@ -201,8 +201,8 @@ export const pacientesRouter = router({
     .input(
       z
         .object({
-          status: z.enum(["ativo", "inativo"]).optional(),
-          search: z.string().optional(),
+          status: z.enum(["ativo", "inativo"]).optional().nullable(),
+          search: z.string().optional().nullable(),
           limit: z.number().default(50),
           offset: z.number().default(0),
         })

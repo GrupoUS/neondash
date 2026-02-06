@@ -3,6 +3,7 @@ import { router } from "./_core/trpc";
 import { aiAgentRouter } from "./aiAgentRouter";
 import { aiAssistantRouter } from "./aiAssistantRouter";
 import { atividadesRouter } from "./atividadesRouter";
+import { baileysRouter } from "./baileysRouter";
 import { crmColumnsRouter } from "./crmColumnsRouter";
 import { diagnosticoRouter } from "./diagnostico";
 import { facebookAdsRouter } from "./facebookAdsRouter";
@@ -47,6 +48,7 @@ export const appRouter = router({
   calendar: calendarRouter,
   crmColumns: crmColumnsRouter,
   zapi: zapiRouter,
+  baileys: baileysRouter,
   metaApi: metaApiRouter,
   aiAgent: aiAgentRouter,
   instagram: instagramRouter,

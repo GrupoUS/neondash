@@ -165,6 +165,10 @@ export const mentorados = pgTable(
     // Instagram Integration
     instagramConnected: simNaoEnum("instagram_connected").default("nao"),
     instagramBusinessAccountId: varchar("instagram_business_account_id", { length: 100 }),
+    // Baileys Self-Hosted WhatsApp Integration
+    baileysConnected: simNaoEnum("baileys_connected").default("nao"),
+    baileysPhone: varchar("baileys_phone", { length: 20 }),
+    baileysConnectedAt: timestamp("baileys_connected_at"),
     lastMetricsReminder: timestamp("last_metrics_reminder"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

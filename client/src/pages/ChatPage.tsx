@@ -3,7 +3,7 @@
  * Full inbox layout with contact list and conversation view
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearch } from "wouter";
 import type { ConversationItemData } from "@/components/chat/ConversationItem";
 import type { MessageBubbleData } from "@/components/chat/MessageBubble";
@@ -318,6 +318,38 @@ export function ChatPage() {
 
     return items;
   }, [mergedMessages]);
+
+  // Mark as read mutation
+  const markAsReadMutation = trpc.whatsapp.markAsRead.useMutation();
+
+  // Track which messages have already been marked as read to prevent duplicate calls
+  const markedMessageIdsRef = useRef<Set<number>>(new Set());
+
+  // Mark inbound messages as read when conversation is opened
+  useEffect(() => {
+    if (!selectedPhone || !mergedMessages.length) return;
+
+    // Find all unread inbound messages that haven't been marked yet
+    const unreadInboundMessages = mergedMessages.filter(
+      (msg) =>
+        msg.direction === "inbound" &&
+        msg.status !== "read" &&
+        !markedMessageIdsRef.current.has(msg.id)
+    );
+
+    // Mark each unread message as read
+    for (const msg of unreadInboundMessages) {
+      markedMessageIdsRef.current.add(msg.id);
+      markAsReadMutation.mutate({ messageId: msg.id });
+    }
+  }, [selectedPhone, mergedMessages, markAsReadMutation]);
+
+  // Clear marked messages when switching conversations
+  useEffect(() => {
+    if (selectedPhone) {
+      markedMessageIdsRef.current.clear();
+    }
+  }, [selectedPhone]);
 
   const normalizedSelectedPhone = selectedPhone ? normalizePhone(selectedPhone) : null;
   const selectedPhoneTyping = normalizedSelectedPhone

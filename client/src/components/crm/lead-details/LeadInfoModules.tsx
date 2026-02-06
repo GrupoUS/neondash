@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bell, CalendarPlus, Heart, Target, ThermometerSun, User } from "lucide-react";
+import { Bell, CalendarPlus, Heart, ShieldAlert, Target, ThermometerSun, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -174,7 +174,6 @@ export function LeadInfoModules({
           />
         </div>
       </motion.div>
-
       {/* Section: Anamnese & Interesse */}
       <motion.div variants={sectionVariants} className="space-y-5">
         <div className="flex items-center gap-3 pb-3 border-b border-border/40">
@@ -257,7 +256,6 @@ export function LeadInfoModules({
           />
         </div>
       </motion.div>
-
       {/* Section: Qualificação */}
       <motion.div variants={sectionVariants} className="space-y-5">
         <div className="flex items-center gap-3 pb-3 border-b border-border/40">
@@ -349,8 +347,34 @@ export function LeadInfoModules({
           />
         </div>
       </motion.div>
+      {/* Section: Objeções */}
+      {(data?.lead?.objecoes?.length > 0 || isEditing) && (
+        <motion.div variants={sectionVariants} className="space-y-4">
+          <div className="flex items-center gap-3 pb-3 border-b border-border/40">
+            <div className="p-1.5 rounded-lg bg-destructive/10">
+              <ShieldAlert className="h-4 w-4 text-destructive" />
+            </div>
+            <h4 className="text-sm font-bold text-foreground tracking-tight">Objeções</h4>
+          </div>
 
-      {/* Section: Próximo Acompanhamento */}
+          <div className="flex flex-wrap gap-2">
+            {data?.lead?.objecoes?.map((obj: string, i: number) => (
+              <Badge
+                key={i}
+                variant="outline"
+                className="bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20 transition-colors"
+              >
+                {obj}
+              </Badge>
+            ))}
+            {(!data?.lead?.objecoes || data?.lead?.objecoes.length === 0) && (
+              <span className="text-sm text-muted-foreground italic">
+                Nenhuma objeção registrada.
+              </span>
+            )}
+          </div>
+        </motion.div>
+      )}
       <motion.div variants={sectionVariants} className="space-y-4">
         <div className="flex items-center gap-3 pb-3 border-b border-border/40">
           <div className="p-1.5 rounded-lg bg-orange-500/10">

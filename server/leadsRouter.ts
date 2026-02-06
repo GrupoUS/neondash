@@ -159,6 +159,7 @@ export const leadsRouter = router({
         alergias: z.string().optional(),
         tipoPele: z.string().optional(),
         disponibilidade: z.string().optional(),
+        objecoes: z.array(z.string()).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -206,6 +207,7 @@ export const leadsRouter = router({
           alergias: input.alergias,
           tipoPele: input.tipoPele,
           disponibilidade: input.disponibilidade,
+          objecoes: input.objecoes,
         })
         .returning({ id: leads.id });
 
@@ -240,6 +242,7 @@ export const leadsRouter = router({
         alergias: z.string().optional(),
         tipoPele: z.string().optional(),
         disponibilidade: z.string().optional(),
+        objecoes: z.array(z.string()).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -301,6 +304,7 @@ export const leadsRouter = router({
           alergias: input.alergias,
           tipoPele: input.tipoPele,
           disponibilidade: input.disponibilidade,
+          objecoes: input.objecoes,
           updatedAt: new Date(),
         })
         .where(eq(leads.id, input.id));

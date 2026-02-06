@@ -465,6 +465,7 @@ export const leads = pgTable(
     tags: text("tags").array(),
     
     // Novos campos
+    objecoes: text("objecoes").array(),
     indicadoPor: text("indicado_por"),
     profissao: text("profissao"),
     produtoInteresse: text("produto_interesse"),

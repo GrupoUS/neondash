@@ -1,8 +1,8 @@
 import {
-  closestCorners,
   DndContext,
   DragOverlay,
   PointerSensor,
+  rectIntersection,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -210,7 +210,7 @@ export function PipelineKanban({
     <div className="flex flex-col h-full gap-6">
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         autoScroll={!isReadOnly}

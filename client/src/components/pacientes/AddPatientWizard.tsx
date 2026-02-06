@@ -236,22 +236,16 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden border-none bg-background/80 backdrop-blur-xl ring-1 ring-white/10 shadow-2xl">
-        <div className="flex h-[750px]">
-          {/* Sidebar */}
-          <div className="w-72 bg-muted/30 p-8 border-r border-white/5 flex flex-col relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
-
-            <div className="relative z-10 mb-8">
-              <div className="flex items-center gap-3 text-primary mb-2">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <UserPlus className="w-5 h-5" />
-                </div>
-                <h2 className="font-bold text-lg tracking-tight">Novo Paciente</h2>
-              </div>
-              <p className="text-sm text-muted-foreground pl-12">
-                Cadastre um novo paciente no sistema
-              </p>
+      <DialogContent className="sm:max-w-5xl p-0 gap-0 overflow-hidden border-border/40 shadow-2xl bg-card">
+        <div className="flex flex-col md:flex-row h-[85vh] md:h-[650px] w-full">
+          {/* Sidebar - Steps */}
+          <div className="w-full md:w-[280px] bg-muted/30 border-r border-border/40 p-6 flex flex-col gap-8">
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <UserPlus className="h-6 w-6 text-primary" />
+                Novo Paciente
+              </h2>
+              <p className="text-sm text-muted-foreground">Cadastre um novo paciente no sistema</p>
             </div>
 
             <div className="relative z-10 space-y-6 flex-1">

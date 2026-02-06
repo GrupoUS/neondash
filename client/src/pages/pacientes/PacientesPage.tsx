@@ -60,7 +60,7 @@ import { cn } from "@/lib/utils";
 // PATIENT LIST VIEW
 // =============================================================================
 
-function PatientsList() {
+function PatientsList({ onCreateNew }: { onCreateNew: () => void }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ativo" | "inativo" | undefined>(undefined);
   const [, navigate] = useLocation();
@@ -133,11 +133,7 @@ function PatientsList() {
               ? "Tente ajustar sua busca ou adicione um novo paciente."
               : "Comece adicionando seu primeiro paciente."}
           </p>
-          <Button
-            onClick={() => {
-              /* Handled by parent component */
-            }}
-          >
+          <Button onClick={onCreateNew}>
             <Plus className="h-4 w-4 mr-2" /> Novo Paciente
           </Button>
         </Card>
@@ -561,7 +557,11 @@ export default function PacientesPage() {
           )}
         </div>
 
-        {patientId ? <PatientDetail id={patientId} /> : <PatientsList />}
+        {patientId ? (
+          <PatientDetail id={patientId} />
+        ) : (
+          <PatientsList onCreateNew={() => setCreateDialogOpen(true)} />
+        )}
 
         {/* Creation Wizard */}
         <AddPatientWizard

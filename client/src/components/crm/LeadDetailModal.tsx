@@ -10,6 +10,7 @@ import {
   Mail,
   MessageSquare,
   Phone,
+  ShieldAlert,
   Sparkles,
   Trash2,
   X,
@@ -44,6 +45,7 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { LeadChatWindow } from "../chat/LeadChatWindow";
 import { AddInteractionDialog } from "./AddInteractionDialog";
+import { AddObjectionDialog } from "./AddObjectionDialog";
 import { LeadInfoModules } from "./lead-details/LeadInfoModules";
 import { LeadTimeline } from "./lead-details/LeadTimeline";
 
@@ -86,6 +88,7 @@ export function LeadDetailModal({
   onSchedule,
 }: LeadDetailModalProps) {
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
+  const [objectionDialogOpen, setObjectionDialogOpen] = useState(false);
   const [interactionType, setInteractionType] = useState<string>("nota");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Record<string, unknown>>(null!);
@@ -488,6 +491,15 @@ export function LeadDetailModal({
                       <MessageSquare className="h-3.5 w-3.5" />
                       WhatsApp
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1.5 bg-white/5 border-white/10 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive text-xs"
+                      onClick={() => setObjectionDialogOpen(true)}
+                    >
+                      <ShieldAlert className="h-3.5 w-3.5" />
+                      Objeção
+                    </Button>
                     {onSchedule && (
                       <Button
                         variant="outline"
@@ -581,6 +593,14 @@ export function LeadDetailModal({
         isOpen={interactionDialogOpen}
         onClose={() => setInteractionDialogOpen(false)}
         defaultType={interactionType}
+        onSuccess={() => refetch()}
+      />
+
+      <AddObjectionDialog
+        leadId={leadId!}
+        isOpen={objectionDialogOpen}
+        onClose={() => setObjectionDialogOpen(false)}
+        currentObjections={data?.lead?.objecoes}
         onSuccess={() => refetch()}
       />
 

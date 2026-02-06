@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CalendarPlus, Phone } from "lucide-react";
+import { memo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,7 +30,7 @@ interface LeadCardProps {
   isDragging?: boolean;
 }
 
-export function LeadCard({
+function LeadCardComponent({
   lead,
   onClick,
   isSelected,
@@ -221,3 +222,5 @@ export function LeadCard({
     </div>
   );
 }
+
+export const LeadCard = memo(LeadCardComponent);

@@ -201,6 +201,40 @@ bun run check && bun run lint && bun test
 
 ---
 
+## Phase 5: Store Design Patterns (Evolution Core)
+
+> [!NOTE]
+> **Evolution Core Integration** - Store implemented patterns for future reference
+
+**EXECUTE AFTER COMPLETING DESIGN:**
+
+```bash
+# turbo
+python3 .agent/skills/evolution-core/scripts/memory_manager.py capture "Implemented: [COMPONENT_TYPE] with [STYLE] pattern in [FILE]" -t "design_pattern"
+```
+
+### Pattern Examples
+
+```bash
+# Component patterns
+python3 memory_manager.py capture "Implemented: Dashboard card grid with Navy/Gold GPUS theme in client/src/pages/Dashboard.tsx" -t "design_pattern"
+
+# Animation patterns  
+python3 memory_manager.py capture "Implemented: Micro-animation on hover with framer-motion scale(1.02) in FeatureCard.tsx" -t "design_pattern"
+
+# Layout patterns
+python3 memory_manager.py capture "Implemented: Asymmetric hero layout breaking bento anti-pattern in LandingPage.tsx" -t "design_pattern"
+```
+
+### Pattern Retrieval for Future Designs
+
+```bash
+# Query past design patterns
+python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "dashboard layout pattern"
+```
+
+---
+
 ## Anti-Patterns (FORBIDDEN)
 
 | ❌ Forbidden | ✅ Alternative |

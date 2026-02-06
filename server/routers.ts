@@ -11,6 +11,7 @@ import { instagramRouter } from "./instagramRouter";
 import { interacoesRouter } from "./interacoesRouter";
 import { interactionTemplatesRouter } from "./interactionTemplatesRouter";
 import { leadsRouter } from "./leadsRouter";
+import { marketingRouter } from "./marketingRouter";
 import { mentoradosRouter } from "./mentoradosRouter";
 import { notificationsRouter } from "./notificationsRouter";
 import { precificacaoRouter } from "./precificacaoRouter";
@@ -51,6 +52,7 @@ export const appRouter = router({
   mentorship: mentorshipRouter,
   financeiro: financeiroRouter,
   precificacao: precificacaoRouter,
+  marketing: marketingRouter,
 });
 
 export type AppRouter = typeof appRouter;

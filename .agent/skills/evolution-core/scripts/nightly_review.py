@@ -20,13 +20,15 @@ script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir))
 
 try:
-    from memory_manager import get_db_connection, store_learning, DEFAULT_DB_PATH
+    from memory_manager import get_db_connection, store_learning, DEFAULT_DB_PATH, get_project_root
 except ImportError:
     def get_db_connection(*args, **kwargs):
         return None
     def store_learning(*args, **kwargs):
         return None
-    DEFAULT_DB_PATH = Path.home() / ".agent" / "brain" / "memory.db"
+    def get_project_root():
+        return Path.cwd()
+    DEFAULT_DB_PATH = get_project_root() / ".agent" / "brain" / "memory.db"
 
 
 def get_daily_observations(days: int = 1) -> list:

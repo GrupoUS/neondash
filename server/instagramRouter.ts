@@ -12,6 +12,7 @@ import { mentorados } from "../drizzle/schema";
 import { createLogger } from "./_core/logger";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import * as instagramPublishService from "./services/instagramPublishService";
 import { instagramService } from "./services/instagramService";
 
 const logger = createLogger({ service: "instagram-router" });
@@ -252,5 +253,98 @@ export const instagramRouter = router({
         followers: h.followers,
         engagement: h.engagement,
       }));
+    }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PUBLISHING PROCEDURES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Publish a marketing post to Instagram
+   */
+  publishMarketingPost: protectedProcedure
+    .input(z.object({ postId: z.number() }))
+    .mutation(async ({ input }) => {
+      logger.info("publish_marketing_post", { postId: input.postId });
+
+      const result = await instagramPublishService.publishMarketingPost(input.postId);
+
+      if (!result.success) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: result.error ?? "Erro ao publicar post.",
+        });
+      }
+
+      return {
+        success: true,
+        mediaId: result.mediaId,
+      };
+    }),
+
+  /**
+   * Publish a post directly with image URL and caption
+   */
+  publishPost: protectedProcedure
+    .input(
+      z.object({
+        mentoradoId: z.number(),
+        imageUrl: z.string().url(),
+        caption: z.string().max(2200),
+      })
+    )
+    .mutation(async ({ input }) => {
+      logger.info("publish_post", { mentoradoId: input.mentoradoId });
+
+      const result = await instagramPublishService.publishPost(
+        input.mentoradoId,
+        input.imageUrl,
+        input.caption
+      );
+
+      if (!result.success) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: result.error ?? "Erro ao publicar post.",
+        });
+      }
+
+      return {
+        success: true,
+        mediaId: result.mediaId,
+      };
+    }),
+
+  /**
+   * Get publishing rate limits for a mentorado
+   */
+  getPublishingLimits: protectedProcedure
+    .input(z.object({ mentoradoId: z.number() }))
+    .query(async ({ input }) => {
+      const limits = await instagramPublishService.getPublishingLimits(input.mentoradoId);
+
+      if (!limits) {
+        return {
+          available: false,
+          quotaUsage: 0,
+          quotaTotal: 25,
+          quotaRemaining: 0,
+        };
+      }
+
+      return {
+        available: true,
+        ...limits,
+      };
+    }),
+
+  /**
+   * Check if mentorado can publish more content today
+   */
+  canPublish: protectedProcedure
+    .input(z.object({ mentoradoId: z.number() }))
+    .query(async ({ input }) => {
+      const canPublish = await instagramPublishService.canPublish(input.mentoradoId);
+      return { canPublish };
     }),
 });

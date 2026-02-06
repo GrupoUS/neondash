@@ -296,27 +296,39 @@ agent-browser close                        # Cleanup obrigatório
 ## Post-Error Analysis (AUTOMATIC)
 
 > [!NOTE]
-> **Self-Evolving Agent Integration** - Runs automatically after any error
+> **Evolution Core Integration** - Store error resolutions for future reference
 
-After any error, the `self-evolving-agent` skill automatically:
+**EXECUTE AFTER FIXING BUG:**
 
-1. **Analyze Pattern**: Compares error against historical failure data via `evolution_engine.py analyze_failure`
-2. **Suggest Solutions**: Retrieves fixes that worked for similar errors
-3. **Store Learning**: Records error-solution pair for future reference
-4. **Update Strategies**: Adjusts mutation strategies to prevent recurrence
+```bash
+# turbo
+python3 .agent/skills/evolution-core/scripts/memory_manager.py capture "Fixed: [ERROR_TYPE] in [FILE] - Solution: [SOLUTION]" -t "bug_fix"
+```
+
+### Full Debug Session Flow
+
+```bash
+# 1. At debug start - load similar past errors
+python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "[ERROR_MESSAGE]"
+
+# 2. After fix applied - store the solution
+python3 .agent/skills/evolution-core/scripts/memory_manager.py capture "Fixed: TypeScript deep instantiation in router.ts - early cast FunctionReference" -t "bug_fix"
+
+# 3. Check stats
+python3 .agent/skills/evolution-core/scripts/memory_manager.py stats
+```
+
+### Error Pattern Storage
 
 ```yaml
 POST_ERROR_ANALYSIS:
-  trigger: "After any build/test/runtime error"
+  trigger: "After successful bug fix"
   actions:
-    - Extract error signature (type, message, stack trace)
-    - Query similar errors from memory database
-    - Rank solutions by success rate
-    - Store new error if not previously seen
+    - Extract error signature (type, message, file)
+    - Store solution pattern with context
+    - Link to session for future retrieval
   output:
-    - "Historical matches: X similar errors found"
-    - "Suggested fix: [description] (Y% success rate)"
-    - "Related files: [list]"
+    - "✅ Captured: Fixed [error] - Solution: [fix]"
 ```
 
 **Example Output**:

@@ -25,9 +25,47 @@ from typing import Any, Optional
 from uuid import uuid4
 
 # Configuration
-DEFAULT_DB_PATH = Path.home() / ".agent" / "brain" / "memory.db"
 MAX_RETRIEVAL_LIMIT = 10
 TEMPORAL_DECAY_FACTOR = 0.9
+
+
+def get_project_root() -> Path:
+    """
+    Detect the project root directory.
+    
+    Priority order:
+    1. EVOLUTION_PROJECT_ROOT environment variable
+    2. Walk up directories looking for .git/
+    3. Fall back to current working directory
+    
+    Returns:
+        Path to the project root directory
+    """
+    # Check environment variable first
+    env_root = os.getenv("EVOLUTION_PROJECT_ROOT")
+    if env_root:
+        return Path(env_root)
+    
+    # Walk up looking for .git directory
+    current = Path.cwd()
+    for parent in [current, *current.parents]:
+        if (parent / ".git").exists():
+            return parent
+        # Stop at filesystem root
+        if parent == parent.parent:
+            break
+    
+    # Fallback to current directory
+    return Path.cwd()
+
+
+def get_default_db_path() -> Path:
+    """Get the default database path for the current project."""
+    return get_project_root() / ".agent" / "brain" / "memory.db"
+
+
+# Dynamic default path (project-local)
+DEFAULT_DB_PATH = get_default_db_path()
 
 
 def get_db_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
@@ -573,7 +611,28 @@ def main():
     stats_parser = subparsers.add_parser("stats", help="Show database statistics")
     stats_parser.add_argument("--db-path", type=Path, help="Database path")
     
+    # === SIMPLIFIED COMMANDS ===
+    
+    # Session command (start/end)
+    session_parser = subparsers.add_parser("session", help="Manage active session")
+    session_sub = session_parser.add_subparsers(dest="session_action")
+    
+    session_start = session_sub.add_parser("start", help="Start a new session")
+    session_start.add_argument("--task", "-t", required=True, help="Task description")
+    
+    session_end = session_sub.add_parser("end", help="End current session")
+    session_end.add_argument("--summary", "-s", required=True, help="Session summary")
+    session_end.add_argument("--score", type=float, default=0.8, help="Success score 0-1")
+    
+    # Capture command (simplest - just a description)
+    capture_parser = subparsers.add_parser("capture", help="Quick capture observation")
+    capture_parser.add_argument("description", help="What happened (e.g., 'fixed auth bug in login.tsx')")
+    capture_parser.add_argument("--tool", "-t", default="agent_action", help="Tool/action name")
+    
     args = parser.parse_args()
+    
+    # Session file for tracking active session
+    session_file = DEFAULT_DB_PATH.parent / ".current_session"
     
     if args.command == "init":
         init_database(args.db_path)
@@ -600,9 +659,63 @@ def main():
         stats = get_statistics(args.db_path)
         print(json.dumps(stats, indent=2))
     
+    elif args.command == "session":
+        if args.session_action == "start":
+            # Auto-init if needed
+            if not DEFAULT_DB_PATH.exists():
+                init_database()
+            # Create session
+            session_id = create_session(
+                project_path=str(get_project_root()),
+                task_description=args.task
+            )
+            # Save session ID to file
+            session_file.write_text(session_id)
+            print(f"✅ Session started: {session_id}")
+            print(f"   Task: {args.task}")
+            print(f"   Saved to: {session_file}")
+            
+        elif args.session_action == "end":
+            if session_file.exists():
+                session_id = session_file.read_text().strip()
+                compress_session(session_id, args.summary, args.score, 0)
+                session_file.unlink()  # Remove session file
+                print(f"✅ Session ended: {session_id}")
+                print(f"   Summary: {args.summary}")
+            else:
+                print("⚠️ No active session found")
+    
+    elif args.command == "capture":
+        # Auto-init if needed
+        if not DEFAULT_DB_PATH.exists():
+            init_database()
+        
+        # Get or create session
+        if session_file.exists():
+            session_id = session_file.read_text().strip()
+        else:
+            # Auto-create session
+            session_id = create_session(
+                project_path=str(get_project_root()),
+                task_description="Auto-session"
+            )
+            session_file.write_text(session_id)
+            print(f"📝 Auto-created session: {session_id}")
+        
+        # Store observation
+        obs_id = store_observation(
+            session_id=session_id,
+            tool_name=args.tool,
+            input_data=args.description,
+            output_data="captured",
+            context_snapshot=""
+        )
+        print(f"✅ Captured: {args.description}")
+    
     else:
         parser.print_help()
 
 
 if __name__ == "__main__":
     main()
+

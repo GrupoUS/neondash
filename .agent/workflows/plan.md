@@ -115,11 +115,17 @@ RESEARCH_DELIVERABLES:
 ## Phase 0.5: Historical Context Retrieval (AUTOMATIC)
 
 > [!NOTE]
-> **Self-Evolving Agent Integration** - Runs automatically before research
+> **Evolution Core Integration** - Load context before research
 
-Before starting research, the `self-evolving-agent` skill automatically:
+**EXECUTE AT START:**
 
-1. **Query Memory**: Searches for similar past tasks via `memory_manager.py load_context`
+```bash
+# turbo
+python3 .agent/skills/evolution-core/scripts/memory_manager.py load_context --project "$PWD" --task "$TASK_DESCRIPTION"
+```
+
+This command:
+1. **Query Memory**: Searches for similar past tasks via FTS5
 2. **Retrieve Observations**: Loads relevant tool usage patterns and outcomes
 3. **Inject Learnings**: Provides compressed historical context to inform planning
 4. **Suggest Approaches**: Recommends proven strategies based on success scores

@@ -4,174 +4,124 @@
 name: evolution-core
 description: "Motor de auto-evolução para agentes de IA. Memória persistente e aprendizado sistemático usando SQLite+FTS5 - zero dependências externas."
 tags: [meta, ai, self-improvement, core, learning, memory]
-version: 2.0.0
+version: 2.1.0
 ---
 
 **"Eu aprendo, evoluo e antecipo suas necessidades."**
 
-O **Evolution Core** é uma skill que transforma um agente de IA em um parceiro que aprende continuamente. Usa SQLite com FTS5 (Full-Text Search) para memória persistente - **sem dependências externas**.
+O **Evolution Core** transforma um agente de IA em um parceiro que aprende continuamente. Usa SQLite com FTS5 - **sem dependências externas**.
 
-## ✨ Arquitetura Simplificada
+## ✨ Arquitetura
 
-```mermaid
-graph LR
-    A[Tool Usage] --> B[memory_manager.py]
-    B --> C[(SQLite + FTS5)]
-    C --> D[Pattern Analysis]
-    D --> E[Learnings]
+```
+Tool Usage → memory_manager.py → SQLite+FTS5 → Pattern Analysis → Learnings
 ```
 
-| Componente | Script | Função |
-|------------|--------|--------|
-| **Memória** | `memory_manager.py` | Armazena sessões, observações, mutations |
-| **Hooks** | `post_tool_use_hook.py` | Captura uso de ferramentas |
-| **Self-Check** | `heartbeat.py` | Análise de padrões e erros |
-| **Revisão** | `nightly_review.py` | Agregação de learnings |
+| Script | Função |
+|--------|--------|
+| `memory_manager.py` | Core: armazena sessões, observações, queries |
+| `heartbeat.py` | Análise periódica de padrões |
+| `nightly_review.py` | Agregação de learnings |
 
 ---
 
 ## 🚀 Quick Start
 
 ```bash
-# 1. Instalar (verifica Python e SQLite apenas)
-bash .agent/skills/evolution-core/scripts/install.sh
-
-# 2. (Opcional) Inicializar manualmente
+# Inicializar (auto-cria .agent/brain/memory.db)
 python3 .agent/skills/evolution-core/scripts/memory_manager.py init
 ```
 
-**Pronto!** Não precisa rodar workers, não precisa de API keys.
+**Pronto!** Não precisa de workers, API keys ou dependências.
 
 ---
 
-## 📦 Comandos Disponíveis
+## 📦 Comandos CLI
 
-### Memory Manager
+### Simplified (NOVO v2.1)
 
 ```bash
-# Inicializar banco de dados
-python3 memory_manager.py init
+# Iniciar sessão de trabalho
+python3 memory_manager.py session start -t "descrição da tarefa"
 
-# Carregar contexto histórico
-python3 memory_manager.py load_context --project "/path/to/project" --task "descrição"
+# Capturar qualquer observação (1 argumento!)
+python3 memory_manager.py capture "o que aconteceu"
 
-# Armazenar observação
-python3 memory_manager.py store_observation \
-    --session-id "uuid" \
-    --tool "view_file" \
-    --input "/path" \
-    --output "content"
-
-# Buscar sessões similares
-python3 memory_manager.py query --text "authentication errors"
-
-# Ver estatísticas
-python3 memory_manager.py stats
+# Finalizar sessão
+python3 memory_manager.py session end -s "resumo do trabalho"
 ```
 
-### Heartbeat (Self-Check)
+### Core Commands
 
 ```bash
-# Executar verificação
-python3 heartbeat.py
+# Ver estatísticas
+python3 memory_manager.py stats
 
-# Output:
-# [Segurança] ✓ Nenhuma anomalia detectada.
-# [Auto-Correção] ✓ Nenhum erro crítico encontrado.
-# [Proatividade] Ferramentas mais usadas: view_file(42x), grep_search(18x)
-# [Memória] Sessões: 15 | Observações: 234 | Learnings: 8
+# Buscar contexto histórico
+python3 memory_manager.py load_context --project "$PWD" --task "descrição"
+
+# Buscar sessões similares
+python3 memory_manager.py query --text "search term"
+```
+
+### Heartbeat
+
+```bash
+python3 heartbeat.py
+# Output: [Memória] Sessões: 15 | Observações: 234 | Learnings: 8
 ```
 
 ### Nightly Review
 
 ```bash
-# Revisar último dia
-python3 nightly_review.py
-
-# Revisar últimos 7 dias
-python3 nightly_review.py --days 7
-
-# Preview sem salvar
-python3 nightly_review.py --dry-run
+python3 nightly_review.py          # Revisar último dia
+python3 nightly_review.py --days 7 # Últimos 7 dias
+python3 nightly_review.py --dry-run # Preview
 ```
 
 ---
 
-## 💾 Estrutura do Banco de Dados
+## 💾 Estrutura do Banco
+
+> **Local:** `{projeto}/.agent/brain/memory.db`
 
 ```
-~/.agent/brain/memory.db
-├── sessions          # Metadados de sessões
-├── observations      # Uso de ferramentas
-├── mutations         # Sugestões de melhoria
-├── learnings         # Padrões aprendidos
-├── context_snapshots # Contexto preservado
-└── *_fts            # Tabelas FTS5 para busca semântica
+sessions          → Metadados de sessões
+observations      → Uso de ferramentas
+mutations         → Sugestões de melhoria
+learnings         → Padrões aprendidos
+*_fts             → Tabelas FTS5 para busca
 ```
+
+**Detecção de projeto:** `.git/` → `EVOLUTION_PROJECT_ROOT` → `pwd`
 
 ---
 
 ## 🔧 Integração com Workflows
 
-### No `/plan`
-```bash
-# Antes de pesquisar, carrega contexto histórico
-python3 memory_manager.py load_context --project "$PWD" --task "descrição"
-```
-
-### No `/implement`
-```bash
-# A cada 5 steps, executa checkpoint
-python3 heartbeat.py --trigger checkpoint
-```
-
-### No `/debug`
-```bash
-# Após resolver erro, registra solução
-python3 memory_manager.py store_observation \
-    --session-id "$SESSION" \
-    --tool "error_resolution" \
-    --input "erro original" \
-    --output "solução aplicada"
-```
+| Workflow | Hook | Comando |
+|----------|------|---------|
+| `/plan` | load_context | `python3 memory_manager.py load_context --project "$PWD"` |
+| `/debug` | capture bug_fix | `python3 memory_manager.py capture "Fixed: X" -t bug_fix` |
+| `/design` | capture pattern | `python3 memory_manager.py capture "Implemented: Y" -t design_pattern` |
 
 ---
 
-## 📁 Estrutura de Arquivos
+## 📁 Estrutura
 
 ```
 evolution-core/
 ├── SKILL.md                      # Este arquivo
-├── scripts/
-│   ├── memory_manager.py         # Core: SQLite + FTS5
-│   ├── post_tool_use_hook.py     # Hook para captura
-│   ├── heartbeat.py              # Self-check periódico
-│   ├── nightly_review.py         # Agregação de learnings
-│   ├── install.sh                # Setup script
-│   ├── setup_hooks.py            # Configuração de hooks
-│   └── ide_configs.json          # Configs para IDEs
-└── assets/
-    ├── AGENTS.md                 # Template de regras
-    ├── MEMORY.md                 # Template de memória
-    └── ...                       # Outros templates
+└── scripts/
+    ├── memory_manager.py         # Core: SQLite + FTS5
+    ├── heartbeat.py              # Self-check periódico
+    └── nightly_review.py         # Agregação de learnings
 ```
-
----
-
-## ⚡ Diferenças da v1.0
-
-| v1.0 (Anterior) | v2.0 (Atual) |
-|-----------------|--------------|
-| FastAPI + ChromaDB | SQLite + FTS5 |
-| Requer worker rodando | CLI direto |
-| API externa para LLM | SQL aggregation |
-| 5+ dependências pip | Zero dependências |
-| Paths hardcoded | Paths dinâmicos |
 
 ---
 
 ## 🛡️ Segurança
 
-- **Sem chamadas externas**: Tudo roda localmente
-- **Dados locais**: Armazenados em `~/.agent/brain/`
-- **Fail-safe**: Hooks falham silenciosamente sem bloquear agente
+- **Sem chamadas externas**: Tudo local
+- **Fail-safe**: Hooks falham silenciosamente
+- **Zero dependências**: Apenas Python stdlib

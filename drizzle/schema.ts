@@ -1318,3 +1318,4 @@ export const procedimentoInsumos = pgTable(
 
 export type ProcedimentoInsumo = typeof procedimentoInsumos.$inferSelect;
 export type InsertProcedimentoInsumo = typeof procedimentoInsumos.$inferInsert;
+

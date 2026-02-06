@@ -115,7 +115,7 @@ function createPatientTools(ctx: PatientChatContext) {
             dataNascimento: pacientes.dataNascimento,
             genero: pacientes.genero,
             observacoes: pacientes.observacoes,
-            createdAt: pacientes.createdAt,
+            updatedAt: pacientes.updatedAt,
           })
           .from(pacientes)
           .where(eq(pacientes.id, ctx.pacienteId))
@@ -194,7 +194,7 @@ function createPatientTools(ctx: PatientChatContext) {
         const procedures = await db
           .select({
             id: pacientesProcedimentos.id,
-            nomeProcedimento: pacientesProcedimentos.nomeProcedimento,
+            titulo: pacientesProcedimentos.titulo,
             dataRealizacao: pacientesProcedimentos.dataRealizacao,
             profissionalResponsavel: pacientesProcedimentos.profissionalResponsavel,
             valorCobrado: pacientesProcedimentos.valorCobrado,

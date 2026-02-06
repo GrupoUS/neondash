@@ -193,7 +193,7 @@ export const pacientesRouter = router({
         .select()
         .from(pacientes)
         .where(and(...conditions))
-        .orderBy(desc(pacientes.createdAt))
+        .orderBy(desc(pacientes.updatedAt))
         .limit(limit)
         .offset(offset);
 
@@ -296,7 +296,6 @@ export const pacientesRouter = router({
         dataNascimento: input.dataNascimento,
         genero: input.genero,
         cpf: input.cpf,
-        endereco: input.endereco,
         fotoUrl: input.fotoUrl,
         observacoes: input.observacoes,
       })
@@ -914,7 +913,7 @@ export const pacientesRouter = router({
         .select({
           id: pacientesProcedimentos.id,
           data: pacientesProcedimentos.dataRealizacao,
-          titulo: pacientesProcedimentos.nomeProcedimento,
+          titulo: pacientesProcedimentos.titulo,
           descricao: pacientesProcedimentos.observacoes,
         })
         .from(pacientesProcedimentos)
@@ -993,7 +992,10 @@ export const pacientesRouter = router({
           },
         })),
       ]
-        .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+        .sort(
+          (a, b) =>
+            (b.data ? new Date(b.data).getTime() : 0) - (a.data ? new Date(a.data).getTime() : 0)
+        )
         .slice(0, input.limit);
 
       return timeline;

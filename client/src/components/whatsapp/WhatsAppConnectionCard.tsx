@@ -3,6 +3,7 @@
  * Supports both Integrator mode (one-click) and manual credential mode (legacy)
  */
 
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -44,6 +45,7 @@ type ConnectionStatus = "disconnected" | "connecting" | "connected";
 type WhatsAppConnectionCardProps = Record<string, never>;
 
 export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
+  const queryClient = useQueryClient();
   const [instanceId, setInstanceId] = useState("");
   const [token, setToken] = useState("");
   const [clientToken, setClientToken] = useState("");
@@ -61,10 +63,9 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
   const { data: lifecycle, refetch: refetchLifecycle } = trpc.zapi.getInstanceLifecycle.useQuery();
 
   // Get current connection status
-  const { data: connectionStatus, refetch: refetchStatus } = trpc.zapi.getStatus.useQuery(
-    undefined,
-    { refetchInterval: status === "connecting" ? 5000 : 30000 }
-  );
+  const { data: connectionStatus } = trpc.zapi.getStatus.useQuery(undefined, {
+    refetchInterval: status === "connecting" ? 5000 : 30000,
+  });
 
   // Get QR code when connecting
   const {
@@ -121,7 +122,12 @@ export function WhatsAppConnectionCard(_props: WhatsAppConnectionCardProps) {
     onSuccess: () => {
       setStatus("disconnected");
       setShowDisconnectDialog(false);
-      refetchStatus();
+      // Clear form state
+      setInstanceId("");
+      setToken("");
+      setClientToken("");
+      // Invalidate all zapi queries to force fresh state
+      queryClient.invalidateQueries({ queryKey: [["zapi"]] });
     },
   });
 

@@ -1,4 +1,6 @@
 import {
+  date,
+  decimal,
   index,
   integer,
   jsonb,
@@ -10,7 +12,6 @@ import {
   timestamp,
   uniqueIndex,
   varchar,
-  date,
 } from "drizzle-orm/pg-core";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -90,6 +91,9 @@ export const pacienteGeneroEnum = pgEnum("paciente_genero", ["masculino", "femin
 export const tipoFotoEnum = pgEnum("tipo_foto", ["antes", "depois", "evolucao", "simulacao"]);
 export const tipoDocumentoEnum = pgEnum("tipo_documento", ["consentimento", "exame", "prescricao", "outro"]);
 export const anguloFotoEnum = pgEnum("angulo_foto", ["frontal", "perfil_esquerdo", "perfil_direito", "obliquo"]);
+export const tipoPeleFitzpatrickEnum = pgEnum("tipo_pele_fitzpatrick", ["I", "II", "III", "IV", "V", "VI"]);
+export const statusTratamentoEnum = pgEnum("status_tratamento", ["planejado", "em_andamento", "concluido", "cancelado", "pausado"]);
+export const tipoConsentimentoEnum = pgEnum("tipo_consentimento", ["dados_pessoais", "marketing", "fotos", "procedimento"]);
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1491,11 +1495,50 @@ export const pacientes = pgTable(
     dataNascimento: date("data_nascimento"),
     genero: pacienteGeneroEnum("genero"),
     cpf: varchar("cpf", { length: 14 }),
-    endereco: text("endereco"),
+    
+    // Endereço Detalhado
+    cep: varchar("cep", { length: 10 }),
+    logradouro: text("logradouro"),
+    numero: varchar("numero", { length: 20 }),
+    complemento: varchar("complemento", { length: 100 }),
+    bairro: varchar("bairro", { length: 100 }),
+    cidade: varchar("cidade", { length: 100 }),
+    estado: varchar("estado", { length: 2 }),
+    
+    // Contato Extra
+    nomePreferido: varchar("nome_preferido", { length: 100 }),
+    telefoneSecundario: varchar("telefone_secundario", { length: 20 }),
+    metodoContatoPreferido: varchar("metodo_contato_preferido", { length: 20 }).default("whatsapp"),
+    
+    // Documentos Extra
+    rg: varchar("rg", { length: 20 }),
+    convenio: varchar("convenio", { length: 100 }),
+    numeroConvenio: varchar("numero_convenio", { length: 50 }),
+    
+    // Contato Emergência
+    contatoEmergenciaNome: varchar("contato_emergencia_nome", { length: 255 }),
+    contatoEmergenciaTelefone: varchar("contato_emergencia_telefone", { length: 20 }),
+    contatoEmergenciaRelacao: varchar("contato_emergencia_relacao", { length: 50 }),
+    
+    // LGPD
+    lgpdConsentimento: simNaoEnum("lgpd_consentimento").default("nao"),
+    lgpdDataConsentimento: timestamp("lgpd_data_consentimento"),
+    lgpdConsentimentoMarketing: simNaoEnum("lgpd_consentimento_marketing").default("nao"),
+    lgpdConsentimentoFotos: simNaoEnum("lgpd_consentimento_fotos").default("nao"),
+    
+    // Métricas/Status
     fotoUrl: text("foto_url"),
     observacoes: text("observacoes"),
     status: pacienteStatusEnum("status").default("ativo").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    numeroProntuario: varchar("numero_prontuario", { length: 20 }),
+    
+    // KPI
+    totalConsultas: integer("total_consultas").default(0),
+    totalFaltas: integer("total_faltas").default(0),
+    ultimaVisita: timestamp("ultima_visita"),
+    proximaConsulta: timestamp("proxima_consulta"),
+    valorTotalGasto: integer("valor_total_gasto").default(0), // centavos
+
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
@@ -1529,6 +1572,13 @@ export const pacientesInfoMedica = pgTable(
     historicoCircurgico: text("historico_cirurgico"),
     contraindacacoes: text("contraindicacoes"),
     observacoesClinicas: text("observacoes_clinicas"),
+    
+    // Aesthetic Profile
+    tipoPele: tipoPeleFitzpatrickEnum("tipo_pele"),
+    fototipo: varchar("fototipo", { length: 20 }),
+    queixasPrincipais: text("queixas_principais").array(),
+    historicoProcedimentosAnteriores: text("historico_procedimentos_anteriores"),
+    expectativasTratamento: text("expectativas_tratamento"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -1551,18 +1601,39 @@ export const pacientesProcedimentos = pgTable(
     procedimentoId: integer("procedimento_id").references(() => procedimentos.id, {
       onDelete: "set null",
     }),
-    nomeProcedimento: varchar("nome_procedimento", { length: 255 }).notNull(),
-    dataRealizacao: timestamp("data_realizacao").notNull(),
-    profissionalResponsavel: varchar("profissional_responsavel", { length: 255 }),
+    
+    // Details
+    titulo: varchar("titulo", { length: 255 }), // Create custom title if no procedure ID
+    status: statusTratamentoEnum("status").default("planejado"),
+    dataRealizacao: timestamp("data_realizacao"),
+    profissionalResponsavel: varchar("profissional_responsavel", { length: 255 }), // Legacy/External
+    profissionalResponsavelId: integer("profissional_responsavel_id").references(() => users.id), // Internal
+    
+    // Clinical Data
+    notasClinicas: text("notas_clinicas"),
+    diagnostico: text("diagnostico"),
+    tecnicaUtilizada: text("tecnica_utilizada"),
+    observacoes: text("observacoes"),
+    
+    // Vitals immediately before/after
+    peso: decimal("peso", { precision: 5, scale: 2 }), // kg
+    altura: decimal("altura", { precision: 3, scale: 2 }), // meters
+    pressaoArterial: varchar("pressao_arterial", { length: 20 }),
+    duracaoMinutos: integer("duracao_minutos"),
+    
+    // Financial (Snapshot)
     valorCobrado: integer("valor_cobrado"), // em centavos
     valorReal: integer("valor_real"), // valor com desconto, em centavos
-    observacoes: text("observacoes"),
+    
+    // Result
     resultadoAvaliacao: text("resultado_avaliacao"),
+    
     // Specific to aesthetic procedures
     areaAplicacao: varchar("area_aplicacao", { length: 255 }),
     produtosUtilizados: text("produtos_utilizados"),
     quantidadeAplicada: varchar("quantidade_aplicada", { length: 100 }),
     lotesProdutos: text("lotes_produtos"),
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -1591,6 +1662,7 @@ export const pacientesFotos = pgTable(
       { onDelete: "set null" }
     ),
     url: text("url").notNull(),
+    s3Key: text("s3_key"),
     thumbnailUrl: text("thumbnail_url"),
     tipo: tipoFotoEnum("tipo").notNull(),
     angulo: anguloFotoEnum("angulo"),
@@ -1631,7 +1703,11 @@ export const pacientesDocumentos = pgTable(
     ),
     tipo: tipoDocumentoEnum("tipo").notNull(),
     nome: varchar("nome", { length: 255 }).notNull(),
+    descricao: text("descricao"),
+    
+    // File Info
     url: text("url").notNull(),
+    s3Key: text("s3_key"),
     mimeType: varchar("mime_type", { length: 100 }),
     tamanhoBytes: integer("tamanho_bytes"),
     dataAssinatura: timestamp("data_assinatura"),
@@ -1682,3 +1758,68 @@ export const pacientesChatIa = pgTable(
 
 export type PacienteChatIa = typeof pacientesChatIa.$inferSelect;
 export type InsertPacienteChatIa = typeof pacientesChatIa.$inferInsert;
+
+/**
+ * Planos de Tratamento - Long-term treatment plans
+ */
+export const planosTratamento = pgTable(
+  "planos_tratamento",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    nome: varchar("nome", { length: 255 }).notNull(),
+    descricao: text("descricao"),
+    objetivos: text("objetivos").array(),
+    status: statusTratamentoEnum("status").default("planejado"),
+    progressoPercentual: integer("progresso_percentual").default(0),
+    sessoesPlanejadas: integer("sessoes_planejadas").default(0),
+    sessoesRealizadas: integer("sessoes_realizadas").default(0),
+    dataInicio: date("data_inicio"),
+    dataPrevistaFim: date("data_prevista_fim"),
+    dataRealFim: date("data_real_fim"),
+    valorTotal: integer("valor_total"), // centavos
+    valorPago: integer("valor_pago").default(0), // centavos
+    createdBy: integer("created_by").references(() => users.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("planos_tratamento_paciente_idx").on(table.pacienteId),
+    index("planos_tratamento_mentorado_idx").on(table.mentoradoId),
+  ]
+);
+
+export type PlanoTratamento = typeof planosTratamento.$inferSelect;
+export type InsertPlanoTratamento = typeof planosTratamento.$inferInsert;
+
+/**
+ * Pacientes Consentimentos - LGPD Consent History
+ */
+export const pacientesConsentimentos = pgTable(
+  "pacientes_consentimentos",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    tipo: tipoConsentimentoEnum("tipo").notNull(),
+    consentido: simNaoEnum("consentido").notNull(),
+    ipAddress: varchar("ip_address", { length: 45 }),
+    documentoS3Key: text("documento_s3_key"),
+    dataConsentimento: timestamp("data_consentimento").defaultNow().notNull(),
+    dataRevogacao: timestamp("data_revogacao"),
+    createdBy: integer("created_by").references(() => users.id),
+  },
+  (table) => [
+    index("pacientes_consentimentos_paciente_idx").on(table.pacienteId),
+    index("pacientes_consentimentos_tipo_idx").on(table.pacienteId, table.tipo),
+  ]
+);
+
+export type PacienteConsentimento = typeof pacientesConsentimentos.$inferSelect;
+export type InsertPacienteConsentimento = typeof pacientesConsentimentos.$inferInsert;

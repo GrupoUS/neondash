@@ -215,22 +215,30 @@ export const zapiRouter = router({
     }
 
     const credentials = buildCredentials(mentorado);
-    if (!credentials) {
-      throw new Error("Z-API não configurado");
+    if (credentials) {
+      // Try to disconnect from Z-API, but don't fail if it errors
+      try {
+        await zapiService.disconnect(credentials);
+      } catch {
+        // Ignore disconnect errors - we still want to clear local state
+      }
     }
-
-    await zapiService.disconnect(credentials);
 
     const db = getDb();
     await db
       .update(mentorados)
       .set({
         zapiConnected: "nao",
+        zapiConnectedAt: null,
+        zapiInstanceId: null,
+        zapiToken: null,
+        zapiClientToken: null,
         updatedAt: new Date(),
       })
       .where(eq(mentorados.id, mentorado.id));
 
-    return { success: true };
+    // Return immediate status so frontend doesn't need to refetch
+    return { success: true, configured: false, connected: false };
   }),
 
   /**

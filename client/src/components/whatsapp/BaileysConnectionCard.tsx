@@ -32,7 +32,6 @@ type ConnectionStatus = "disconnected" | "connecting" | "connected";
 
 export function BaileysConnectionCard() {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
-  const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
 
   // Get current connection status
@@ -41,6 +40,18 @@ export function BaileysConnectionCard() {
     { refetchInterval: 3000 }
   );
 
+  const connectMutation = trpc.baileys.connect.useMutation({
+    onMutate: () => {
+      setQrImageUrl(null);
+    },
+    onSuccess: async () => {
+      await refetchStatus();
+    },
+  });
+
+  const isConnectingBackend =
+    connectionStatus?.status === "connecting" || Boolean(connectionStatus?.qr);
+
   // Get QR code (enabled only when connecting)
   const {
     data: qrData,
@@ -48,70 +59,71 @@ export function BaileysConnectionCard() {
     isLoading: isLoadingQr,
     error: _qrError,
   } = trpc.baileys.getQRCode.useQuery(undefined, {
-    enabled: status === "connecting",
+    enabled: isConnectingBackend || connectMutation.isPending,
     refetchInterval: 5000,
     retry: false,
   });
 
-  const connectMutation = trpc.baileys.connect.useMutation({
-    onSuccess: () => {
-      setStatus("connecting");
-      setQrImageUrl(null); // Reset QR image
-      refetchQr();
+  const disconnectMutation = trpc.baileys.disconnect.useMutation({
+    onSuccess: async () => {
+      setShowDisconnectDialog(false);
+      setQrImageUrl(null);
+      await refetchStatus();
     },
   });
+
+  const isConnected =
+    connectionStatus?.connected === true || connectionStatus?.status === "connected";
+
+  const status: ConnectionStatus = isConnected
+    ? "connected"
+    : connectMutation.isPending || isConnectingBackend
+      ? "connecting"
+      : "disconnected";
 
   // Convert raw QR string to data URL image
   useEffect(() => {
-    const rawQr = qrData?.qr || connectionStatus?.qr;
-    if (rawQr && status === "connecting") {
-      // If already a data URL, use directly
-      if (rawQr.startsWith("data:")) {
-        setQrImageUrl(rawQr);
-        return;
-      }
-      // Otherwise, convert using qrcode library
-      QRCode.toDataURL(rawQr, { width: 256, margin: 2 })
-        .then((url) => setQrImageUrl(url))
-        .catch(() => setQrImageUrl(null));
-    } else {
+    let isCancelled = false;
+    const rawQr = status === "connecting" ? (qrData?.qr ?? connectionStatus?.qr ?? null) : null;
+
+    if (!rawQr) {
       setQrImageUrl(null);
+      return;
     }
+
+    if (rawQr.startsWith("data:")) {
+      setQrImageUrl(rawQr);
+      return;
+    }
+
+    QRCode.toDataURL(rawQr, { width: 256, margin: 2 })
+      .then((url) => {
+        if (!isCancelled) {
+          setQrImageUrl(url);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setQrImageUrl(null);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [qrData?.qr, connectionStatus?.qr, status]);
-
-  const disconnectMutation = trpc.baileys.disconnect.useMutation({
-    onSuccess: () => {
-      setStatus("disconnected");
-      setShowDisconnectDialog(false);
-      refetchStatus();
-    },
-  });
-
-  // Sync state with backend
-  useEffect(() => {
-    if (connectionStatus) {
-      if (connectionStatus.connected) {
-        setStatus("connected");
-      } else if (status === "connecting" && !connectionStatus.connected) {
-        // Keep connecting state if we are waiting for QR scan
-        // requires backend to report "connecting" or "QR ready"
-        // Our backend getStatus returns { connected, qr, status }
-        if (connectionStatus.status === "connected") setStatus("connected");
-        else if (connectionStatus.status === "connecting") setStatus("connecting");
-        else if (status !== "connecting") setStatus("disconnected");
-      } else {
-        setStatus("disconnected");
-      }
-    }
-  }, [connectionStatus, status]);
 
   const handleConnect = () => {
     connectMutation.mutate();
-    setStatus("connecting");
   };
 
   const handleDisconnect = () => {
     disconnectMutation.mutate();
+  };
+
+  const handleRefreshQr = async () => {
+    await refetchStatus();
+    await refetchQr();
   };
 
   const getStatusBadge = () => {
@@ -184,7 +196,13 @@ export function BaileysConnectionCard() {
                     WhatsApp Conectado
                   </p>
                   <p className="text-sm text-green-600 dark:text-green-500">
-                    Sessão ativa e sincronizada
+                    {connectionStatus?.phone
+                      ? `Número conectado: ${connectionStatus.phone}`
+                      : "Número conectado indisponível"}
+                  </p>
+                  <p className="text-xs text-green-600/80 dark:text-green-500/80">
+                    Status da sessão:{" "}
+                    {connectionStatus?.status === "connected" ? "Conectado" : "Sincronizado"}
                   </p>
                 </div>
                 <Smartphone className="w-6 h-6 text-green-500" />
@@ -243,14 +261,14 @@ export function BaileysConnectionCard() {
                 </p>
 
                 <div className="relative p-4 bg-white rounded-xl shadow-inner border min-h-[200px] flex items-center justify-center">
-                  {isLoadingQr ? (
+                  {isLoadingQr || connectMutation.isPending ? (
                     <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
                   ) : qrImageUrl ? (
                     <img src={qrImageUrl} alt="QR Code" className="w-48 h-48" />
                   ) : (
                     <div className="text-center text-muted-foreground">
                       <QrCode className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs">Aguardando QR Code...</p>
+                      <p className="text-xs">Aguardando QR Code atualizado…</p>
                     </div>
                   )}
                 </div>
@@ -258,11 +276,13 @@ export function BaileysConnectionCard() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => refetchQr()}
-                  disabled={isLoadingQr}
+                  onClick={handleRefreshQr}
+                  disabled={isLoadingQr || connectMutation.isPending}
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingQr ? "animate-spin" : ""}`} />
-                  Atualizar Código
+                  <RefreshCw
+                    className={`w-4 h-4 mr-2 ${isLoadingQr || connectMutation.isPending ? "animate-spin" : ""}`}
+                  />
+                  Atualizar código
                 </Button>
               </div>
             </motion.div>

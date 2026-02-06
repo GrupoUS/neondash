@@ -52,14 +52,14 @@ interface TimelineEvent {
   type: "procedimento" | "foto" | "documento" | "chat";
   title: string;
   description: string | null;
-  date: Date | string;
+  date: Date | string | null;
   metadata?: Record<string, unknown>;
 }
 
 interface PatientProcedure {
   id: number;
   nomeProcedimento: string;
-  dataRealizacao: Date | string;
+  dataRealizacao: Date | string | null;
   profissionalResponsavel: string | null;
   valorCobrado: number | null;
   observacoes: string | null;
@@ -170,7 +170,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
           type: item.tipo as TimelineEvent["type"],
           title: item.titulo,
           description: item.descricao,
-          date: item.data,
+          date: item.data ?? new Date(),
           metadata:
             "metadata" in item && item.metadata && typeof item.metadata === "object"
               ? (item.metadata as Record<string, unknown>)
@@ -185,7 +185,8 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
 
   const groupedByMonth = filteredEvents.reduce(
     (acc: Record<string, TimelineEvent[]>, event) => {
-      const monthKey = new Date(event.date).toLocaleDateString("pt-BR", {
+      const dateValue = event.date ?? new Date();
+      const monthKey = new Date(dateValue).toLocaleDateString("pt-BR", {
         month: "long",
         year: "numeric",
       });
@@ -380,7 +381,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
 
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <Badge variant="outline" className="shrink-0">
-                                  {new Date(event.date).toLocaleDateString("pt-BR", {
+                                  {new Date(event.date ?? new Date()).toLocaleDateString("pt-BR", {
                                     day: "numeric",
                                     month: "short",
                                   })}

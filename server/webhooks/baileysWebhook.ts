@@ -1,83 +1,164 @@
-import type { proto } from "@whiskeysockets/baileys";
 import { and, eq } from "drizzle-orm";
 import type { Express } from "express";
-import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
+import { leads, mentorados, whatsappContacts, whatsappMessages } from "../../drizzle/schema";
 import { getDb } from "../db";
-import { baileysService } from "../services/baileysService";
+import {
+  type BaileysConnectionEventPayload,
+  type BaileysContactEventPayload,
+  type BaileysMessageEventPayload,
+  type BaileysQrEventPayload,
+  baileysService,
+} from "../services/baileysService";
+import { baileysSessionManager } from "../services/baileysSessionManager";
 import { sseService } from "../services/sseService";
 
+let listenersRegistered = false;
+
+async function findLeadByPhone(mentoradoId: number, phone: string) {
+  const db = getDb();
+  const allLeads = await db.select().from(leads).where(eq(leads.mentoradoId, mentoradoId));
+
+  return (
+    allLeads.find((lead) => {
+      if (!lead.telefone) return false;
+      return baileysService.normalizePhone(lead.telefone) === baileysService.normalizePhone(phone);
+    }) ?? null
+  );
+}
+
 export function registerBaileysWebhooks(app: Express) {
-  // We don't need app here strictly if we only listen to internal events,
-  // but we might want to expose a webhook endpoint later if needed.
-  // For now, we just register the event listeners.
+  if (listenersRegistered) {
+    return;
+  }
 
-  baileysService.on("qr", ({ mentoradoId, qr }) => {
-    sseService.broadcast(mentoradoId, "connection_update", {
-      status: "connecting",
-      qr,
-    });
-  });
+  listenersRegistered = true;
 
-  baileysService.on("connection.update", async ({ mentoradoId, status, phone }) => {
-    const db = getDb();
-    if (status === "connected") {
-      await db
-        .update(mentorados)
-        .set({
-          baileysConnected: "sim",
-          baileysConnectedAt: new Date(),
-          baileysPhone: phone,
-          updatedAt: new Date(),
-        })
-        .where(eq(mentorados.id, mentoradoId));
+  void app;
 
+  void baileysSessionManager.restorePersistedSessions();
+
+  baileysSessionManager.on(
+    "qr",
+    ({ mentoradoId, qr, status, connected }: BaileysQrEventPayload) => {
       sseService.broadcast(mentoradoId, "connection_update", {
-        status: "connected",
-        phone,
-      });
-    } else {
-      // handle disconnect if needed, though usually initiated by user or handled in service logout
-      sseService.broadcast(mentoradoId, "connection_update", {
-        status: "disconnected",
+        status,
+        connected,
+        qr,
+        provider: "baileys",
       });
     }
-  });
+  );
 
-  baileysService.on(
-    "message",
-    async ({ mentoradoId, message }: { mentoradoId: number; message: proto.IWebMessageInfo }) => {
+  baileysSessionManager.on(
+    "connection.update",
+    async ({ mentoradoId, status, phone, connected }: BaileysConnectionEventPayload) => {
       const db = getDb();
-      const content =
-        message.message?.conversation || message.message?.extendedTextMessage?.text || "";
-      const remoteJid = message.key?.remoteJid;
-      if (!remoteJid || !content) return;
 
-      const phone = remoteJid.split("@")[0];
+      if (status === "connected") {
+        await db
+          .update(mentorados)
+          .set({
+            baileysConnected: "sim",
+            baileysConnectedAt: new Date(),
+            baileysPhone: phone ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(mentorados.id, mentoradoId));
+      } else {
+        await db
+          .update(mentorados)
+          .set({
+            baileysConnected: "nao",
+            baileysPhone: null,
+            baileysConnectedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(mentorados.id, mentoradoId));
+      }
 
-      // Attempt to link to lead
-      // We can use a helper or simple query
-      // For now simple match
-      const [lead] = await db
-        .select()
-        .from(leads)
-        .where(and(eq(leads.mentoradoId, mentoradoId), eq(leads.telefone, phone))) // Matches exact number for now, ideally normalize
-        .limit(1);
+      sseService.broadcast(mentoradoId, "connection_update", {
+        status,
+        connected,
+        phone,
+        provider: "baileys",
+      });
+    }
+  );
+
+  baileysSessionManager.on(
+    "message",
+    async ({ mentoradoId, phone, content, message }: BaileysMessageEventPayload) => {
+      if (!content) {
+        return;
+      }
+
+      const db = getDb();
+      const normalizedPhone = baileysService.normalizePhone(phone);
+      const lead = await findLeadByPhone(mentoradoId, normalizedPhone);
 
       const [savedMessage] = await db
         .insert(whatsappMessages)
         .values({
           mentoradoId,
-          leadId: lead?.id,
-          phone,
+          leadId: lead?.id ?? null,
+          phone: normalizedPhone,
           direction: "inbound",
           content,
-          status: "delivered", // incoming messages are delivered to us
+          zapiMessageId: message.key?.id ?? null,
+          status: "delivered",
           isFromAi: "nao",
-          createdAt: new Date(), // Baileys timestamp might be better but date is fine
         })
         .returning();
 
-      sseService.broadcast(mentoradoId, "new_message", savedMessage);
+      sseService.broadcast(mentoradoId, "message", {
+        id: savedMessage?.id,
+        phone: normalizedPhone,
+        leadId: lead?.id ?? null,
+        direction: "inbound",
+        content,
+        status: "delivered",
+        provider: "baileys",
+        createdAt: savedMessage?.createdAt ?? new Date().toISOString(),
+      });
+    }
+  );
+
+  // Handle contact name updates from Baileys
+  baileysSessionManager.on(
+    "contacts",
+    async ({ mentoradoId, contacts }: BaileysContactEventPayload) => {
+      if (contacts.length === 0) return;
+
+      const db = getDb();
+
+      for (const contact of contacts) {
+        if (!contact.name) continue;
+
+        // Upsert contact - insert if not exists, update name if exists
+        const existingContact = await db
+          .select()
+          .from(whatsappContacts)
+          .where(
+            and(
+              eq(whatsappContacts.mentoradoId, mentoradoId),
+              eq(whatsappContacts.phone, contact.phone)
+            )
+          )
+          .limit(1);
+
+        if (existingContact.length > 0) {
+          await db
+            .update(whatsappContacts)
+            .set({ name: contact.name, updatedAt: new Date() })
+            .where(eq(whatsappContacts.id, existingContact[0].id));
+        } else {
+          await db.insert(whatsappContacts).values({
+            mentoradoId,
+            phone: contact.phone,
+            name: contact.name,
+          });
+        }
+      }
     }
   );
 }

@@ -13,6 +13,15 @@ import {
   metasProgressivas,
   metricasMensais,
   notificacoes,
+  pacientes,
+  pacientesChatIa,
+  pacientesConsentimentos,
+  pacientesDocumentos,
+  pacientesFotos,
+  pacientesInfoMedica,
+  pacientesProcedimentos,
+  planosTratamento,
+  procedimentos,
   rankingMensal,
   users,
   weeklyPlanProgress,
@@ -247,4 +256,105 @@ export const weeklyPlanProgressRelations = relations(weeklyPlanProgress, ({ one 
     fields: [weeklyPlanProgress.mentoradoId],
     references: [mentorados.id],
   }),
+}));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PACIENTES RELATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const pacientesRelations = relations(pacientes, ({ many }) => ({
+  infoMedica: many(pacientesInfoMedica),
+  procedimentos: many(pacientesProcedimentos),
+  fotos: many(pacientesFotos),
+  documentos: many(pacientesDocumentos),
+  chats: many(pacientesChatIa),
+  planosTratamento: many(planosTratamento),
+  consentimentos: many(pacientesConsentimentos),
+}));
+
+export const pacientesInfoMedicaRelations = relations(pacientesInfoMedica, ({ one }) => ({
+  paciente: one(pacientes, {
+    fields: [pacientesInfoMedica.pacienteId],
+    references: [pacientes.id],
+  }),
+}));
+
+export const pacientesProcedimentosRelations = relations(pacientesProcedimentos, ({ one, many }) => ({
+  paciente: one(pacientes, {
+    fields: [pacientesProcedimentos.pacienteId],
+    references: [pacientes.id],
+  }),
+  procedimento: one(procedimentos, {
+    fields: [pacientesProcedimentos.procedimentoId],
+    references: [procedimentos.id],
+  }),
+  profissional: one(users, {
+    fields: [pacientesProcedimentos.profissionalResponsavelId],
+    references: [users.id],
+  }),
+  fotos: many(pacientesFotos),
+  documentos: many(pacientesDocumentos),
+}));
+
+export const pacientesFotosRelations = relations(pacientesFotos, ({ one }) => ({
+  paciente: one(pacientes, {
+    fields: [pacientesFotos.pacienteId],
+    references: [pacientes.id],
+  }),
+  procedimentoRealizado: one(pacientesProcedimentos, {
+    fields: [pacientesFotos.procedimentoRealizadoId],
+    references: [pacientesProcedimentos.id],
+  }),
+}));
+
+export const pacientesDocumentosRelations = relations(pacientesDocumentos, ({ one }) => ({
+  paciente: one(pacientes, {
+    fields: [pacientesDocumentos.pacienteId],
+    references: [pacientes.id],
+  }),
+  procedimentoRealizado: one(pacientesProcedimentos, {
+    fields: [pacientesDocumentos.procedimentoRealizadoId],
+    references: [pacientesProcedimentos.id],
+  }),
+}));
+
+export const pacientesChatIaRelations = relations(pacientesChatIa, ({ one }) => ({
+  paciente: one(pacientes, {
+    fields: [pacientesChatIa.pacienteId],
+    references: [pacientes.id],
+  }),
+  foto: one(pacientesFotos, {
+    fields: [pacientesChatIa.fotoId],
+    references: [pacientesFotos.id],
+  }),
+}));
+
+export const planosTratamentoRelations = relations(planosTratamento, ({ one }) => ({
+  paciente: one(pacientes, {
+    fields: [planosTratamento.pacienteId],
+    references: [pacientes.id],
+  }),
+  mentorado: one(mentorados, {
+    fields: [planosTratamento.mentoradoId],
+    references: [mentorados.id],
+  }),
+  criadoPor: one(users, {
+    fields: [planosTratamento.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const pacientesConsentimentosRelations = relations(pacientesConsentimentos, ({ one }) => ({
+  paciente: one(pacientes, {
+    fields: [pacientesConsentimentos.pacienteId],
+    references: [pacientes.id],
+  }),
+  criadoPor: one(users, {
+    fields: [pacientesConsentimentos.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const procedimentosRelations = relations(procedimentos, ({ many }) => ({
+  historico: many(pacientesProcedimentos),
 }));

@@ -450,11 +450,14 @@ function PatientDetail({ id }: { id: number }) {
                   totalDocumentos: paciente.stats.totalDocumentos,
                   ultimoProcedimento: paciente.stats.ultimoProcedimento ?? null,
                 }}
-                procedureHistory={paciente.procedimentos.slice(0, 6).map((p) => ({
-                  month: new Date(p.dataRealizacao).toISOString().slice(0, 7),
-                  count: 1,
-                  valor: p.valorReal ?? 0,
-                }))}
+                procedureHistory={paciente.procedimentos
+                  .filter((p) => p.dataRealizacao)
+                  .slice(0, 6)
+                  .map((p) => ({
+                    month: new Date(p.dataRealizacao!).toISOString().slice(0, 7),
+                    count: 1,
+                    valor: p.valorReal ?? 0,
+                  }))}
               />
             </div>
           </div>

@@ -3,7 +3,7 @@
  * Campaign list + builder wizard + delivery stats
  */
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
@@ -85,16 +85,20 @@ const STEPS = [
 // Step Progress Component
 function StepProgress({ currentStep }: { currentStep: number }) {
   return (
-    <div className="flex items-center justify-center gap-2">
+    <ol
+      className="flex items-center justify-center gap-2"
+      aria-label="Progresso de criação da campanha"
+    >
       {STEPS.map((step, index) => (
-        <div key={step.id} className="flex items-center">
+        <li key={step.id} className="flex items-center">
           <div
             className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
+              "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
               currentStep > step.id && "bg-primary text-primary-foreground",
               currentStep === step.id && "bg-primary text-primary-foreground",
               currentStep < step.id && "bg-muted text-muted-foreground"
             )}
+            aria-current={currentStep === step.id ? "step" : undefined}
           >
             {currentStep > step.id ? <Check className="h-4 w-4" /> : step.id}
           </div>
@@ -109,14 +113,14 @@ function StepProgress({ currentStep }: { currentStep: number }) {
           {index < STEPS.length - 1 && (
             <div
               className={cn(
-                "w-8 h-0.5 mx-2 rounded",
+                "mx-2 h-0.5 w-8 rounded",
                 currentStep > step.id ? "bg-primary" : "bg-muted"
               )}
             />
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 
@@ -132,11 +136,13 @@ function MessageStep({
   onNameChange: (v: string) => void;
   onMessageChange: (v: string) => void;
 }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, x: -20 }}
       className="space-y-6"
     >
       <div className="space-y-2">
@@ -147,22 +153,26 @@ function MessageStep({
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           maxLength={100}
+          name="campaignName"
+          autoComplete="off"
         />
+        <p className="text-right text-xs text-muted-foreground tabular-nums">{name.length}/100</p>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="message">Mensagem</Label>
         <Textarea
           id="message"
-          placeholder="Olá {nome}! Temos uma oferta especial para você..."
+          placeholder="Olá {nome}! Temos uma oferta especial para você…"
           value={message}
           onChange={(e) => onMessageChange(e.target.value)}
           className="min-h-[150px]"
           maxLength={4096}
+          name="campaignMessage"
         />
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Use {"{nome}"} para personalizar</span>
-          <span>{message.length}/4096</span>
+          <span className="tabular-nums">{message.length}/4096</span>
         </div>
       </div>
 
@@ -171,7 +181,7 @@ function MessageStep({
         <p className="text-sm font-medium mb-2">Preview</p>
         <div className="bg-green-500/10 text-green-900 dark:text-green-100 p-3 rounded-lg max-w-[80%]">
           <p className="text-sm whitespace-pre-wrap">
-            {message.replace("{nome}", "João") || "Sua mensagem aparecerá aqui..."}
+            {message.replace("{nome}", "João") || "Sua mensagem aparecerá aqui…"}
           </p>
           <span className="text-xs opacity-70 mt-1 block">12:30</span>
         </div>
@@ -192,6 +202,8 @@ function AudienceStep({
   contactCount: number;
   isLoadingCount: boolean;
 }) {
+  const shouldReduceMotion = useReducedMotion();
+
   const toggleStatus = (status: LeadStatus) => {
     const current = filters.status || [];
     if (current.includes(status)) {
@@ -203,9 +215,9 @@ function AudienceStep({
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, x: -20 }}
       className="space-y-6"
     >
       {/* Contact Count Preview */}
@@ -217,7 +229,7 @@ function AudienceStep({
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Contatos selecionados</p>
-              <p className="text-2xl font-bold">
+              <p className="text-2xl font-bold tabular-nums" aria-live="polite">
                 {isLoadingCount ? (
                   <Loader2 className="h-5 w-5 animate-spin inline" />
                 ) : (
@@ -233,13 +245,13 @@ function AudienceStep({
       {/* Status Filter */}
       <div className="space-y-3">
         <Label className="text-sm font-medium">Status do Lead</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {LEAD_STATUSES.map((status) => (
             <label
               key={status.value}
               htmlFor={`status-${status.value}`}
               className={cn(
-                "flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors",
+                "flex min-h-11 items-center gap-2 rounded-lg border p-3 transition-colors",
                 filters.status?.includes(status.value)
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/50"
@@ -291,11 +303,13 @@ function ReviewStep({
   filters: SegmentationFilters;
   contactCount: number;
 }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, x: 20 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, x: -20 }}
       className="space-y-6"
     >
       <NeonCard className="p-4 space-y-4">
@@ -312,7 +326,9 @@ function ReviewStep({
         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
           <div>
             <p className="text-xs text-muted-foreground mb-1">Contatos</p>
-            <p className="text-xl font-bold text-primary">{contactCount.toLocaleString("pt-BR")}</p>
+            <p className="text-xl font-bold text-primary tabular-nums">
+              {contactCount.toLocaleString("pt-BR")}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-1">Filtros Ativos</p>
@@ -335,8 +351,8 @@ function ReviewStep({
       {/* Warning */}
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
         <p className="text-sm text-amber-700 dark:text-amber-300">
-          ⚠️ A campanha será enviada para <strong>{contactCount} contatos</strong>. Esta ação não
-          pode ser desfeita.
+          A campanha será enviada para <strong>{contactCount} contatos</strong>. Esta ação não pode
+          ser desfeita.
         </p>
       </div>
     </motion.div>
@@ -420,7 +436,7 @@ function CampaignBuilderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>Nova Campanha WhatsApp</DialogTitle>
           <DialogDescription>Crie e envie mensagens em massa para seus leads</DialogDescription>
@@ -432,7 +448,7 @@ function CampaignBuilderDialog({
         </div>
 
         {/* Step Content */}
-        <ScrollArea className="max-h-[400px] pr-4">
+        <ScrollArea className="max-h-[420px] pr-4">
           <AnimatePresence mode="wait">
             {step === 1 && (
               <MessageStep
@@ -467,18 +483,27 @@ function CampaignBuilderDialog({
         {/* Footer Navigation */}
         <DialogFooter className="gap-2 sm:gap-0">
           {step > 1 && (
-            <Button variant="outline" onClick={handleBack} disabled={isCreating}>
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={isCreating}
+              className="min-h-11"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar
             </Button>
           )}
           {step < 3 ? (
-            <Button onClick={handleNext} disabled={!canProceed}>
+            <Button onClick={handleNext} disabled={!canProceed} className="min-h-11">
               Próximo
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleCreate} disabled={isCreating || contactCount === 0}>
+            <Button
+              onClick={handleCreate}
+              disabled={isCreating || contactCount === 0}
+              className="min-h-11"
+            >
               {isCreating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -515,23 +540,23 @@ export function WhatsAppCampaigns() {
   } as const;
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6" aria-label="Campanhas de WhatsApp">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-green-600" />
+            <MessageSquare className="h-6 w-6 text-green-600" aria-hidden="true" />
             Campanhas WhatsApp
           </h2>
           <p className="text-muted-foreground mt-1">
             Envie mensagens em massa para seus leads segmentados
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setIsBuilderOpen(true)}>
-          <Plus className="h-4 w-4" />
+        <Button className="min-h-11 gap-2" onClick={() => setIsBuilderOpen(true)}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
           Nova Campanha
         </Button>
-      </div>
+      </header>
 
       {/* Campaign List */}
       <NeonCard>
@@ -554,8 +579,8 @@ export function WhatsAppCampaigns() {
               <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                 Crie sua primeira campanha para enviar mensagens em massa.
               </p>
-              <Button onClick={() => setIsBuilderOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
+              <Button onClick={() => setIsBuilderOpen(true)} className="min-h-11 gap-2">
+                <Plus className="h-4 w-4" aria-hidden="true" />
                 Criar Campanha
               </Button>
             </div>
@@ -573,38 +598,40 @@ export function WhatsAppCampaigns() {
                 return (
                   <div
                     key={campaign.id}
-                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                    className="flex flex-col gap-3 rounded-lg bg-muted/50 p-4 transition-colors hover:bg-muted sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-center gap-4">
                       <div className="p-2 rounded-lg bg-green-500/10">
                         <MessageSquare className="h-5 w-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="font-medium">{campaign.name}</p>
+                        <p className="font-medium leading-tight">{campaign.name}</p>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <StatusIcon
                             className={cn(
                               "h-4 w-4",
                               config.color,
-                              campaign.status === "sending" && "animate-spin"
+                              campaign.status === "sending" && "motion-safe:animate-spin"
                             )}
                           />
                           <span>{config.label}</span>
                           {(campaign.messagesSent ?? 0) > 0 && (
                             <>
                               <span>•</span>
-                              <span>{campaign.messagesSent} enviadas</span>
+                              <span className="tabular-nums">{campaign.messagesSent} enviadas</span>
                             </>
                           )}
                         </div>
                       </div>
                     </div>
                     {(campaign.messagesSent ?? 0) > 0 && (
-                      <div className="hidden sm:flex items-center gap-4">
-                        <div className="w-24">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <div className="w-32 sm:w-24">
                           <Progress value={deliveryRate} className="h-2" />
                         </div>
-                        <span className="text-sm font-medium w-12 text-right">{deliveryRate}%</span>
+                        <span className="w-12 text-right text-sm font-medium tabular-nums">
+                          {deliveryRate}%
+                        </span>
                       </div>
                     )}
                   </div>
@@ -617,6 +644,6 @@ export function WhatsAppCampaigns() {
 
       {/* Campaign Builder Dialog */}
       <CampaignBuilderDialog open={isBuilderOpen} onOpenChange={setIsBuilderOpen} />
-    </div>
+    </section>
   );
 }

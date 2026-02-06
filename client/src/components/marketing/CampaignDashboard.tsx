@@ -3,7 +3,7 @@
  * KPI cards + campaign list + quick actions
  */
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   Calendar,
@@ -108,14 +108,16 @@ function KPICard({
   value: string | number;
   icon: React.ElementType;
   trend?: { value: number; positive: boolean };
-  color: "blue" | "green" | "amber" | "purple";
+  color: "blue" | "green" | "amber" | "gold";
   isLoading?: boolean;
 }) {
+  const shouldReduceMotion = useReducedMotion();
+
   const colorMap = {
     blue: "from-blue-500/20 to-blue-500/5 text-blue-600 dark:text-blue-400",
     green: "from-green-500/20 to-green-500/5 text-green-600 dark:text-green-400",
     amber: "from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400",
-    purple: "from-purple-500/20 to-purple-500/5 text-purple-600 dark:text-purple-400",
+    gold: "from-primary/25 to-primary/5 text-primary",
   };
 
   if (isLoading) {
@@ -134,16 +136,19 @@ function KPICard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={shouldReduceMotion ? undefined : { duration: 0.3 }}
     >
-      <NeonCard variant="default" className="p-6 hover:shadow-lg transition-shadow">
+      <NeonCard
+        variant="default"
+        className="p-6 transition-shadow hover:shadow-lg focus-within:ring-2 focus-within:ring-ring/40"
+      >
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-bold tracking-tight">{value}</h3>
+              <h3 className="text-3xl font-bold tracking-tight tabular-nums">{value}</h3>
               {trend && (
                 <span
                   className={cn(
@@ -168,6 +173,8 @@ function KPICard({
 
 // Campaign Card Component
 function CampaignCard({ campaign }: { campaign: Campaign }) {
+  const shouldReduceMotion = useReducedMotion();
+
   const statusConfig: Record<
     WhatsAppCampaignStatus,
     { label: string; color: string; icon: React.ElementType }
@@ -214,12 +221,12 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.2 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.95 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, scale: 1 }}
+      exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.95 }}
+      transition={shouldReduceMotion ? undefined : { duration: 0.2 }}
     >
-      <NeonCard className="p-4 hover:shadow-md transition-all cursor-pointer group">
+      <NeonCard className="group p-4 transition-all hover:shadow-md hover:border-primary/30 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-ring/40">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             {/* Campaign Type Icon */}
@@ -246,7 +253,10 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className={config.color}>
                   <StatusIcon
-                    className={cn("h-3 w-3 mr-1", campaign.status === "sending" && "animate-spin")}
+                    className={cn(
+                      "h-3 w-3 mr-1",
+                      campaign.status === "sending" && !shouldReduceMotion && "animate-spin"
+                    )}
                   />
                   {config.label}
                 </Badge>
@@ -266,7 +276,8 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-11 w-11 shrink-0 opacity-100 transition-opacity sm:h-10 sm:w-10 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                aria-label={`Abrir ações da campanha ${campaign.name}`}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -286,7 +297,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
               <span className="text-muted-foreground">
                 {campaign.messagesDelivered} de {campaign.messagesSent} entregues
               </span>
-              <span className="font-medium text-foreground">{deliveryRate}%</span>
+              <span className="font-medium text-foreground tabular-nums">{deliveryRate}%</span>
             </div>
             <Progress value={deliveryRate} className="mt-2 h-1.5" />
           </div>
@@ -369,9 +380,9 @@ export function CampaignDashboard() {
     })) ?? [];
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6" aria-label="Resumo de campanhas de marketing">
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Campanhas Ativas"
           value={stats.activeCampaigns}
@@ -399,23 +410,28 @@ export function CampaignDashboard() {
           value={`${stats.deliveryRate}%`}
           icon={CheckCircle2}
           trend={{ value: 2.3, positive: true }}
-          color="purple"
+          color="gold"
           isLoading={isLoadingCampaigns}
         />
       </div>
 
       {/* Campaigns Section */}
       <NeonCard>
-        <NeonCardHeader className="flex flex-row items-center justify-between">
-          <NeonCardTitle className="text-xl">Campanhas Recentes</NeonCardTitle>
-          <Button className="gap-2" size="sm" onClick={() => setIsDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
+        <NeonCardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <NeonCardTitle className="text-xl">Campanhas Recentes</NeonCardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Acompanhe status, entregas e ações rápidas das últimas campanhas.
+            </p>
+          </div>
+          <Button className="min-h-11 gap-2" onClick={() => setIsDialogOpen(true)}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Nova Campanha
           </Button>
         </NeonCardHeader>
         <NeonCardContent className="pt-2">
           {isLoadingCampaigns ? (
-            <div className="space-y-3">
+            <div className="space-y-3" aria-live="polite">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-24 w-full rounded-lg" />
               ))}
@@ -430,8 +446,8 @@ export function CampaignDashboard() {
                 Crie sua primeira campanha de WhatsApp ou Instagram para começar a engajar seus
                 leads.
               </p>
-              <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
-                <Plus className="h-4 w-4" />
+              <Button className="min-h-11 gap-2" onClick={() => setIsDialogOpen(true)}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
                 Criar Primeira Campanha
               </Button>
             </div>
@@ -449,7 +465,7 @@ export function CampaignDashboard() {
 
       {/* Create Campaign Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>Nova Campanha</DialogTitle>
             <DialogDescription>
@@ -464,7 +480,13 @@ export function CampaignDashboard() {
                 placeholder="Ex: Promoção de Verão"
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
+                maxLength={120}
+                name="campaignName"
+                autoComplete="off"
               />
+              <p className="text-xs text-muted-foreground text-right tabular-nums">
+                {campaignName.length}/120
+              </p>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="campaign-platform">Plataforma</Label>
@@ -472,27 +494,27 @@ export function CampaignDashboard() {
                 value={campaignPlatform}
                 onValueChange={(v) => setCampaignPlatform(v as typeof campaignPlatform)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="min-h-11">
                   <SelectValue placeholder="Selecione a plataforma" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whatsapp">
-                    <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <MessageSquare className="h-4 w-4 text-green-600" />
                       WhatsApp
-                    </div>
+                    </span>
                   </SelectItem>
                   <SelectItem value="instagram">
-                    <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <Instagram className="h-4 w-4 text-pink-600" />
                       Instagram
-                    </div>
+                    </span>
                   </SelectItem>
                   <SelectItem value="both">
-                    <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-amber-600" />
                       Ambos
-                    </div>
+                    </span>
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -501,22 +523,36 @@ export function CampaignDashboard() {
               <Label htmlFor="campaign-description">Descrição (opcional)</Label>
               <Textarea
                 id="campaign-description"
-                placeholder="Descreva o objetivo da campanha..."
+                placeholder="Descreva o objetivo da campanha…"
                 value={campaignDescription}
                 onChange={(e) => setCampaignDescription(e.target.value)}
                 rows={3}
+                maxLength={300}
+                name="campaignDescription"
               />
+              <p className="text-xs text-muted-foreground text-right tabular-nums">
+                {campaignDescription.length}/300
+              </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isCreating}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={isCreating}
+              className="min-h-11"
+            >
               Cancelar
             </Button>
-            <Button onClick={handleCreateCampaign} disabled={isCreating || !campaignName.trim()}>
+            <Button
+              onClick={handleCreateCampaign}
+              disabled={isCreating || !campaignName.trim()}
+              className="min-h-11"
+            >
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Criando...
+                  Criando…
                 </>
               ) : (
                 "Criar Campanha"
@@ -525,6 +561,6 @@ export function CampaignDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </section>
   );
 }

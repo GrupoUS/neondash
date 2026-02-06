@@ -4,22 +4,28 @@
  */
 
 import {
+  ArrowRight,
   Camera,
   FileText,
   MessageSquare,
+  MoreHorizontal,
+  Phone,
   Plus,
   Search,
   Sparkles,
   Stethoscope,
+  Trash2,
   User,
   UserCircle,
 } from "lucide-react";
+
 import { useState } from "react";
-import { Link, useRoute } from "wouter";
+import { Link, useLocation, useRoute } from "wouter";
 
 import DashboardLayout from "@/components/DashboardLayout";
 import { AIChatWidget } from "@/components/pacientes/AIChatWidget";
 import { DocumentManager } from "@/components/pacientes/DocumentManager";
+import { PatientFormDialog } from "@/components/pacientes/PatientFormDialog";
 import { PatientInfoCard } from "@/components/pacientes/PatientInfoCard";
 import { PatientMedicalCard } from "@/components/pacientes/PatientMedicalCard";
 import { PatientStatsCard } from "@/components/pacientes/PatientStatsCard";
@@ -30,6 +36,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   NeonTabs,
@@ -48,6 +61,8 @@ import { cn } from "@/lib/utils";
 function PatientsList() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ativo" | "inativo" | undefined>(undefined);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [, navigate] = useLocation();
 
   const { data, isLoading } = trpc.pacientes.list.useQuery({
     search: search || undefined,
@@ -119,20 +134,32 @@ function PatientsList() {
               ? "Tente ajustar sua busca ou adicione um novo paciente."
               : "Comece adicionando seu primeiro paciente."}
           </p>
-          <Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" /> Novo Paciente
           </Button>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {data?.items.map((paciente) => (
-            <Link key={paciente.id} href={`/pacientes/${paciente.id}`}>
-              <Card className="cursor-pointer hover:shadow-md transition-shadow hover:border-primary/50">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
+            <Card
+              key={paciente.id}
+              className="group cursor-pointer relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 border-2 border-transparent hover:border-primary/30"
+            >
+              {/* Gradient overlay on hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <CardContent className="relative p-4">
+                {/* Header with avatar and actions */}
+                <div className="flex items-start gap-4">
+                  <button
+                    type="button"
+                    className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-full"
+                    onClick={() => navigate(`/pacientes/${paciente.id}`)}
+                    aria-label={`Ver prontuário de ${paciente.nomeCompleto}`}
+                  >
+                    <Avatar className="h-14 w-14 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
                       <AvatarImage src={paciente.fotoUrl || undefined} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-lg">
                         {paciente.nomeCompleto
                           .split(" ")
                           .map((n) => n[0])
@@ -141,27 +168,95 @@ function PatientsList() {
                           .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{paciente.nomeCompleto}</h3>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {paciente.telefone || paciente.email || "Sem contato"}
-                      </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="flex-1 min-w-0 cursor-pointer text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+                    onClick={() => navigate(`/pacientes/${paciente.id}`)}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+                        {paciente.nomeCompleto}
+                      </h3>
                     </div>
-                    <Badge
-                      variant={paciente.status === "ativo" ? "default" : "secondary"}
-                      className={cn(
-                        paciente.status === "ativo" && "bg-emerald-500/10 text-emerald-600"
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      {paciente.telefone ? (
+                        <span className="flex items-center gap-1 truncate">
+                          <Phone className="h-3 w-3" />
+                          {paciente.telefone}
+                        </span>
+                      ) : paciente.email ? (
+                        <span className="truncate">{paciente.email}</span>
+                      ) : (
+                        <span className="text-muted-foreground/50">Sem contato</span>
                       )}
-                    >
-                      {paciente.status === "ativo" ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                    </div>
+                  </button>
+
+                  {/* Quick Actions Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => navigate(`/pacientes/${paciente.id}`)}>
+                        <User className="h-4 w-4 mr-2" />
+                        Ver Prontuário
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remover
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Status Badge + Last Update */}
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+                  <Badge
+                    variant={paciente.status === "ativo" ? "default" : "secondary"}
+                    className={cn(
+                      "text-xs",
+                      paciente.status === "ativo" &&
+                        "bg-emerald-500/15 text-emerald-600 border-emerald-500/20"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-1.5 w-1.5 rounded-full mr-1.5",
+                        paciente.status === "ativo" ? "bg-emerald-500" : "bg-muted-foreground"
+                      )}
+                    />
+                    {paciente.status === "ativo" ? "Ativo" : "Inativo"}
+                  </Badge>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => navigate(`/pacientes/${paciente.id}`)}
+                  >
+                    Abrir
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
+
+      {/* Create Patient Dialog */}
+      <PatientFormDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
       {/* Total Count */}
       {data && data.total > 0 && (
@@ -179,6 +274,9 @@ function PatientsList() {
 
 function PatientDetail({ id }: { id: number }) {
   const [activeTab, setActiveTab] = useState("perfil");
+  const [_editDialogOpen, setEditDialogOpen] = useState(false);
+  const [_deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [, _navigate] = useLocation();
 
   const { data: paciente, isLoading } = trpc.pacientes.getById.useQuery({ id });
   const utils = trpc.useUtils();
@@ -246,10 +344,18 @@ function PatientDetail({ id }: { id: number }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setEditDialogOpen(true)}>
               Editar
             </Button>
-            <Button size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button size="sm" onClick={() => setActiveTab("chat")}>
               <Sparkles className="h-4 w-4 mr-1" /> Chat IA
             </Button>
           </div>

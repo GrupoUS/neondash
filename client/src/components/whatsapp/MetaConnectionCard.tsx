@@ -98,6 +98,11 @@ export function MetaConnectionCard() {
       return;
     }
 
+    // Check if script already exists
+    if (document.getElementById("facebook-jssdk")) {
+      return;
+    }
+
     // Define async init callback
     window.fbAsyncInit = () => {
       window.FB.init({
@@ -116,6 +121,15 @@ export function MetaConnectionCard() {
     script.async = true;
     script.defer = true;
     script.crossOrigin = "anonymous";
+
+    script.onload = () => {
+      // SDK script loaded - init will be called via fbAsyncInit
+    };
+
+    script.onerror = () => {
+      // Failed to load FB SDK - user will see disabled state
+    };
+
     document.head.appendChild(script);
 
     return () => {

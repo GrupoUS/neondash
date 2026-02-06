@@ -3,7 +3,7 @@
  * Two-column layout: AI Content Panel + Instagram Preview Mockup
  */
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays,
   Check,
@@ -39,21 +39,29 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { cn } from "@/lib/utils";
 
 type Tone = "professional" | "casual" | "promotional" | "educational" | "inspiring";
 
-const toneOptions: { value: Tone; label: string; emoji: string; toneValue: string }[] = [
+const toneOptions: { value: Tone; label: string; toneValue: string }[] = [
   {
     value: "professional",
     label: "Profissional",
-    emoji: "💼",
     toneValue: "profissional e confiável",
   },
-  { value: "casual", label: "Casual", emoji: "😊", toneValue: "descontraído e amigável" },
-  { value: "promotional", label: "Promocional", emoji: "🎯", toneValue: "persuasivo e atraente" },
-  { value: "educational", label: "Educativo", emoji: "📚", toneValue: "informativo e didático" },
-  { value: "inspiring", label: "Inspirador", emoji: "✨", toneValue: "motivacional e inspirador" },
+  { value: "casual", label: "Casual", toneValue: "descontraído e amigável" },
+  { value: "promotional", label: "Promocional", toneValue: "persuasivo e atraente" },
+  { value: "educational", label: "Educativo", toneValue: "informativo e didático" },
+  { value: "inspiring", label: "Inspirador", toneValue: "motivacional e inspirador" },
 ];
+
+const toneColorMap: Record<Tone, string> = {
+  professional: "bg-blue-600",
+  casual: "bg-emerald-600",
+  promotional: "bg-amber-600",
+  educational: "bg-sky-600",
+  inspiring: "bg-pink-600",
+};
 
 // Instagram Preview Mockup
 function InstagramPreview({
@@ -172,9 +180,12 @@ function AIContentPanel({
   hashtags: string[];
   isGenerating: boolean;
 }) {
+  const shouldReduceMotion = useReducedMotion();
   const [prompt, setPrompt] = useState("");
   const [tone, setTone] = useState<Tone>("professional");
   const [copied, setCopied] = useState(false);
+
+  const selectedTone = toneOptions.find((option) => option.value === tone);
 
   const handleGenerate = () => {
     if (!prompt.trim()) {
@@ -201,33 +212,38 @@ function AIContentPanel({
         </Label>
         <Textarea
           id="prompt"
-          placeholder="Ex: Benefícios do tratamento facial com ácido hialurônico para rejuvenescimento..."
+          placeholder="Ex: Benefícios do tratamento facial com ácido hialurônico para rejuvenescimento…"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           className="min-h-[100px] resize-none"
           maxLength={500}
+          name="postTopic"
+          autoComplete="off"
         />
-        <p className="text-xs text-muted-foreground text-right">{prompt.length}/500</p>
+        <p className="text-right text-xs text-muted-foreground tabular-nums">{prompt.length}/500</p>
       </div>
 
       {/* Tone Selector */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">Tom da Mensagem</Label>
         <Select value={tone} onValueChange={(v) => setTone(v as Tone)}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="min-h-11 w-full" aria-label="Selecionar tom da mensagem">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {toneOptions.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
-                <span className="flex items-center gap-2">
-                  <span>{opt.emoji}</span>
-                  {opt.label}
+                <span className="flex items-center gap-2 text-sm">
+                  <span className={cn("h-2.5 w-2.5 rounded-full", toneColorMap[opt.value])} />
+                  <span>{opt.label}</span>
                 </span>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          Tom atual: <span className="font-medium text-foreground">{selectedTone?.label}</span>
+        </p>
       </div>
 
       {/* Generate Button */}
@@ -254,9 +270,9 @@ function AIContentPanel({
       <AnimatePresence mode="wait">
         {caption && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, y: -10 }}
             className="space-y-4"
           >
             {/* Caption */}
@@ -266,7 +282,13 @@ function AIContentPanel({
                   <Sparkles className="h-4 w-4 text-primary" />
                   Legenda Gerada
                 </Label>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopy}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11"
+                  onClick={handleCopy}
+                  aria-label="Copiar legenda e hashtags"
+                >
                   {copied ? (
                     <Check className="h-4 w-4 text-green-500" />
                   ) : (
@@ -286,11 +308,7 @@ function AIContentPanel({
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {hashtags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
+                    <Badge key={tag} variant="secondary" className="select-text">
                       #{tag}
                     </Badge>
                   ))}
@@ -446,27 +464,27 @@ export function InstagramPublisher() {
   };
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6" aria-label="Editor de publicações para Instagram">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <header className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
+            <Sparkles className="h-6 w-6 text-primary" aria-hidden="true" />
             Criar Post Instagram
           </h2>
           <p className="text-muted-foreground mt-1">
             Use IA para gerar legendas e hashtags automaticamente
           </p>
         </div>
-      </div>
+      </header>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Left: AI Content Panel */}
         <NeonCard className="p-6">
           <NeonCardHeader className="px-0 pt-0">
             <NeonCardTitle className="text-lg flex items-center gap-2">
-              <Wand2 className="h-5 w-5 text-primary" />
+              <Wand2 className="h-5 w-5 text-primary" aria-hidden="true" />
               Gerador de Conteúdo
             </NeonCardTitle>
           </NeonCardHeader>
@@ -491,12 +509,17 @@ export function InstagramPublisher() {
                 size="sm"
                 onClick={handleRegenerateImage}
                 disabled={isGeneratingImage || !currentPrompt}
-                className="gap-2"
+                className="min-h-11 gap-2"
               >
-                <RefreshCw className={`h-4 w-4 ${isGeneratingImage ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${isGeneratingImage ? "motion-safe:animate-spin" : ""}`}
+                />
                 Regenerar Imagem
               </Button>
             )}
+            <p className="text-center text-xs text-muted-foreground">
+              Prévia visual para revisão rápida antes da publicação.
+            </p>
           </div>
 
           {/* Schedule & Publish */}
@@ -505,7 +528,7 @@ export function InstagramPublisher() {
               {/* Schedule Picker */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2 flex-1">
+                  <Button variant="outline" className="min-h-11 flex-1 gap-2">
                     <CalendarDays className="h-4 w-4" />
                     {scheduledDate ? scheduledDate.toLocaleDateString("pt-BR") : "Agendar"}
                   </Button>
@@ -524,7 +547,7 @@ export function InstagramPublisher() {
               <Button
                 onClick={handlePublish}
                 disabled={!caption || isPublishing}
-                className="gap-2 flex-1"
+                className="min-h-11 flex-1 gap-2"
                 size="lg"
               >
                 {isPublishing ? (
@@ -554,6 +577,6 @@ export function InstagramPublisher() {
           </NeonCard>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

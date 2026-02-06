@@ -323,7 +323,7 @@ export function CampaignDashboard() {
     data: whatsappCampaigns,
     isLoading: isLoadingCampaigns,
     refetch,
-  } = trpc.zapi.listCampaigns.useQuery();
+  } = trpc.marketing.listCampaigns.useQuery();
 
   // Create campaign mutation
   const createCampaign = trpc.marketing.createCampaign.useMutation({

@@ -195,8 +195,8 @@ export function PatientMedicalCard({ patientId, medicalInfo, onUpdate }: Patient
                 Medicamentos em Uso
               </div>
               <div className="flex flex-wrap gap-2">
-                {medicalInfo.medicamentosEmUso.split(",").map((med, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs">
+                {medicalInfo.medicamentosEmUso.split(",").map((med) => (
+                  <Badge key={med.trim()} variant="secondary" className="text-xs">
                     {med.trim()}
                   </Badge>
                 ))}

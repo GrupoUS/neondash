@@ -45,7 +45,7 @@ export function DailyBalanceChart({ ano, mes }: DailyBalanceChartProps) {
     label,
   }: {
     active?: boolean;
-    payload?: any[];
+    payload?: Array<{ value: number }>;
     label?: string;
   }) => {
     if (active && payload && payload.length) {

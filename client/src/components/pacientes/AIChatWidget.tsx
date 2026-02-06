@@ -194,11 +194,12 @@ export function AIChatWidget({ patientId, patientName }: AIChatWidgetProps) {
   const photos = (patientPhotos ?? []) as PatientPhoto[];
 
   // Auto-scroll to bottom on new messages
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentional - scroll on message count change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages]);
 
   const handleSend = (values: MessageFormValues) => {
     if (!values.content.trim() && !imagePreview) return;

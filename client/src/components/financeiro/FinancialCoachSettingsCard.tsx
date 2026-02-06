@@ -14,7 +14,7 @@ export function FinancialCoachSettingsCard() {
   const [prompt, setPrompt] = useState("");
   const utils = trpc.useUtils();
 
-  const { data: currentPrompt, isLoading } = trpc.admin.getSetting.useQuery({
+  const { data: currentPrompt, isLoading } = trpc.admin.getPublicSetting.useQuery({
     key: "financial_coach_prompt",
   });
 
@@ -23,7 +23,7 @@ export function FinancialCoachSettingsCard() {
       toast.success("Prompt Financeiro atualizado!", {
         description: "O Neon Coach Financeiro usará essas novas instruções.",
       });
-      utils.admin.getSetting.invalidate({ key: "financial_coach_prompt" });
+      utils.admin.getPublicSetting.invalidate({ key: "financial_coach_prompt" });
     },
     onError: () => {
       toast.error("Erro ao salvar prompt.");

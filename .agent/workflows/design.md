@@ -135,6 +135,111 @@ python3 .agent/skills/frontend-design/scripts/generate_images.py "Prompt" "filen
 
 ---
 
+## Phase 1.3: shadcn Registry Search (MANDATORY)
+
+> [!IMPORTANT]
+> **Before building any component**, search the 6 configured registries for existing solutions.
+
+### Registry Reference (`components.json`)
+
+| Registry | URL Pattern | Specialty |
+|----------|-------------|-----------|
+| `@kokonutui` | `kokonutui.com/r/{name}.json` | Modern animated components |
+| `@tailark` | `tailark.com/r/{name}.json` | Premium Tailwind blocks |
+| `@cult-ui` | `cult-ui.com/r/{name}.json` | Cult-favorite UI patterns |
+| `@reui` | `reui.io/r/{name}.json` | Minimalist React UI |
+| `@react-bits` | `reactbits.dev/r/{name}.json` | Micro-interactions & bits |
+| `@aceternity` | `ui.aceternity.com/registry/{name}.json` | Animated premium components |
+
+### Search Protocol
+
+**Step 1: Identify Component Need**
+```
+Component needed: [card, button, modal, hero, pricing, testimonial, etc.]
+```
+
+**Step 2: Query Registry JSONs**
+```bash
+# Check if component exists in registry (use read_url_content or curl)
+# Pattern: {registry_url}/{component_name}.json
+
+# Example: Search for "hero" component
+curl -s https://kokonutui.com/r/hero.json
+curl -s https://tailark.com/r/hero.json
+curl -s https://cult-ui.com/r/hero.json
+curl -s https://reui.io/r/hero.json
+curl -s https://reactbits.dev/r/hero.json
+curl -s https://ui.aceternity.com/registry/hero.json
+```
+
+**Step 3: Install from Registry**
+```bash
+# Install from specific registry
+bunx shadcn@latest add @kokonutui/animated-card
+bunx shadcn@latest add @tailark/hero-section
+bunx shadcn@latest add @cult-ui/dock
+bunx shadcn@latest add @reui/button
+bunx shadcn@latest add @react-bits/animated-tooltip
+bunx shadcn@latest add @aceternity/sparkles
+```
+
+### Component Category Mapping
+
+| Need | Priority Registries | Common Names |
+|------|---------------------|--------------|
+| **Cards** | `@kokonutui`, `@aceternity` | `card`, `bento-grid`, `hover-card` |
+| **Buttons** | `@reui`, `@cult-ui` | `button`, `shiny-button`, `magnetic-button` |
+| **Heroes** | `@tailark`, `@aceternity` | `hero`, `hero-section`, `lamp` |
+| **Navigation** | `@kokonutui`, `@cult-ui` | `navbar`, `dock`, `sidebar` |
+| **Charts** | `@kokonutui` | `chart-card`, `stats` |
+| **Modals** | `@cult-ui`, `@reui` | `modal`, `dialog`, `drawer` |
+| **Forms** | `@reui`, `@tailark` | `input`, `form`, `select` |
+| **Animations** | `@aceternity`, `@react-bits` | `sparkles`, `background-beams`, `spotlight` |
+| **Testimonials** | `@tailark`, `@aceternity` | `testimonial`, `marquee`, `infinite-moving-cards` |
+| **Pricing** | `@tailark`, `@kokonutui` | `pricing`, `pricing-card` |
+
+### Decision Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  COMPONENT NEEDED: [name]                                   │
+├─────────────────────────────────────────────────────────────┤
+│  1. CHECK LOCAL: client/src/components/ui/                  │
+│     └─→ Exists? → USE IT (extend if needed)                 │
+│                                                              │
+│  2. CHECK REGISTRIES (priority order):                      │
+│     └─→ @aceternity (animations)                            │
+│     └─→ @kokonutui (modern)                                 │
+│     └─→ @tailark (blocks)                                   │
+│     └─→ @cult-ui (patterns)                                 │
+│     └─→ @reui (minimal)                                     │
+│     └─→ @react-bits (micro)                                 │
+│                                                              │
+│  3. FOUND? → bunx shadcn@latest add @{registry}/{name}      │
+│                                                              │
+│  4. NOT FOUND? → Build custom (Phase 3)                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Quick Search Commands
+
+```bash
+# List installed components
+ls client/src/components/ui/
+
+# Search shadcn docs for component
+# Use context7 MCP for official docs
+mcp_context7_query-docs libraryId="/shadcn-ui/ui" query="[component_name]"
+
+# Search registry websites for available components
+# @kokonutui: https://kokonutui.com/docs/components
+# @tailark: https://tailark.com/components
+# @cult-ui: https://cult-ui.com/docs/components
+# @aceternity: https://ui.aceternity.com/components
+```
+
+---
+
 ## Phase 2: Asset Generation (Optional)
 
 ### Image Generation

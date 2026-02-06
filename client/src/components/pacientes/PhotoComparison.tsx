@@ -125,7 +125,9 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
         {/* Photo Selectors */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Foto Antes</label>
+            <label htmlFor="before-photo-select" className="text-sm font-medium">
+              Foto Antes
+            </label>
             <Select
               value={beforePhoto?.id.toString() ?? ""}
               onValueChange={(v) => {
@@ -133,7 +135,7 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
                 setBeforePhoto(photo ?? null);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="before-photo-select">
                 <SelectValue placeholder="Selecionar foto" />
               </SelectTrigger>
               <SelectContent>
@@ -150,7 +152,9 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Foto Depois</label>
+            <label htmlFor="after-photo-select" className="text-sm font-medium">
+              Foto Depois
+            </label>
             <Select
               value={afterPhoto?.id.toString() ?? ""}
               onValueChange={(v) => {
@@ -158,7 +162,7 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
                 setAfterPhoto(photo ?? null);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger id="after-photo-select">
                 <SelectValue placeholder="Selecionar foto" />
               </SelectTrigger>
               <SelectContent>
@@ -179,9 +183,22 @@ export function PhotoComparison({ patientId, initialBefore, initialAfter }: Phot
         {beforePhoto && afterPhoto ? (
           <div
             ref={containerRef}
+            role="slider"
+            aria-label="Comparar fotos antes e depois"
+            aria-valuenow={Math.round(sliderPosition)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            tabIndex={0}
             className="relative aspect-[4/3] w-full rounded-lg overflow-hidden bg-muted cursor-ew-resize select-none"
             onMouseDown={() => setIsDragging(true)}
             onTouchStart={() => setIsDragging(true)}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") {
+                setSliderPosition((prev) => Math.max(0, prev - 5));
+              } else if (e.key === "ArrowRight") {
+                setSliderPosition((prev) => Math.min(100, prev + 5));
+              }
+            }}
           >
             {/* After Photo (Background) */}
             <div className="absolute inset-0">

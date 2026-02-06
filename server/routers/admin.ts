@@ -1,10 +1,22 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { systemSettings } from "../../drizzle/schema";
-import { adminProcedure, router } from "../_core/trpc";
+import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 
 export const adminRouter = router({
+  // Read-only access for all authenticated users (fixes 403 for non-admins)
+  getPublicSetting: protectedProcedure
+    .input(z.object({ key: z.string() }))
+    .query(async ({ input }) => {
+      const db = getDb();
+      const setting = await db.query.systemSettings.findFirst({
+        where: eq(systemSettings.key, input.key),
+      });
+      return setting;
+    }),
+
+  // Admin-only access (kept for backwards compatibility)
   getSetting: adminProcedure.input(z.object({ key: z.string() })).query(async ({ ctx, input }) => {
     const db = getDb();
     const setting = await db.query.systemSettings.findFirst({

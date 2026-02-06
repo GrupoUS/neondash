@@ -100,8 +100,8 @@ CLASSIFICAÇÃO:`;
     if (classification.includes("sdr")) return "sdr";
 
     return "general";
-  } catch (error) {
-    console.error("[Intent Classification] Error:", error);
+  } catch (_error) {
+    // Fallback to general on classification error
     return "general";
   }
 }
@@ -719,7 +719,6 @@ export async function chat(messages: AIMessage[], context: ChatContext): Promise
     if (lastMessage && lastMessage.role === "user") {
       try {
         const agentType = await classifyUserIntent(lastMessage.content);
-        console.info(`[Agent Routing] Classified as: ${agentType}`);
 
         if (agentType !== "general") {
           const config = AGENT_CONFIGS[agentType];
@@ -757,8 +756,7 @@ DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
 
           effectiveSystemPrompt += agentInstruction;
         }
-      } catch (err) {
-        console.error("[Agent Routing] Error:", err);
+      } catch (_err) {
         // Continue with base prompt if classification fails
       }
     }

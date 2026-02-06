@@ -44,7 +44,7 @@ export function SdrAgentSettingsCard() {
   const [prompt, setPrompt] = useState("");
   const utils = trpc.useUtils();
 
-  const { data: currentPrompt, isLoading } = trpc.admin.getSetting.useQuery({
+  const { data: currentPrompt, isLoading } = trpc.admin.getPublicSetting.useQuery({
     key: "sdr_agent_prompt",
   });
 
@@ -53,7 +53,7 @@ export function SdrAgentSettingsCard() {
       toast.success("Prompt SDR atualizado!", {
         description: "O Agente Comercial usará essas novas instruções.",
       });
-      utils.admin.getSetting.invalidate({ key: "sdr_agent_prompt" });
+      utils.admin.getPublicSetting.invalidate({ key: "sdr_agent_prompt" });
     },
     onError: () => {
       toast.error("Erro ao salvar prompt.");

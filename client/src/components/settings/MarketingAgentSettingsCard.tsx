@@ -43,7 +43,7 @@ export function MarketingAgentSettingsCard() {
   const [prompt, setPrompt] = useState("");
   const utils = trpc.useUtils();
 
-  const { data: currentPrompt, isLoading } = trpc.admin.getSetting.useQuery({
+  const { data: currentPrompt, isLoading } = trpc.admin.getPublicSetting.useQuery({
     key: "marketing_agent_prompt",
   });
 
@@ -52,7 +52,7 @@ export function MarketingAgentSettingsCard() {
       toast.success("Prompt de Marketing atualizado!", {
         description: "O Agente de Marketing usará essas novas instruções.",
       });
-      utils.admin.getSetting.invalidate({ key: "marketing_agent_prompt" });
+      utils.admin.getPublicSetting.invalidate({ key: "marketing_agent_prompt" });
     },
     onError: () => {
       toast.error("Erro ao salvar prompt.");

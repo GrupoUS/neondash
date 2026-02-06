@@ -7,10 +7,8 @@ import {
   FilePlus,
   FileText,
   FileType,
-  FileWarning,
   Search,
   Trash2,
-  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";

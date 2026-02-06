@@ -201,9 +201,10 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {photos.map((photo) => (
-                <div
+                <button
+                  type="button"
                   key={photo.id}
-                  className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer"
+                  className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer text-left"
                   onClick={() => setLightboxPhoto(photo)}
                 >
                   <img
@@ -226,15 +227,16 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                       {photo.areaFotografada}
                     </Badge>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           ) : (
             <div className="space-y-2">
               {photos.map((photo) => (
-                <div
+                <button
+                  type="button"
                   key={photo.id}
-                  className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer w-full text-left"
                   onClick={() => setLightboxPhoto(photo)}
                 >
                   <img
@@ -260,7 +262,7 @@ export function PhotoGallery({ patientId, onSelectForComparison }: PhotoGalleryP
                       {new Date(photo.dataCaptura).toLocaleDateString("pt-BR")}
                     </span>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}

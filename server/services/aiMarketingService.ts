@@ -19,6 +19,7 @@ import {
 } from "../../drizzle/schema-marketing";
 import { defaultModel, isAIConfigured } from "../_core/aiProvider";
 import { getDb } from "../db";
+import { storagePut } from "../storage";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -188,7 +189,6 @@ RESPONDA APENAS com a legenda pronta, sem explicações adicionais.`;
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
-    console.error("[AI Marketing] Caption generation error:", message);
     return { success: false, error: message };
   }
 }
@@ -247,8 +247,10 @@ DO NOT include any visible text, watermarks, or logos.`,
       return { success: false, error: "Nenhuma imagem gerada" };
     }
 
-    // Convert base64 to data URL
-    const imageUrl = `data:image/png;base64,${imageBytes}`;
+    // Upload image to storage and get public URL (required for Instagram API)
+    const imageBuffer = Buffer.from(imageBytes, "base64");
+    const imageKey = `marketing/images/${postId || Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
+    const { url: imageUrl } = await storagePut(imageKey, imageBuffer, "image/png");
 
     // Log usage (Gemini Imagen is free for now, but log for tracking)
     if (mentoradoId) {
@@ -271,7 +273,6 @@ DO NOT include any visible text, watermarks, or logos.`,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
-    console.error("[AI Marketing] Image generation error:", message);
     return { success: false, error: message };
   }
 }
@@ -354,7 +355,6 @@ RESPONDA NO SEGUINTE FORMATO JSON (APENAS O JSON, SEM MARKDOWN):
     return { posts: parsed.posts };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
-    console.error("[AI Marketing] Campaign generation error:", message);
     return { posts: [], error: message };
   }
 }
@@ -423,8 +423,8 @@ async function logGeneration(data: Omit<InsertAIContentGenerationLog, "id" | "cr
   try {
     const db = getDb();
     await db.insert(aiContentGenerationLog).values(data);
-  } catch (error) {
-    console.error("[AI Marketing] Failed to log generation:", error);
+  } catch (_error) {
+    // Silent fail for logging - don't disrupt main flow
   }
 }
 

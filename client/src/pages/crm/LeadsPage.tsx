@@ -108,196 +108,208 @@ export function LeadsPage() {
 
   return (
     <DashboardLayout>
-      <motion.div
-        className="flex h-[calc(100vh-4rem)] overflow-hidden relative"
-        initial="initial"
-        animate="animate"
-        variants={staggerContainer}
-      >
-        <div
-          className={`p-6 flex-1 flex flex-col transition-all duration-300 ${filtersOpen ? "mr-0" : ""}`}
+      <div className="relative h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-background to-background">
+        {/* Decorative ambient light */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-primary/5 blur-3xl opacity-50 pointer-events-none rounded-full" />
+
+        <motion.div
+          className="flex h-full relative z-10"
+          initial="initial"
+          animate="animate"
+          variants={staggerContainer}
         >
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-                <p className="text-muted-foreground">
-                  Gerencie seus leads e acompanhe o funil de vendas.
-                </p>
-              </div>
-              {isAdmin && (
-                <div className="ml-4 pl-4 border-l border-white/10">
-                  <p className="text-xs text-muted-foreground font-semibold mb-2 uppercase tracking-wider">
-                    Visualização Admin
-                  </p>
-                  <AnimatedTooltipSelector
-                    items={
-                      allMentorados?.map((m) => ({
-                        id: m.id.toString(),
-                        name: m.nomeCompleto,
-                        designation: m.turma,
-                        image:
-                          m.fotoUrl ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nomeCompleto)}&background=ec1380&color=fff`,
-                        onClick: () => handleAdminSelect(m.id.toString()),
-                        isActive: adminSelectedMentoradoId === m.id.toString(),
-                      })) || []
+          <div
+            className={`flex-1 flex flex-col transition-all duration-300 ${filtersOpen ? "mr-0" : ""}`}
+          >
+            {/* Header Section */}
+            <div className="px-8 pt-6 pb-2 shrink-0">
+              <div className="flex justify-between items-end mb-4">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground/90 flex items-center gap-2">
+                      LEADS CRM
+                      <span className="text-xs font-normal text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-full border border-border/50">
+                        2.0
+                      </span>
+                    </h1>
+                    <p className="text-muted-foreground/80 text-sm mt-1">
+                      Gerencie seu funil com inteligência.
+                    </p>
+                  </div>
+                  {isAdmin && (
+                    <div className="ml-6 pl-6 border-l border-border/20">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1.5 opacity-70">
+                        Visualizando
+                      </p>
+                      <AnimatedTooltipSelector
+                        items={
+                          allMentorados?.map((m) => ({
+                            id: m.id.toString(),
+                            name: m.nomeCompleto,
+                            designation: m.turma,
+                            image:
+                              m.fotoUrl ||
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nomeCompleto)}&background=ec1380&color=fff`,
+                            onClick: () => handleAdminSelect(m.id.toString()),
+                            isActive: adminSelectedMentoradoId === m.id.toString(),
+                          })) || []
+                        }
+                        selectedId={adminSelectedMentoradoId}
+                        className="border-none bg-transparent p-0"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions Toolbar */}
+                <div className="flex items-center gap-2 bg-card/50 backdrop-blur-md border border-border/40 p-1.5 rounded-xl shadow-sm">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setFiltersOpen(!filtersOpen)}
+                    className={
+                      filtersOpen
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
                     }
-                    selectedId={adminSelectedMentoradoId}
-                    className="border-none bg-transparent p-0"
+                  >
+                    <FilterIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setColumnEditDialogOpen(true)}
+                    disabled={isReadOnly}
+                    title="Editar Colunas"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-4 bg-border/50 mx-1" />
+                  <div className="flex bg-muted/30 p-0.5 rounded-lg border border-border/20">
+                    <Button
+                      variant={view === "table" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setView("table")}
+                      className={`h-7 w-7 p-0 rounded-md transition-all ${view === "table" ? "shadow-sm" : "hover:bg-transparent"}`}
+                    >
+                      <List className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant={view === "kanban" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setView("kanban")}
+                      className={`h-7 w-7 p-0 rounded-md transition-all ${view === "kanban" ? "shadow-sm" : "hover:bg-transparent"}`}
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {viewMentoradoId && (
+                <Alert className="mb-4 bg-amber-500/10 border-amber-500/20 text-amber-500 py-2">
+                  <ShieldAlert className="h-4 w-4 stroke-amber-500" />
+                  <AlertTitle className="text-sm font-semibold text-amber-500 ml-2">
+                    Modo Admin
+                  </AlertTitle>
+                  <AlertDescription className="text-xs text-amber-500/80 ml-2">
+                    Visualizando {viewMentoradoId}. Edição restrita.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Minimal Stats Bar */}
+              <div className="grid grid-cols-4 gap-4 mb-2">
+                {[
+                  { label: "Total Ativos", value: stats?.totalAtivos || 0 },
+                  {
+                    label: "Pipeline",
+                    value: new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                      notation: "compact",
+                    }).format(stats?.valorPipeline || 0),
+                  },
+                  { label: "Conversão", value: `${(stats?.taxaConversao || 0).toFixed(1)}%` },
+                  { label: "Ciclo Médio", value: `${stats?.tempoMedioFechamento || 0} dias` },
+                ].map((stat, i) => (
+                  <div
+                    key={i}
+                    className="bg-card/30 border border-border/30 rounded-lg px-4 py-2 backdrop-blur-sm hover:bg-card/50 transition-colors"
+                  >
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      {stat.label}
+                    </span>
+                    <div className="text-lg font-bold text-foreground font-mono">{stat.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-hidden px-4 pb-4">
+              {view === "table" ? (
+                <div className="h-full rounded-xl border border-border/40 bg-card/20 backdrop-blur-sm overflow-hidden">
+                  <div className="h-full overflow-auto p-4 custom-scrollbar">
+                    <LeadsTable
+                      filters={filters}
+                      page={page}
+                      onPageChange={setPage}
+                      onLeadClick={handleLeadClick}
+                      mentoradoId={viewMentoradoId}
+                      isReadOnly={isReadOnly}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full">
+                  <PipelineKanban
+                    mentoradoId={viewMentoradoId}
+                    isReadOnly={isReadOnly}
+                    onCreateLead={() => setCreateDialogOpen(true)}
+                    columns={activeColumns}
                   />
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setFiltersOpen(!filtersOpen)}
-                className={filtersOpen ? "bg-muted" : ""}
-              >
-                <FilterIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setColumnEditDialogOpen(true)}
-                disabled={isReadOnly}
-                title="Editar Colunas"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              <div className="bg-muted p-1 rounded-lg flex items-center">
-                <Button
-                  variant={view === "table" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setView("table")}
-                  className="h-8 w-8 p-0"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={view === "kanban" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setView("kanban")}
-                  className="h-8 w-8 p-0"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
           </div>
 
-          {viewMentoradoId && (
-            <Alert className="mb-6 bg-amber-50 border-amber-200">
-              <ShieldAlert className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800">
-                Modo de Visualização Administrativa
-              </AlertTitle>
-              <AlertDescription className="text-amber-700">
-                Você está visualizando o CRM de um mentorado (ID: {viewMentoradoId}). Ações de
-                edição estão desabilitadas.
-              </AlertDescription>
-            </Alert>
-          )}
+          <FiltersPanel
+            filters={filters}
+            onFiltersChange={setFilters}
+            isOpen={filtersOpen}
+            onClose={() => setFiltersOpen(false)}
+          />
 
-          {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-4 mb-6">
-            <Card>
-              <CardContent className="p-4 flex flex-col gap-1">
-                <span className="text-sm font-medium text-muted-foreground">Total Ativos</span>
-                <span className="text-2xl font-bold">{stats?.totalAtivos || 0}</span>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex flex-col gap-1">
-                <span className="text-sm font-medium text-muted-foreground">Valor no Pipeline</span>
-                <span className="text-2xl font-bold">
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                    notation: "compact",
-                  }).format(stats?.valorPipeline || 0)}
-                </span>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex flex-col gap-1">
-                <span className="text-sm font-medium text-muted-foreground">Conversão</span>
-                <span className="text-2xl font-bold">
-                  {(stats?.taxaConversao || 0).toFixed(1)}%
-                </span>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex flex-col gap-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Tempo Médio (Dias)
-                </span>
-                <span className="text-2xl font-bold">{stats?.tempoMedioFechamento || 0}</span>
-              </CardContent>
-            </Card>
-          </div>
+          <CreateLeadDialog isOpen={createDialogOpen} onClose={() => setCreateDialogOpen(false)} />
 
-          <div className="flex-1 overflow-hidden rounded-lg bg-background border flex flex-col relative">
-            {view === "table" ? (
-              <div className="p-4 flex-1 overflow-auto">
-                <LeadsTable
-                  filters={filters}
-                  page={page}
-                  onPageChange={setPage}
-                  onLeadClick={handleLeadClick}
-                  mentoradoId={viewMentoradoId}
-                  isReadOnly={isReadOnly}
-                />
-              </div>
-            ) : (
-              <div className="p-4 flex-1 overflow-auto bg-muted/10">
-                <PipelineKanban
-                  mentoradoId={viewMentoradoId}
-                  isReadOnly={isReadOnly}
-                  onCreateLead={() => setCreateDialogOpen(true)}
-                  columns={activeColumns}
-                />
-              </div>
-            )}
-          </div>
-        </div>
+          <LeadDetailModal
+            leadId={selectedLeadId}
+            isOpen={!!selectedLeadId}
+            onClose={() => setSelectedLeadId(null)}
+            isReadOnly={isReadOnly}
+            onSchedule={handleScheduleLead}
+          />
 
-        <FiltersPanel
-          filters={filters}
-          onFiltersChange={setFilters}
-          isOpen={filtersOpen}
-          onClose={() => setFiltersOpen(false)}
-        />
+          <ColumnEditDialog
+            isOpen={columnEditDialogOpen}
+            onClose={() => setColumnEditDialogOpen(false)}
+            defaultColumns={DEFAULT_COLUMNS}
+          />
 
-        <CreateLeadDialog isOpen={createDialogOpen} onClose={() => setCreateDialogOpen(false)} />
-
-        <LeadDetailModal
-          leadId={selectedLeadId}
-          isOpen={!!selectedLeadId}
-          onClose={() => setSelectedLeadId(null)}
-          isReadOnly={isReadOnly}
-          onSchedule={handleScheduleLead}
-        />
-
-        <ColumnEditDialog
-          isOpen={columnEditDialogOpen}
-          onClose={() => setColumnEditDialogOpen(false)}
-          defaultColumns={DEFAULT_COLUMNS}
-        />
-
-        {/* Schedule Appointment Dialog */}
-        <EventFormDialog
-          open={scheduleDialogOpen}
-          onOpenChange={setScheduleDialogOpen}
-          defaultDate={{
-            start: new Date(),
-            end: new Date(Date.now() + 60 * 60 * 1000),
-          }}
-          onSuccess={() => setScheduleDialogOpen(false)}
-        />
-      </motion.div>
+          {/* Schedule Appointment Dialog */}
+          <EventFormDialog
+            open={scheduleDialogOpen}
+            onOpenChange={setScheduleDialogOpen}
+            defaultDate={{
+              start: new Date(),
+              end: new Date(Date.now() + 60 * 60 * 1000),
+            }}
+            onSuccess={() => setScheduleDialogOpen(false)}
+          />
+        </motion.div>
+      </div>
     </DashboardLayout>
   );
 }

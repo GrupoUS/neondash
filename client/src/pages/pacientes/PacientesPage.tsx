@@ -21,12 +21,12 @@ import {
 
 import { useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-
 import DashboardLayout from "@/components/DashboardLayout";
 // import { PatientFormDialog } from "@/components/pacientes/PatientFormDialog"; // Replaced
 import { AddPatientWizard } from "@/components/pacientes/AddPatientWizard"; // New
 import { AIChatWidget } from "@/components/pacientes/AIChatWidget";
 import { DocumentManager } from "@/components/pacientes/DocumentManager";
+import { ImportPatientsDialog } from "@/components/pacientes/ImportPatientsDialog"; // New
 import { PatientInfoCard } from "@/components/pacientes/PatientInfoCard";
 import { PatientMedicalCard } from "@/components/pacientes/PatientMedicalCard";
 import { PatientStats } from "@/components/pacientes/PatientStats"; // New
@@ -528,6 +528,8 @@ export default function PacientesPage() {
   const [, params] = useRoute("/pacientes/:id");
   const patientId = params?.id ? Number(params.id) : null;
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const utils = trpc.useUtils();
 
   return (
     <DashboardLayout>
@@ -543,9 +545,14 @@ export default function PacientesPage() {
             </p>
           </div>
           {!patientId && (
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Novo Paciente
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+                <FileText className="h-4 w-4 mr-2" /> Importar Planilha
+              </Button>
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" /> Novo Paciente
+              </Button>
+            </div>
           )}
           {patientId && (
             <Link href="/pacientes">
@@ -557,7 +564,22 @@ export default function PacientesPage() {
         {patientId ? <PatientDetail id={patientId} /> : <PatientsList />}
 
         {/* Creation Wizard */}
-        <AddPatientWizard open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+        <AddPatientWizard
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          onSuccess={() => {
+            utils.pacientes.list.invalidate();
+            setCreateDialogOpen(false);
+          }}
+        />
+
+        <ImportPatientsDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onSuccess={() => {
+            utils.pacientes.list.invalidate();
+          }}
+        />
       </div>
     </DashboardLayout>
   );

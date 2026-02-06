@@ -213,65 +213,69 @@
 }
 
 /* Dark Mode - GPUS Navy/Gold Theme */
-.dark {
-  /* === DARK THEME - NAVY/GOLD === */
-  --background: 211 49% 10%; /* Navy #0f2744 */
-  --foreground: 39 44% 65%; /* Gold text */
+  /* === DARK THEME - DEEP FUTURISTIC NAVY === */
+  /* Main Background: Deep Slate/Black - Removes muddy brown */
+  --background: 222 47% 6%; /* #020617 Slate 950 */
+  --foreground: 210 40% 98%; /* Slate 50 */
 
-  --card: 212 48% 13%; /* Slightly lighter navy */
-  --card-foreground: 39 44% 65%;
+  /* Surface colors - Glassmorphism ready */
+  --card: 222 47% 10%; /* Slightly lighter than bg */
+  --card-foreground: 210 40% 98%;
 
-  --popover: 211 49% 10%;
-  --popover-foreground: 39 44% 65%;
+  --popover: 222 47% 8%;
+  --popover-foreground: 210 40% 98%;
 
-  --primary: 39 44% 65%; /* GPUS Gold */
-  --primary-foreground: 48 10% 80%;
+  /* Primary Brand: Neon Gold/Amber */
+  --primary: 43 96% 56%; /* #fbbf24 Amber 400 - Glowing Gold */
+  --primary-foreground: 222 47% 10%; /* Dark contrast on gold */
 
-  --secondary: 211 49% 10%;
-  --secondary-foreground: 39 44% 65%;
+  /* Secondary: Deep Navy Blue */
+  --secondary: 217 33% 17%; /* Slate 800 */
+  --secondary-foreground: 210 40% 98%;
 
-  --muted: 39 29% 54%;
-  --muted-foreground: 48 10% 80%;
+  /* Muted: Subtle slate */
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%; /* Slate 400 */
 
-  --accent: 26 5% 27%;
-  --accent-foreground: 39 44% 65%;
+  /* Accent: Hover states */
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
 
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 30 11% 11%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
 
-  --border: 26 6% 21%;
-  --input: 26 6% 21%;
-  --ring: 39 29% 54%;
+  --border: 217 33% 17%; /* Slate 800 */
+  --input: 217 33% 17%;
+  --ring: 43 96% 56%; /* Gold Ring */
 
-  --chart-1: 38 60% 45%;
-  --chart-2: 142 76% 36%;
-  --chart-3: 38 92% 50%;
-  --chart-4: 0 84% 60%;
-  --chart-5: 217 91% 60%;
+  --chart-1: 43 96% 56%; /* Gold */
+  --chart-2: 217 91% 60%; /* Blue */
+  --chart-3: 142 76% 36%; /* Green */
+  --chart-4: 280 84% 60%; /* Purple */
+  --chart-5: 0 84% 60%; /* Red */
 
-  --sidebar: 212 48% 13%;
-  --sidebar-foreground: 39 44% 65%;
-  --sidebar-primary: 40 14% 66%;
-  --sidebar-primary-foreground: 207 37% 25%;
-  --sidebar-accent: 26 5% 27%;
-  --sidebar-accent-foreground: 39 44% 65%;
-  --sidebar-border: 39 29% 54%;
-  --sidebar-ring: 39 29% 54%;
+  --sidebar: 222 47% 7%; /* Deep Slate for Sidebar */
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 43 96% 56%;
+  --sidebar-primary-foreground: 222 47% 10%;
+  --sidebar-accent: 217 33% 17%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217 33% 12%;
+  --sidebar-ring: 43 96% 56%;
 
-  /* Legacy Color Overrides - Gold themed */
-  --color-neon-blue-dark: #0f2744;
-  --color-neon-blue: #64b5f6;
-  --color-neon-gold: #c9a962;
+  /* Neon Brand Specifics */
+  --color-neon-blue-dark: #020617;
+  --color-neon-blue: #0ea5e9; /* Sky 500 */
+  --color-neon-gold: #fbbf24; /* Amber 400 */
 
-  /* GPU-29: Dark Mode - Dourado */
-  --color-neon-blue-light: #64b5f6;
-  --color-neon-blue-highlight: #90caf9;
-  --color-neon-gold-bright: #ffd700;
-  --color-neon-gold-light: #ffecb3;
-  --color-neon-petroleo: #64b5f6;
-  --color-neon-petroleo-light: #90caf9;
-  --color-neon-petroleo-dark: #3282b8;
-}
+  /* GPU-29 overrides */
+  --color-neon-blue-light: #38bdf8;
+  --color-neon-blue-highlight: #7dd3fc;
+  --color-neon-gold-bright: #fcd34d;
+  --color-neon-gold-light: #fef3c7;
+  --color-neon-petroleo: #0ea5e9;
+  --color-neon-petroleo-light: #38bdf8;
+  --color-neon-petroleo-dark: #0369a1;
 
 @layer base {
   * {

@@ -1,4 +1,4 @@
-import { MessageCircle, User } from "lucide-react";
+import { MessageCircle, Pin, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ export interface ConversationItemData {
   unreadCount: number;
   isOnline?: boolean;
   isTyping?: boolean;
+  isPinned?: boolean;
 }
 
 interface ConversationItemProps {
@@ -28,8 +29,21 @@ function formatTimestamp(value: Date | string | null): string {
   if (Number.isNaN(date.getTime())) return "";
 
   const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
 
+  // Less than 1 minute ago
+  if (diffMins < 1) {
+    return "Agora";
+  }
+
+  // Less than 1 hour ago
+  if (diffMins < 60) {
+    return `${diffMins} min`;
+  }
+
+  // Today - show time
+  const isToday = date.toDateString() === now.toDateString();
   if (isToday) {
     return date.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
@@ -37,6 +51,14 @@ function formatTimestamp(value: Date | string | null): string {
     });
   }
 
+  // Yesterday
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return "Ontem";
+  }
+
+  // Older - show date
   return date.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -65,8 +87,11 @@ export function ConversationItem({
   const displayName = conversation.name || conversation.phone;
   const timestamp = formatTimestamp(conversation.lastMessageAt);
   const previewText = conversation.isTyping
-    ? "digitando…"
+    ? "Digitando..."
     : (conversation.lastMessage ?? "Sem mensagens");
+
+  // Truncate preview to ~50 characters
+  const truncatedPreview = previewText.length > 50 ? `${previewText.slice(0, 50)}...` : previewText;
 
   return (
     <button
@@ -75,43 +100,54 @@ export function ConversationItem({
       aria-label={`Conversa com ${displayName}${conversation.unreadCount ? `, ${conversation.unreadCount} mensagens não lidas` : ""}`}
       aria-pressed={isSelected}
       className={cn(
-        "w-full px-4 py-3 flex items-center gap-3 transition-colors text-left",
+        "w-full px-4 py-3 flex items-center gap-3 transition-colors text-left relative",
         "hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        isSelected && "bg-accent",
+        isSelected &&
+          "bg-primary/10 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-primary",
         className
       )}
     >
       <div className="relative shrink-0">
-        <Avatar className="h-10 w-10 border border-border/60">
+        <Avatar className="h-12 w-12 border border-border/60">
           <AvatarImage src={conversation.avatarUrl ?? undefined} alt={displayName} />
           <AvatarFallback className="bg-primary/10 text-primary">
             {conversation.name ? (
               getInitials(conversation.name, conversation.phone)
             ) : (
-              <User className="h-4 w-4" />
+              <User className="h-5 w-5" />
             )}
           </AvatarFallback>
         </Avatar>
 
-        <span
-          className={cn(
-            "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background",
-            conversation.isOnline ? "bg-emerald-500" : "bg-muted-foreground/50"
-          )}
-          title={conversation.isOnline ? "Contato online" : "Contato offline"}
-        />
+        {/* Online indicator - 8x8px green badge */}
+        {conversation.isOnline && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background"
+            title="Contato online"
+          />
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <span className="font-medium text-sm truncate">{displayName}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {conversation.isPinned && <Pin className="h-3 w-3 text-muted-foreground shrink-0" />}
+            <span
+              className={cn(
+                "text-lg truncate",
+                conversation.unreadCount > 0 ? "font-semibold" : "font-medium"
+              )}
+            >
+              {displayName}
+            </span>
+          </div>
           {timestamp && <span className="text-xs text-muted-foreground shrink-0">{timestamp}</span>}
         </div>
 
         <div className="flex items-center justify-between gap-2 mt-0.5">
           <p
             className={cn(
-              "text-xs truncate",
+              "text-sm truncate",
               conversation.isTyping ? "text-emerald-500 font-medium" : "text-muted-foreground"
             )}
           >
@@ -121,12 +157,13 @@ export function ConversationItem({
                 {previewText}
               </span>
             ) : (
-              previewText
+              truncatedPreview
             )}
           </p>
 
+          {/* Unread badge - 20x20px red with pulse animation */}
           {conversation.unreadCount > 0 && (
-            <Badge variant="default" className="h-5 min-w-5 px-1.5 text-xs tabular-nums">
+            <Badge className="h-5 min-w-5 px-1.5 text-xs tabular-nums bg-destructive text-destructive-foreground animate-pulse">
               {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
             </Badge>
           )}

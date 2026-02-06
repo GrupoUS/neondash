@@ -215,8 +215,8 @@ export function PipelineKanban({
         onDragEnd={handleDragEnd}
         autoScroll={!isReadOnly}
       >
-        <div className="flex-1 overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-[1200px] h-full">
+        <div className="flex-1 overflow-x-auto pb-4 custom-scrollbar">
+          <div className="flex gap-6 min-w-[1200px] h-full px-2">
             {columns.map((column) => (
               <KanbanColumn
                 key={column.id}
@@ -238,12 +238,18 @@ export function PipelineKanban({
           </div>
         </div>
 
-        <DragOverlay>
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+          }}
+        >
           {activeId && !isReadOnly ? (
-            <div className="rotate-2 scale-105 cursor-grabbing opacity-90 shadow-2xl">
+            <div className="rotate-2 scale-105 cursor-grabbing opacity-90 shadow-[0_0_30px_-5px_rgba(var(--primary),0.6)] rounded-xl">
               <LeadCard
                 lead={leadsData?.leads?.find((l) => `lead-${l.id}` === activeId)!}
                 onClick={() => {}}
+                isDragging
               />
             </div>
           ) : null}

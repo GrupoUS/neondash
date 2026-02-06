@@ -63,19 +63,24 @@ export function KanbanColumn({
   const _badgeColor = accentColor.replace("bg-", "text-"); // rudimentary, better to pass separate props or map
 
   return (
+  return (
     <div className="flex flex-col h-full min-w-[320px] w-[320px]">
-      {/* Header */}
+      {/* Header - Glass & Minimal */}
       <div
         className={cn(
-          "flex flex-col gap-2 p-3 mb-3 rounded-lg border bg-card/50 backdrop-blur-sm",
-          borderColor
+          "flex flex-col gap-2 p-4 mb-4 rounded-xl border border-border/40 bg-card/20 backdrop-blur-md shadow-sm transition-all duration-300 group hover:border-border/60 hover:bg-card/30 relative overflow-hidden"
         )}
       >
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2">
-            <div className={cn("w-2 h-2 rounded-full", accentColor)} />
-            <h3 className="font-semibold text-sm text-foreground">{title}</h3>
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+        {/* Top Accent Line */}
+        <div className={cn("absolute top-0 left-0 right-0 h-[2px] opacity-70", accentColor)} />
+        
+        <div className="flex items-center justify-between w-full relative z-10">
+          <div className="flex items-center gap-3">
+            <h3 className="font-bold text-sm tracking-wide text-foreground uppercase">{title}</h3>
+            <span className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-full border bg-background/50 backdrop-blur-sm",
+              borderColor.replace("border-", "text-")
+            )}>
               {safeLeads.length}
             </span>
           </div>
@@ -84,7 +89,7 @@ export function KanbanColumn({
         {showAddButton && (
           <Button
             variant="ghost"
-            className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-primary/10 h-8 text-xs border border-dashed border-border/50"
+            className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-primary/5 h-8 text-xs border border-dashed border-border/30 hover:border-primary/30 mt-1 transition-all"
             onClick={onAddLead}
           >
             <Plus className="w-3 h-3 mr-2" /> Novo Lead
@@ -96,9 +101,10 @@ export function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex-1 rounded-xl p-2 transition-colors duration-200 gap-3 flex flex-col",
-          "bg-muted/30 border border-transparent",
-          activeId && !activeId.includes(id) && "border-dashed border-border bg-muted/50"
+          "flex-1 rounded-xl transition-all duration-300 gap-3 flex flex-col p-1",
+          activeId && !activeId.includes(id) 
+            ? "bg-primary/5 border-2 border-dashed border-primary/20" 
+            : "border-2 border-transparent"
         )}
       >
         <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
@@ -117,22 +123,28 @@ export function KanbanColumn({
         </SortableContext>
 
         {safeLeads.length === 0 && (
-          <div className="h-24 flex items-center justify-center text-xs text-muted-foreground/50 border-2 border-dashed border-border/50 rounded-lg">
-            Arraste leads para cá
+          <div className="h-32 flex flex-col items-center justify-center text-xs text-muted-foreground/30 border-2 border-dashed border-border/20 rounded-xl bg-card/5 backdrop-blur-sm gap-2 transition-all hover:border-border/40 hover:text-muted-foreground/50">
+            <div className="w-8 h-8 rounded-full bg-background/50 flex items-center justify-center">
+              <Plus className="w-4 h-4 opacity-50" />
+            </div>
+            <span>Arraste leads para cá</span>
           </div>
         )}
       </div>
 
-      {/* Footer Summary - Optional */}
+      {/* Footer Summary */}
       {totalValue > 0 && (
-        <div className="mt-2 text-right px-2">
-          <span className="text-xs font-medium text-muted-foreground">
-            Total:{" "}
-            {new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(totalValue)}
-          </span>
+        <div className="mt-3 text-right px-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-card/20 border border-border/30 backdrop-blur-sm">
+             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Total</span>
+             <span className="text-xs font-bold text-foreground font-mono">
+              {new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+                notation: "compact"
+              }).format(totalValue)}
+            </span>
+          </div>
         </div>
       )}
     </div>

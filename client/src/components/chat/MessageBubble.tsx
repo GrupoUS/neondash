@@ -5,12 +5,13 @@ import {
   Copy,
   MessageCircleReply,
   MoreHorizontal,
-  Smile,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
+import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { MediaPreview } from "@/components/chat/MediaPreview";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ export interface MessageReaction {
   emoji: string;
   count?: number;
   users?: string[];
+  reactedByMe?: boolean;
 }
 
 export interface MessageMedia {
@@ -56,6 +58,8 @@ export interface MessageBubbleData {
   media?: MessageMedia | null;
   quote?: MessageQuote | null;
   reactions?: MessageReaction[];
+  senderName?: string | null;
+  senderAvatar?: string | null;
 }
 
 export interface MessageBubbleActionPayload {
@@ -65,8 +69,9 @@ export interface MessageBubbleActionPayload {
 interface MessageBubbleProps {
   message: MessageBubbleData;
   className?: string;
+  showAvatar?: boolean;
   onReply?: (payload: MessageBubbleActionPayload) => void;
-  onReact?: (payload: MessageBubbleActionPayload) => void;
+  onReact?: (payload: MessageBubbleActionPayload, emoji: string) => void;
   onCopy?: (payload: MessageBubbleActionPayload) => void;
   onDelete?: (payload: MessageBubbleActionPayload) => void;
 }
@@ -140,6 +145,7 @@ function renderStatusIcon(status: MessageStatus) {
 function MessageBubbleBase({
   message,
   className,
+  showAvatar = false,
   onReply,
   onReact,
   onCopy,
@@ -153,9 +159,12 @@ function MessageBubbleBase({
     onReply?.({ messageId: message.id });
   }, [onReply, message.id]);
 
-  const handleReact = useCallback(() => {
-    onReact?.({ messageId: message.id });
-  }, [onReact, message.id]);
+  const handleReact = useCallback(
+    (emoji: string) => {
+      onReact?.({ messageId: message.id }, emoji);
+    },
+    [onReact, message.id]
+  );
 
   const handleCopy = useCallback(() => {
     onCopy?.({ messageId: message.id });
@@ -165,19 +174,48 @@ function MessageBubbleBase({
     onDelete?.({ messageId: message.id });
   }, [onDelete, message.id]);
 
+  // Get sender initials for avatar fallback
+  const senderInitials = useMemo(() => {
+    const name = message.senderName?.trim();
+    if (!name) return "?";
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  }, [message.senderName]);
+
   return (
     <article
-      className={cn("flex w-full", isOutbound ? "justify-end" : "justify-start", className)}
+      className={cn("flex w-full gap-2", isOutbound ? "justify-end" : "justify-start", className)}
       aria-label={`Mensagem ${isOutbound ? "enviada" : "recebida"} às ${formatTime(message.createdAt)}`}
     >
+      {/* Avatar for received messages */}
+      {!isOutbound && showAvatar && (
+        <Avatar className="h-8 w-8 shrink-0 self-end">
+          <AvatarImage
+            src={message.senderAvatar ?? undefined}
+            alt={message.senderName ?? "Remetente"}
+          />
+          <AvatarFallback className="bg-slate-700 text-xs text-slate-200">
+            {senderInitials}
+          </AvatarFallback>
+        </Avatar>
+      )}
+
       <div
         className={cn(
-          "group max-w-[82%] rounded-2xl px-3.5 py-2.5 shadow-sm",
+          "group max-w-[70%] rounded-2xl px-3.5 py-2.5 shadow-sm md:max-w-[70%]",
           isOutbound
             ? "bg-gradient-to-br from-amber-500 to-amber-600 text-slate-900 rounded-br-sm"
             : "bg-slate-800 text-slate-100 rounded-bl-sm border border-slate-700/50"
         )}
       >
+        {/* Sender name for received messages */}
+        {!isOutbound && message.senderName && (
+          <p className="mb-1.5 text-xs font-semibold text-amber-400">{message.senderName}</p>
+        )}
+
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1 space-y-2">
             {message.quote && (
@@ -198,13 +236,20 @@ function MessageBubbleBase({
             {message.reactions && message.reactions.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {message.reactions.map((reaction) => (
-                  <span
+                  <button
+                    type="button"
                     key={`${message.id}-${reaction.emoji}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-current/20 bg-black/10 px-2 py-0.5 text-[11px]"
+                    onClick={() => handleReact(reaction.emoji)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+                      reaction.reactedByMe
+                        ? "border-amber-400/50 bg-amber-400/20 text-amber-300"
+                        : "border-current/20 bg-black/10 hover:bg-black/20"
+                    )}
                   >
                     <span>{reaction.emoji}</span>
                     {reaction.count && reaction.count > 1 ? <span>{reaction.count}</span> : null}
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
@@ -240,10 +285,15 @@ function MessageBubbleBase({
                 <MessageCircleReply className="h-4 w-4" />
                 Responder
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleReact}>
-                <Smile className="h-4 w-4" />
-                Reagir
-              </DropdownMenuItem>
+              <EmojiPicker
+                onSelect={handleReact}
+                className={cn(
+                  "h-8 w-full justify-start px-2",
+                  isOutbound
+                    ? "text-slate-900/70 hover:text-slate-900"
+                    : "text-slate-400 hover:text-slate-100"
+                )}
+              />
               <DropdownMenuItem onClick={handleCopy}>
                 <Copy className="h-4 w-4" />
                 Copiar
@@ -274,6 +324,8 @@ function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubblePr
   if (prevMessage.status !== nextMessage.status) return false;
   if (prevMessage.createdAt !== nextMessage.createdAt) return false;
   if (prevMessage.isFromAi !== nextMessage.isFromAi) return false;
+  if (prevMessage.senderName !== nextMessage.senderName) return false;
+  if (prevMessage.senderAvatar !== nextMessage.senderAvatar) return false;
 
   // Compare media object
   if (prevMessage.media?.url !== nextMessage.media?.url) return false;
@@ -289,8 +341,9 @@ function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubblePr
   if (prevProps.onCopy !== nextProps.onCopy) return false;
   if (prevProps.onDelete !== nextProps.onDelete) return false;
 
-  // Compare className
+  // Compare className and showAvatar
   if (prevProps.className !== nextProps.className) return false;
+  if (prevProps.showAvatar !== nextProps.showAvatar) return false;
 
   return true;
 }

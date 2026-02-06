@@ -13,9 +13,14 @@ import {
   pacientesInfoMedica,
   pacientesProcedimentos,
 } from "../drizzle/schema";
+import { invokeLLM } from "./_core/llm";
+import { createLogger } from "./_core/logger";
 import { mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { patientChat } from "./services/patientAiService";
+import { storagePut } from "./storage";
+
+const logger = createLogger({ service: "pacientesRouter" });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // INPUT SCHEMAS
@@ -57,6 +62,19 @@ const createPacienteSchema = z.object({
 
   fotoUrl: z.string().url().optional().nullable(),
   observacoes: z.string().optional().nullable(),
+
+  // Documents (Optional Initial)
+  documentos: z
+    .array(
+      z.object({
+        tipo: z.enum(["consentimento", "exame", "prescricao", "outro"]),
+        nome: z.string(),
+        url: z.string(),
+        mimeType: z.string().optional(),
+        tamanhoBytes: z.number().optional(),
+      })
+    )
+    .optional(),
 });
 
 const updatePacienteSchema = createPacienteSchema
@@ -324,40 +342,79 @@ export const pacientesRouter = router({
     const db = getDb();
     const mentoradoId = ctx.mentorado.id;
 
-    const [newPaciente] = await db
-      .insert(pacientes)
-      .values({
-        mentoradoId,
-        nomeCompleto: input.nomeCompleto,
-        nomePreferido: input.nomePreferido,
-        email: input.email,
-        telefone: input.telefone,
-        dataNascimento: input.dataNascimento,
-        genero: input.genero,
-        cpf: input.cpf,
-        rg: input.rg,
+    return await db.transaction(async (tx) => {
+      const [newPaciente] = await tx
+        .insert(pacientes)
+        .values({
+          mentoradoId,
+          nomeCompleto: input.nomeCompleto,
+          nomePreferido: input.nomePreferido,
+          email: input.email,
+          telefone: input.telefone,
+          dataNascimento: input.dataNascimento,
+          genero: input.genero,
+          cpf: input.cpf,
+          rg: input.rg,
 
-        // Address
-        endereco: input.endereco,
-        cep: input.cep,
-        logradouro: input.logradouro,
-        numero: input.numero,
-        complemento: input.complemento,
-        bairro: input.bairro,
-        cidade: input.cidade,
-        estado: input.estado,
+          // Address
+          endereco: input.endereco,
+          cep: input.cep,
+          logradouro: input.logradouro,
+          numero: input.numero,
+          complemento: input.complemento,
+          bairro: input.bairro,
+          cidade: input.cidade,
+          estado: input.estado,
 
-        // Insurance
-        convenio: input.convenio,
-        numeroCarteirinha: input.numeroCarteirinha,
+          // Insurance
+          convenio: input.convenio,
+          numeroCarteirinha: input.numeroCarteirinha,
 
-        fotoUrl: input.fotoUrl,
-        observacoes: input.observacoes,
-      })
-      .returning();
+          fotoUrl: input.fotoUrl,
+          observacoes: input.observacoes,
+        })
+        .returning();
 
-    return newPaciente;
+      // Insert documents if provided
+      if (input.documentos && input.documentos.length > 0) {
+        await tx.insert(pacientesDocumentos).values(
+          input.documentos.map((doc) => ({
+            pacienteId: newPaciente.id,
+            tipo: doc.tipo,
+            nome: doc.nome,
+            url: doc.url,
+            mimeType: doc.mimeType,
+            tamanhoBytes: doc.tamanhoBytes,
+          }))
+        );
+      }
+
+      return newPaciente;
+    });
   }),
+
+  // Upload Document Mutation
+  uploadDocument: mentoradoProcedure
+    .input(
+      z.object({
+        file: z.string(), // Base64
+        fileName: z.string(),
+        contentType: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Decode Base64
+      const buffer = Buffer.from(input.file, "base64");
+
+      // Upload to Storage
+      const { url } = await storagePut(
+        `pacientes/docs/${ctx.mentorado.id}/${Date.now()}-${input.fileName}`,
+        buffer,
+        input.contentType
+      );
+
+      return { url };
+    }),
 
   update: mentoradoProcedure.input(updatePacienteSchema).mutation(async ({ ctx, input }) => {
     const db = getDb();
@@ -417,6 +474,137 @@ export const pacientesRouter = router({
       await db.delete(pacientes).where(eq(pacientes.id, input.id));
 
       return { success: true };
+    }),
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // IMPORTAÇÃO INTELIGENTE
+  // ─────────────────────────────────────────────────────────────────────────
+
+  getImportMapping: mentoradoProcedure
+    .input(
+      z.object({
+        headers: z.array(z.string()),
+        sampleRows: z.array(z.record(z.string(), z.any())).default([]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Use LLM core utility to map columns
+
+      const systemPrompt = `
+      Você é um especialista em integração de dados médicos.
+      Sua tarefa é mapear colunas de uma planilha (CSV/XLSX) para o schema do banco de dados de pacientes.
+      
+      Schema Alvo (Pacientes):
+      - nomeCompleto (Obrigatório)
+      - email
+      - telefone (celular com DDD)
+      - dataNascimento (converter para YYYY-MM-DD)
+      - cpf
+      - rg
+      - genero (masculino, feminino, outro)
+      - endereco
+      - bairro
+      - cidade
+      - estado (UF)
+      - convenio
+      - numeroCarteirinha (número do convênio)
+      - numeroProntuario
+      - observacoes
+
+      Instruções:
+      1. Analise os 'Headers' e 'Amostras' fornecidos.
+      2. Retorne um JSON onde:
+         - A chave é o nome da coluna original (Header).
+         - O valor é o nome do campo no Schema Alvo.
+      3. Se uma coluna não corresponder a nada, ignore-a (não inclua no JSON).
+      4. A coluna de NOME é obrigatória. Tente identificar com variações como "Paciente", "Nome", "Cliente".
+      5. Identifique colunas de CONTATO como telefone/email.
+
+      Response Format (JSON only):
+      {
+        "Nome da Coluna Original": "nomeFieldNoSchema"
+      }
+      `;
+
+      const userPrompt = `
+      Headers: ${JSON.stringify(input.headers)}
+      Sample Rows: ${JSON.stringify(input.sampleRows.slice(0, 3))}
+      `;
+
+      try {
+        const result = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          responseFormat: { type: "json_object" },
+          model: "gemini-1.5-flash", // Use fast model
+        });
+
+        const content = result.choices[0]?.message?.content;
+        if (!content) return {};
+
+        return JSON.parse(typeof content === "string" ? content : JSON.stringify(content));
+      } catch (error) {
+        logger.error("Erro ao mapear colunas com IA:", { error });
+        // Fallback: exact match
+        const mapping: Record<string, string> = {};
+        const targetFields = ["nomeCompleto", "email", "telefone", "dataNascimento", "cpf"];
+
+        input.headers.forEach((header) => {
+          const normalized = header.toLowerCase().replace(/[^a-z]/g, "");
+          const match = targetFields.find((f) => f.toLowerCase() === normalized);
+          if (match) mapping[header] = match;
+        });
+
+        return mapping;
+      }
+    }),
+
+  bulkCreate: mentoradoProcedure
+    .input(z.array(createPacienteSchema))
+    .mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      const mentoradoId = ctx.mentorado.id;
+
+      if (input.length === 0) return { count: 0 };
+
+      // Process in chunks of 50 to avoid big transactions blocking
+      const chunkSize = 50;
+      let totalCreated = 0;
+
+      for (let i = 0; i < input.length; i += chunkSize) {
+        const chunk = input.slice(i, i + chunkSize);
+
+        await db.transaction(async (tx) => {
+          const valuesToInsert = chunk.map((p) => ({
+            mentoradoId,
+            nomeCompleto: p.nomeCompleto,
+            email: p.email || null, // Ensure empty string becomes null if schema requires
+            telefone: p.telefone,
+            dataNascimento: p.dataNascimento,
+            genero: p.genero,
+            cpf: p.cpf,
+            rg: p.rg,
+            endereco: p.endereco,
+            cep: p.cep,
+            logradouro: p.logradouro,
+            numero: p.numero,
+            bairro: p.bairro,
+            cidade: p.cidade,
+            estado: p.estado,
+            convenio: p.convenio,
+            numeroCarteirinha: p.numeroCarteirinha,
+            observacoes: p.observacoes,
+            status: "ativo" as const,
+          }));
+
+          await tx.insert(pacientes).values(valuesToInsert);
+          totalCreated += chunk.length;
+        });
+      }
+
+      return { count: totalCreated };
     }),
 
   // ─────────────────────────────────────────────────────────────────────────

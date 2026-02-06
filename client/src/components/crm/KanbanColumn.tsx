@@ -63,7 +63,6 @@ export function KanbanColumn({
   const _badgeColor = accentColor.replace("bg-", "text-"); // rudimentary, better to pass separate props or map
 
   return (
-  return (
     <div className="flex flex-col h-full min-w-[320px] w-[320px]">
       {/* Header - Glass & Minimal */}
       <div
@@ -73,14 +72,16 @@ export function KanbanColumn({
       >
         {/* Top Accent Line */}
         <div className={cn("absolute top-0 left-0 right-0 h-[2px] opacity-70", accentColor)} />
-        
+
         <div className="flex items-center justify-between w-full relative z-10">
           <div className="flex items-center gap-3">
             <h3 className="font-bold text-sm tracking-wide text-foreground uppercase">{title}</h3>
-            <span className={cn(
-              "text-[10px] font-bold px-2 py-0.5 rounded-full border bg-background/50 backdrop-blur-sm",
-              borderColor.replace("border-", "text-")
-            )}>
+            <span
+              className={cn(
+                "text-[10px] font-bold px-2 py-0.5 rounded-full border bg-background/50 backdrop-blur-sm",
+                borderColor.replace("border-", "text-")
+              )}
+            >
               {safeLeads.length}
             </span>
           </div>
@@ -102,8 +103,8 @@ export function KanbanColumn({
         ref={setNodeRef}
         className={cn(
           "flex-1 rounded-xl transition-all duration-300 gap-3 flex flex-col p-1",
-          activeId && !activeId.includes(id) 
-            ? "bg-primary/5 border-2 border-dashed border-primary/20" 
+          activeId && !activeId.includes(id)
+            ? "bg-primary/5 border-2 border-dashed border-primary/20"
             : "border-2 border-transparent"
         )}
       >
@@ -136,12 +137,14 @@ export function KanbanColumn({
       {totalValue > 0 && (
         <div className="mt-3 text-right px-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-card/20 border border-border/30 backdrop-blur-sm">
-             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Total</span>
-             <span className="text-xs font-bold text-foreground font-mono">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Total
+            </span>
+            <span className="text-xs font-bold text-foreground font-mono">
               {new Intl.NumberFormat("pt-BR", {
                 style: "currency",
                 currency: "BRL",
-                notation: "compact"
+                notation: "compact",
               }).format(totalValue)}
             </span>
           </div>

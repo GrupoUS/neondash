@@ -14,7 +14,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AnimatedTooltipSelector } from "@/components/ui/animated-tooltip";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+
 import { staggerContainer } from "@/lib/animation-variants";
 import { trpc } from "@/lib/trpc";
 
@@ -233,9 +233,9 @@ export function LeadsPage() {
                   },
                   { label: "Conversão", value: `${(stats?.taxaConversao || 0).toFixed(1)}%` },
                   { label: "Ciclo Médio", value: `${stats?.tempoMedioFechamento || 0} dias` },
-                ].map((stat, i) => (
+                ].map((stat) => (
                   <div
-                    key={i}
+                    key={stat.label}
                     className="bg-card/30 border border-border/30 rounded-lg px-4 py-2 backdrop-blur-sm hover:bg-card/50 transition-colors"
                   >
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">

@@ -159,22 +159,38 @@ export function scheduleMonthly(
 
   // Recursive scheduling since month lengths vary
   const scheduleNext = () => {
-    const nextDelay = getDelayToMonthlyTime(day, hour, minute);
+    const delay = getDelayToMonthlyTime(day, hour, minute);
+    const MAX_DELAY = 2147483647; // 32-bit signed integer max
 
-    const timerId = setTimeout(async () => {
-      try {
-        logger.info("task_start", { name });
-        await task();
-        logger.info("task_complete", { name });
-      } catch (error) {
-        logger.error("task_failed", error, { name });
-      }
+    if (delay > MAX_DELAY) {
+      logger.info("schedule_monthly_long_delay", {
+        name,
+        totalDelayMs: delay,
+        chunkDelayMs: MAX_DELAY,
+        message: "Delay exceeds 32-bit limit, scheduling partial wait",
+      });
 
-      // Schedule next month's run
-      scheduleNext();
-    }, nextDelay);
+      const timerId = setTimeout(() => {
+        scheduleNext();
+      }, MAX_DELAY);
 
-    activeTasks.push({ name, timerId, type: "timeout" });
+      activeTasks.push({ name, timerId, type: "timeout" });
+    } else {
+      const timerId = setTimeout(async () => {
+        try {
+          logger.info("task_start", { name });
+          await task();
+          logger.info("task_complete", { name });
+        } catch (error) {
+          logger.error("task_failed", error, { name });
+        }
+
+        // Schedule next month's run
+        scheduleNext();
+      }, delay);
+
+      activeTasks.push({ name, timerId, type: "timeout" });
+    }
   };
 
   scheduleNext();

@@ -213,6 +213,7 @@
 }
 
 /* Dark Mode - GPUS Navy/Gold Theme */
+.dark {
   /* === DARK THEME - DEEP FUTURISTIC NAVY === */
   /* Main Background: Deep Slate/Black - Removes muddy brown */
   --background: 222 47% 6%; /* #020617 Slate 950 */
@@ -276,6 +277,8 @@
   --color-neon-petroleo: #0ea5e9;
   --color-neon-petroleo-light: #38bdf8;
   --color-neon-petroleo-dark: #0369a1;
+
+}
 
 @layer base {
   * {

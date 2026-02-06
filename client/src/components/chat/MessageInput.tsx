@@ -44,8 +44,8 @@ export function MessageInput({
   placeholder = "Digite sua mensagem...",
   className,
   minRows = 1,
-  maxRows = 5,
-  typingDebounceMs = 1200,
+  maxRows = 4, // Spec: 4 lines max
+  typingDebounceMs = 3000, // Spec: 3 seconds
 }: MessageInputProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimerRef = useRef<number | null>(null);
@@ -53,8 +53,10 @@ export function MessageInput({
 
   const [rows, setRows] = useState(minRows);
 
-  const canSend = useMemo(() => value.trim().length > 0 && !disabled, [disabled, value]);
+  const hasText = useMemo(() => value.trim().length > 0, [value]);
+  const canSend = useMemo(() => hasText && !disabled, [disabled, hasText]);
 
+  // Define typing-related callbacks first (before they're used)
   const emitTyping = useCallback(
     (nextTyping: boolean) => {
       if (!onTypingChange) return;
@@ -80,13 +82,14 @@ export function MessageInput({
     }, typingDebounceMs);
   }, [clearTypingTimer, emitTyping, typingDebounceMs]);
 
+  // Now define handlers that depend on the above callbacks
   const handleValueChange = useCallback(
     (nextValue: string) => {
       onChange(nextValue);
       setRows(calculateRows(nextValue, minRows, maxRows));
 
-      const hasText = nextValue.trim().length > 0;
-      if (hasText) {
+      const textExists = nextValue.trim().length > 0;
+      if (textExists) {
         emitTyping(true);
         scheduleTypingStop();
       } else {
@@ -141,7 +144,16 @@ export function MessageInput({
   );
 
   return (
-    <div className={cn("flex items-end gap-2 p-3 border-t border-border/50 bg-card/80", className)}>
+    <div
+      className={cn(
+        "flex items-end gap-2 p-3 border-t border-border/50 bg-card/80 min-h-[56px]",
+        className
+      )}
+    >
+      {/* Emoji Picker Button - First per spec */}
+      <EmojiPicker onSelect={(emoji) => onEmojiSelect?.(emoji)} disabled={disabled} />
+
+      {/* Attachment Button - Second per spec */}
       <Button
         type="button"
         variant="ghost"
@@ -149,6 +161,7 @@ export function MessageInput({
         className="shrink-0"
         onClick={handleAttachmentButtonClick}
         disabled={disabled}
+        aria-label="Anexar arquivo"
       >
         <Paperclip className="h-4 w-4" />
       </Button>
@@ -159,12 +172,12 @@ export function MessageInput({
         className="hidden"
         onChange={handleFileChange}
         multiple
+        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
         aria-hidden="true"
         tabIndex={-1}
       />
 
-      <EmojiPicker onSelect={(emoji) => onEmojiSelect?.(emoji)} disabled={disabled} />
-
+      {/* Auto-expanding Textarea - Max 120px (4 lines) */}
       <Textarea
         value={value}
         onChange={(event) => handleValueChange(event.target.value)}
@@ -172,29 +185,37 @@ export function MessageInput({
         disabled={disabled}
         placeholder={placeholder}
         rows={rows}
-        className="min-h-[40px] max-h-44 resize-none"
+        className="min-h-[40px] max-h-[120px] resize-none flex-1"
       />
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="shrink-0"
-        onClick={onAudioAction}
-        disabled={disabled}
-      >
-        <Mic className="h-4 w-4" />
-      </Button>
+      {/* Voice Button - Shows when textarea is empty */}
+      {!hasText && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0"
+          onClick={onAudioAction}
+          disabled={disabled}
+          aria-label="Gravar áudio"
+        >
+          <Mic className="h-4 w-4" />
+        </Button>
+      )}
 
-      <Button
-        type="button"
-        size="icon"
-        className="shrink-0"
-        onClick={handleSend}
-        disabled={!canSend}
-      >
-        <Send className="h-4 w-4" />
-      </Button>
+      {/* Send Button - Shows when textarea has text, green color per spec */}
+      {hasText && (
+        <Button
+          type="button"
+          size="icon"
+          className="shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white"
+          onClick={handleSend}
+          disabled={!canSend}
+          aria-label="Enviar mensagem"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

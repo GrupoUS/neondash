@@ -69,6 +69,8 @@ interface MessageBubbleProps {
   onDelete?: (payload: MessageBubbleActionPayload) => void;
 }
 
+export type { MessageBubbleProps };
+
 function formatTime(value: Date | string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";

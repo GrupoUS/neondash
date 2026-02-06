@@ -17,6 +17,8 @@ interface TypingIndicatorProps {
   className?: string;
 }
 
+export type { TypingIndicatorProps };
+
 export function TypingIndicator({
   isVisible,
   label = "digitando…",

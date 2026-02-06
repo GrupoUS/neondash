@@ -195,12 +195,12 @@ export function ChatPage() {
     conversations,
     isLoading: conversationsLoading,
     refetch: refetchConversations,
-  } = useWhatsAppConversations(activeProvider);
+  } = useWhatsAppConversations(activeProvider, { refetchIntervalMs: false });
   const {
     messages,
     isLoading: messagesLoading,
     refetch: refetchMessages,
-  } = useWhatsAppMessages(activeProvider, selectedPhone);
+  } = useWhatsAppMessages(activeProvider, selectedPhone, { refetchIntervalMs: false });
 
   // Get AI Agent config
   const { data: aiConfig } = trpc.aiAgent.getConfig.useQuery();
@@ -229,22 +229,6 @@ export function ChatPage() {
     },
   });
 
-  // Open edit contact dialog with current values
-  const openEditContact = () => {
-    setEditContactName(selectedConversation?.name ?? "");
-    setEditContactNotes("");
-    setEditContactOpen(true);
-  };
-
-  const handleSaveContact = () => {
-    if (!selectedPhone || !editContactName.trim()) return;
-    upsertContactMutation.mutate({
-      phone: selectedPhone,
-      name: editContactName.trim(),
-      notes: editContactNotes.trim() || undefined,
-    });
-  };
-
   const [typingByPhone, setTypingByPhone] = useState<TypingState>({});
   const [presenceByPhone, setPresenceByPhone] = useState<PresenceState>({});
   const [messageOverrides, setMessageOverrides] = useState<
@@ -269,8 +253,13 @@ export function ChatPage() {
     onContactOffline,
   } = useSSE({ enabled: Boolean(isAnyConnected) });
 
-  // Get selected conversation data
-  const selectedConversation = conversations?.find((c: Conversation) => c.phone === selectedPhone);
+  const selectedConversationLeadId = useMemo(() => {
+    if (!selectedPhone || !conversations) return null;
+    const found = (conversations as Conversation[]).find(
+      (conversation) => conversation.phone === selectedPhone
+    );
+    return found?.leadId ?? null;
+  }, [conversations, selectedPhone]);
 
   const mergedMessages = useMemo<WhatsAppMessage[]>(() => {
     const safeMessages = ((messages as WhatsAppMessage[] | undefined) ?? []).map((msg) => {
@@ -292,7 +281,7 @@ export function ChatPage() {
       return {
         id: Number.isFinite(pending.id) ? pending.id : fallbackId,
         mentoradoId: -1,
-        leadId: selectedConversation?.leadId ?? null,
+        leadId: selectedConversationLeadId,
         phone: selectedPhone ?? "",
         direction: pending.direction,
         content: pending.content,
@@ -316,7 +305,7 @@ export function ChatPage() {
     messages,
     messageOverrides,
     pendingNewMessagesByPhone,
-    selectedConversation?.leadId,
+    selectedConversationLeadId,
     selectedPhone,
   ]);
 
@@ -347,11 +336,12 @@ export function ChatPage() {
     return items;
   }, [mergedMessages]);
 
-  const selectedPhoneTyping = selectedPhone ? typingByPhone[selectedPhone] : undefined;
+  const normalizedSelectedPhone = selectedPhone ? normalizePhone(selectedPhone) : null;
+  const selectedPhoneTyping = normalizedSelectedPhone
+    ? (typingByPhone[normalizedSelectedPhone] ?? typingByPhone[selectedPhone ?? ""])
+    : undefined;
   const isSelectedTyping = Boolean(
-    selectedPhoneTyping &&
-      selectedPhoneTyping.isTyping &&
-      Date.now() - selectedPhoneTyping.at < TYPING_TIMEOUT_MS
+    selectedPhoneTyping?.isTyping && Date.now() - selectedPhoneTyping.at < TYPING_TIMEOUT_MS
   );
 
   const conversationItems = useMemo<ConversationItemData[]>(() => {
@@ -374,6 +364,25 @@ export function ChatPage() {
       }) ?? []
     );
   }, [conversations, presenceByPhone, typingByPhone]);
+
+  // Get selected conversation data
+  const selectedConversation = conversations?.find((c: Conversation) => c.phone === selectedPhone);
+
+  // Open edit contact dialog with current values
+  const openEditContact = () => {
+    setEditContactName(selectedConversation?.name ?? "");
+    setEditContactNotes("");
+    setEditContactOpen(true);
+  };
+
+  const handleSaveContact = () => {
+    if (!selectedPhone || !editContactName.trim()) return;
+    upsertContactMutation.mutate({
+      phone: selectedPhone,
+      name: editContactName.trim(),
+      notes: editContactNotes.trim() || undefined,
+    });
+  };
 
   useEffect(() => {
     if (!selectedPhone) return;
@@ -555,11 +564,13 @@ export function ChatPage() {
     };
   }, [handleScroll]);
 
+  const messageCount = mergedMessages.length;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on message count change
   useEffect(() => {
     if (shouldAutoScroll) {
       scrollToBottom("smooth");
     }
-  }, [renderItems, shouldAutoScroll, scrollToBottom]);
+  }, [messageCount, shouldAutoScroll, scrollToBottom]);
 
   const handleTypingChange = useCallback(() => {
     // Front-only typing UX in this phase; backend sendTyping mutation can be wired in next phase.
@@ -799,15 +810,15 @@ export function ChatPage() {
                         <span
                           className={cn(
                             "h-2 w-2 rounded-full",
-                            selectedPhone
-                              ? presenceByPhone[normalizePhone(selectedPhone)]
+                            normalizedSelectedPhone
+                              ? presenceByPhone[normalizedSelectedPhone]
                                 ? "bg-emerald-500"
                                 : "bg-slate-500"
                               : "bg-slate-500"
                           )}
                           aria-hidden="true"
                           title={
-                            selectedPhone && presenceByPhone[normalizePhone(selectedPhone)]
+                            normalizedSelectedPhone && presenceByPhone[normalizedSelectedPhone]
                               ? "Contato online"
                               : "Contato offline"
                           }

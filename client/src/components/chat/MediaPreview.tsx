@@ -14,7 +14,7 @@ export interface MediaPreviewData {
   thumbnailUrl?: string | null;
 }
 
-interface MediaPreviewProps {
+export interface MediaPreviewProps {
   media: MediaPreviewData;
   className?: string;
   compact?: boolean;

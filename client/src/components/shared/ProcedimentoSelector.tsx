@@ -47,7 +47,7 @@ export function ProcedimentoSelector({
   const groupedProcedures = React.useMemo(() => {
     const groups: Record<string, typeof procedures> = {};
     procedures.forEach((p) => {
-      const category = (p as any).categoria || "Outros"; // Cast to any if type definition is missing in frontend yet
+      const category = (p as { categoria?: string }).categoria || "Outros";
       if (!groups[category]) groups[category] = [];
       groups[category].push(p);
     });

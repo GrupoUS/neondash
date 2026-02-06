@@ -7,6 +7,10 @@ import { trpc } from "@/lib/trpc";
 
 export type WhatsAppProvider = "meta" | "baileys" | "zapi";
 
+interface WhatsAppRealtimeOptions {
+  refetchIntervalMs?: number | false;
+}
+
 export function useWhatsAppProvider() {
   // Get status for all providers
   const { data: zapiStatus, isLoading: zapiStatusLoading } = trpc.zapi.getStatus.useQuery();
@@ -36,14 +40,17 @@ export function useWhatsAppProvider() {
   };
 }
 
-export function useWhatsAppConversations(activeProvider: WhatsAppProvider | null) {
+export function useWhatsAppConversations(
+  activeProvider: WhatsAppProvider | null,
+  { refetchIntervalMs = 10000 }: WhatsAppRealtimeOptions = {}
+) {
   const {
     data: zapiConversations,
     isLoading: zapiLoading,
     refetch: refetchZapi,
   } = trpc.zapi.getAllConversations.useQuery(undefined, {
     enabled: activeProvider === "zapi",
-    refetchInterval: 10000,
+    refetchInterval: refetchIntervalMs,
   });
 
   const {
@@ -52,7 +59,7 @@ export function useWhatsAppConversations(activeProvider: WhatsAppProvider | null
     refetch: refetchMeta,
   } = trpc.metaApi.getAllConversations.useQuery(undefined, {
     enabled: activeProvider === "meta",
-    refetchInterval: 10000,
+    refetchInterval: refetchIntervalMs,
   });
 
   const {
@@ -61,7 +68,7 @@ export function useWhatsAppConversations(activeProvider: WhatsAppProvider | null
     refetch: refetchBaileys,
   } = trpc.baileys.getAllConversations.useQuery(undefined, {
     enabled: activeProvider === "baileys",
-    refetchInterval: 10000,
+    refetchInterval: refetchIntervalMs,
   });
 
   const conversations =
@@ -88,14 +95,18 @@ export function useWhatsAppConversations(activeProvider: WhatsAppProvider | null
   return { conversations, isLoading, refetch };
 }
 
-export function useWhatsAppMessages(activeProvider: WhatsAppProvider | null, phone: string | null) {
+export function useWhatsAppMessages(
+  activeProvider: WhatsAppProvider | null,
+  phone: string | null,
+  { refetchIntervalMs = 5000 }: WhatsAppRealtimeOptions = {}
+) {
   const {
     data: zapiMessages,
     isLoading: zapiLoading,
     refetch: refetchZapi,
   } = trpc.zapi.getMessagesByPhone.useQuery(
     { phone: phone ?? "" },
-    { enabled: !!phone && activeProvider === "zapi", refetchInterval: 5000 }
+    { enabled: !!phone && activeProvider === "zapi", refetchInterval: refetchIntervalMs }
   );
 
   const {
@@ -104,7 +115,7 @@ export function useWhatsAppMessages(activeProvider: WhatsAppProvider | null, pho
     refetch: refetchMeta,
   } = trpc.metaApi.getMessagesByPhone.useQuery(
     { phone: phone ?? "" },
-    { enabled: !!phone && activeProvider === "meta", refetchInterval: 5000 }
+    { enabled: !!phone && activeProvider === "meta", refetchInterval: refetchIntervalMs }
   );
 
   const {
@@ -113,7 +124,7 @@ export function useWhatsAppMessages(activeProvider: WhatsAppProvider | null, pho
     refetch: refetchBaileys,
   } = trpc.baileys.getMessagesByPhone.useQuery(
     { phone: phone ?? "" },
-    { enabled: !!phone && activeProvider === "baileys", refetchInterval: 5000 }
+    { enabled: !!phone && activeProvider === "baileys", refetchInterval: refetchIntervalMs }
   );
 
   const messages =

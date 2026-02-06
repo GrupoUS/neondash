@@ -14,6 +14,7 @@ interface Lead {
   valor?: number | null;
   tags?: string[] | null;
   created_at?: string | Date | null;
+  telefone?: string | null;
 }
 
 interface KanbanColumnProps {
@@ -29,6 +30,7 @@ interface KanbanColumnProps {
   showAddButton?: boolean;
   onAddLead?: () => void;
   onSchedule?: (lead: Lead) => void;
+  onWhatsApp?: (lead: Lead) => void;
 }
 
 export function KanbanColumn({
@@ -44,6 +46,7 @@ export function KanbanColumn({
   showAddButton,
   onAddLead,
   onSchedule,
+  onWhatsApp,
 }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({
     id: id,
@@ -108,6 +111,7 @@ export function KanbanColumn({
               onToggleSelect={() => onToggleSelect(lead.id)}
               isSelectMode={isSelectMode}
               onSchedule={onSchedule}
+              onWhatsApp={onWhatsApp}
             />
           ))}
         </SortableContext>

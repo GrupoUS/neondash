@@ -15,6 +15,7 @@ interface Lead {
   valor?: number | null;
   tags?: string[] | null;
   created_at?: string | Date | null;
+  telefone?: string | null;
 }
 
 interface LeadCardProps {
@@ -24,6 +25,7 @@ interface LeadCardProps {
   onToggleSelect?: () => void;
   isSelectMode?: boolean;
   onSchedule?: (lead: Lead) => void;
+  onWhatsApp?: (lead: Lead) => void;
 }
 
 export function LeadCard({
@@ -33,6 +35,7 @@ export function LeadCard({
   onToggleSelect,
   isSelectMode,
   onSchedule,
+  onWhatsApp,
 }: LeadCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `lead-${lead.id}`,
@@ -59,6 +62,8 @@ export function LeadCard({
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  const hasPhone = Boolean(lead.telefone && lead.telefone.trim().length > 0);
 
   return (
     <div
@@ -158,13 +163,21 @@ export function LeadCard({
               <CalendarPlus className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-          </Button>
+          {/* WhatsApp Button - only shown if lead has phone */}
+          {hasPhone && onWhatsApp && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onWhatsApp(lead);
+              }}
+              title="Enviar WhatsApp"
+            >
+              <Phone className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button
             size="icon"
             variant="ghost"

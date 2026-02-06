@@ -1,7 +1,7 @@
-import { Mic, Paperclip, Send, Smile } from "lucide-react";
+import { Mic, Paperclip, Send } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { EmojiPicker } from "@/components/chat/EmojiPicker";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ interface MessageInputProps {
   typingDebounceMs?: number;
 }
 
-const EMOJI_OPTIONS = ["😀", "😂", "😍", "🙏", "👍", "🔥"] as const;
+export type { MessageInputProps };
 
 function calculateRows(value: string, minRows: number, maxRows: number): number {
   const lines = value.split(/\r\n|\r|\n/).length;
@@ -163,35 +163,7 @@ export function MessageInput({
         tabIndex={-1}
       />
 
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            disabled={disabled}
-          >
-            <Smile className="h-4 w-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-auto p-2">
-          <div className="flex items-center gap-1">
-            {EMOJI_OPTIONS.map((emoji) => (
-              <Button
-                key={emoji}
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 text-base"
-                onClick={() => onEmojiSelect?.(emoji)}
-              >
-                {emoji}
-              </Button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+      <EmojiPicker onSelect={(emoji) => onEmojiSelect?.(emoji)} disabled={disabled} />
 
       <Textarea
         value={value}

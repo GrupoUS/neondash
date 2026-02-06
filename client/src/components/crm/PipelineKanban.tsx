@@ -9,6 +9,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import { EventFormDialog } from "@/components/agenda/EventFormDialog";
 import {
   Select,
@@ -83,6 +84,7 @@ export function PipelineKanban({
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [, navigate] = useLocation();
 
   const utils = trpc.useUtils();
   const { data: leadsData, isLoading } = trpc.leads.list.useQuery({
@@ -182,6 +184,15 @@ export function PipelineKanban({
     setScheduleDialogOpen(true);
   };
 
+  const handleWhatsAppLead = (lead: { id: number; nome: string; telefone?: string | null }) => {
+    if (!lead.telefone) {
+      toast.error("Lead não possui número de telefone");
+      return;
+    }
+    // Navigate to chat page with phone parameter
+    navigate(`/chat?phone=${encodeURIComponent(lead.telefone)}&leadId=${lead.id}`);
+  };
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-[calc(100vh-12rem)]">
@@ -221,6 +232,7 @@ export function PipelineKanban({
                 showAddButton={column.id === "novo" && !isReadOnly}
                 onAddLead={onCreateLead}
                 onSchedule={handleScheduleLead}
+                onWhatsApp={handleWhatsAppLead}
               />
             ))}
           </div>

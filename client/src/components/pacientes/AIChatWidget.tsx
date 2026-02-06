@@ -226,7 +226,7 @@ export function AIChatWidget({ patientId, patientName, preloadedPhoto }: AIChatW
     if (!preloadedPhoto?.url) return;
     setImagePreview(preloadedPhoto.url);
     setImageUploadOpen(false);
-  }, [preloadedPhoto?.id, preloadedPhoto?.url]);
+  }, [preloadedPhoto?.url]);
 
   const handleSend = (values: MessageFormValues) => {
     if (!values.content.trim() && !imagePreview) return;

@@ -7,10 +7,10 @@
  * - on-message-status: Message status updates (sent, delivered, read)
  * - on-disconnected: WhatsApp disconnection
  */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Router } from "express";
 import type { Lead } from "../../drizzle/schema";
-import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
+import { leads, mentorados, statusLeadEnum, whatsappMessages } from "../../drizzle/schema";
 import { createLogger } from "../_core/logger";
 import { getDb } from "../db";
 import { sseService } from "../services/sseService";
@@ -23,9 +23,14 @@ export interface ZApiMessageReceivedPayload {
   instanceId: string;
   phone: string;
   messageId: string;
+  messageType?: string;
   text?: { message: string };
   audio?: { audioUrl: string };
   image?: { imageUrl: string };
+  video?: { videoUrl: string };
+  document?: { documentUrl: string; fileName?: string; mimeType?: string };
+  quotedMsgId?: string;
+  quotedMessageId?: string;
   isGroup: boolean;
   momment: number;
   isFromMe: boolean;
@@ -36,11 +41,24 @@ export interface ZApiMessageStatusPayload {
   instanceId: string;
   messageId: string;
   status: "SENT" | "DELIVERED" | "READ" | "FAILED";
+  phone?: string;
 }
 
 export interface ZApiDisconnectedPayload {
   instanceId: string;
   reason?: string;
+}
+
+interface ZApiTypingPayload {
+  instanceId: string;
+  phone: string;
+}
+
+interface ZApiPresencePayload {
+  instanceId: string;
+  phone: string;
+  isOnline: boolean;
+  lastSeen?: number;
 }
 
 /**
@@ -76,14 +94,39 @@ async function findLeadByPhone(mentoradoId: number, phone: string) {
 }
 
 /**
+ * Ensure lead exists for inbound WhatsApp contact
+ */
+async function findOrCreateLead(mentoradoId: number, phone: string, senderName?: string) {
+  const existing = await findLeadByPhone(mentoradoId, phone);
+  if (existing) return existing;
+
+  const db = getDb();
+  const fallbackStatus = statusLeadEnum.enumValues[0];
+  const targetStatus = statusLeadEnum.enumValues.includes("primeiro_contato")
+    ? "primeiro_contato"
+    : fallbackStatus;
+
+  const [created] = await db
+    .insert(leads)
+    .values({
+      mentoradoId,
+      nome: senderName?.trim() || `Novo Contato WhatsApp ${phone.slice(-4)}`,
+      email: `${phone}@whatsapp.local`,
+      telefone: phone,
+      origem: "whatsapp",
+      status: targetStatus,
+    })
+    .returning();
+
+  return created ?? null;
+}
+
+/**
  * Handle incoming message webhook
  */
 async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promise<void> {
   // Skip group messages
   if (payload.isGroup) return;
-
-  // Skip outgoing messages (isFromMe = true)
-  if (payload.isFromMe) return;
 
   // Find mentorado by instance
   const mentorado = await findMentoradoByInstance(payload.instanceId);
@@ -93,38 +136,129 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   }
 
   // Extract message content
-  const content = payload.text?.message ?? "[Media message]";
+  const content =
+    payload.text?.message ??
+    (payload.image ? "[📷 Image]" : null) ??
+    (payload.audio ? "[🎵 Audio]" : null) ??
+    (payload.video ? "[🎬 Video]" : null) ??
+    (payload.document ? `[📄 ${payload.document.fileName ?? "Document"}]` : null) ??
+    "[Media message]";
 
   // Normalize phone for consistent storage (handles +55, 9th digit, etc.)
   const normalizedPhone = zapiService.normalizePhoneNumber(payload.phone);
 
   // Find associated lead using flexible matching
-  const lead = await findLeadByPhone(mentorado.id, normalizedPhone);
+  const lead = payload.isFromMe
+    ? await findLeadByPhone(mentorado.id, normalizedPhone)
+    : await findOrCreateLead(mentorado.id, normalizedPhone, payload.senderName);
 
-  // Store message with normalized phone
+  let quotedMessageId: number | null = null;
+  const quotedExternalId = payload.quotedMessageId ?? payload.quotedMsgId;
+  if (quotedExternalId) {
+    const db = getDb();
+    const [quoted] = await db
+      .select({ id: whatsappMessages.id })
+      .from(whatsappMessages)
+      .where(
+        and(
+          eq(whatsappMessages.mentoradoId, mentorado.id),
+          eq(whatsappMessages.zapiMessageId, quotedExternalId)
+        )
+      )
+      .limit(1);
+    quotedMessageId = quoted?.id ?? null;
+  }
+
+  const mediaType =
+    payload.messageType ??
+    (payload.image
+      ? "image"
+      : payload.audio
+        ? "audio"
+        : payload.video
+          ? "video"
+          : payload.document
+            ? "document"
+            : null);
+  const mediaUrl =
+    payload.image?.imageUrl ??
+    payload.audio?.audioUrl ??
+    payload.video?.videoUrl ??
+    payload.document?.documentUrl ??
+    null;
+
+  const direction = payload.isFromMe ? "outbound" : "inbound";
+  const messageStatus = payload.isFromMe ? "sent" : "delivered";
+
+  // Store message with normalized phone (dedupe by provider message id)
   const db = getDb();
-  const [savedMessage] = await db
-    .insert(whatsappMessages)
-    .values({
-      mentoradoId: mentorado.id,
-      leadId: lead?.id ?? null,
-      phone: normalizedPhone,
-      direction: "inbound",
-      content,
-      zapiMessageId: payload.messageId,
-      status: "delivered",
-      isFromAi: "nao",
-    })
-    .returning();
+  const [existingByProviderId] = await db
+    .select({ id: whatsappMessages.id })
+    .from(whatsappMessages)
+    .where(
+      and(
+        eq(whatsappMessages.mentoradoId, mentorado.id),
+        eq(whatsappMessages.zapiMessageId, payload.messageId)
+      )
+    )
+    .limit(1);
+
+  let savedMessage:
+    | {
+        id: number;
+        createdAt: Date;
+      }
+    | undefined;
+
+  if (existingByProviderId) {
+    const [updated] = await db
+      .update(whatsappMessages)
+      .set({
+        leadId: lead?.id ?? null,
+        phone: normalizedPhone,
+        direction,
+        content,
+        status: messageStatus,
+        mediaType,
+        mediaUrl,
+        quotedMessageId,
+      })
+      .where(eq(whatsappMessages.id, existingByProviderId.id))
+      .returning({ id: whatsappMessages.id, createdAt: whatsappMessages.createdAt });
+
+    savedMessage = updated;
+  } else {
+    const [created] = await db
+      .insert(whatsappMessages)
+      .values({
+        mentoradoId: mentorado.id,
+        leadId: lead?.id ?? null,
+        phone: normalizedPhone,
+        direction,
+        content,
+        zapiMessageId: payload.messageId,
+        status: messageStatus,
+        isFromAi: "nao",
+        mediaType,
+        mediaUrl,
+        quotedMessageId,
+      })
+      .returning({ id: whatsappMessages.id, createdAt: whatsappMessages.createdAt });
+
+    savedMessage = created;
+  }
 
   // Broadcast new message to connected SSE clients
-  sseService.broadcast(mentorado.id, "message", {
+  sseService.broadcastToPhone(mentorado.id, normalizedPhone, "new-message", {
     id: savedMessage?.id,
     phone: normalizedPhone,
     leadId: lead?.id ?? null,
-    direction: "inbound",
+    direction,
     content,
-    status: "delivered",
+    status: messageStatus,
+    mediaType,
+    mediaUrl,
+    quotedMessageId,
     createdAt: savedMessage?.createdAt ?? new Date().toISOString(),
   });
 
@@ -132,6 +266,10 @@ async function handleMessageReceived(payload: ZApiMessageReceivedPayload): Promi
   // AI SDR: Process incoming message and generate automated response
   // ─────────────────────────────────────────────────────────────────────────
   try {
+    if (payload.isFromMe) {
+      return;
+    }
+
     // Only process if mentorado has Z-API credentials configured
     if (!mentorado.zapiInstanceId || !mentorado.zapiToken) {
       return;
@@ -191,18 +329,63 @@ async function handleMessageStatus(payload: ZApiMessageStatusPayload): Promise<v
   const db = getDb();
   const [updated] = await db
     .update(whatsappMessages)
-    .set({ status })
+    .set({
+      status,
+      readAt: status === "read" ? new Date() : null,
+    })
     .where(eq(whatsappMessages.zapiMessageId, payload.messageId))
-    .returning({ mentoradoId: whatsappMessages.mentoradoId, id: whatsappMessages.id });
+    .returning({
+      mentoradoId: whatsappMessages.mentoradoId,
+      id: whatsappMessages.id,
+      phone: whatsappMessages.phone,
+      readAt: whatsappMessages.readAt,
+    });
 
   // Broadcast status update to connected SSE clients
   if (updated) {
-    sseService.broadcast(updated.mentoradoId, "status_update", {
+    const event = status === "read" ? "message-read" : "status_update";
+    sseService.broadcastToPhone(updated.mentoradoId, updated.phone, event, {
       messageId: updated.id,
       zapiMessageId: payload.messageId,
+      phone: updated.phone,
       status,
+      readAt: updated.readAt,
     });
   }
+}
+
+/**
+ * Handle typing start/stop webhook
+ */
+async function handleTypingEvent(
+  payload: ZApiTypingPayload,
+  mode: "typing-start" | "typing-stop"
+): Promise<void> {
+  const mentorado = await findMentoradoByInstance(payload.instanceId);
+  if (!mentorado) return;
+
+  const phone = zapiService.normalizePhoneNumber(payload.phone);
+  sseService.broadcastToPhone(mentorado.id, phone, mode, {
+    phone,
+    at: new Date().toISOString(),
+  });
+}
+
+/**
+ * Handle presence updates webhook
+ */
+async function handlePresenceEvent(payload: ZApiPresencePayload): Promise<void> {
+  const mentorado = await findMentoradoByInstance(payload.instanceId);
+  if (!mentorado) return;
+
+  const phone = zapiService.normalizePhoneNumber(payload.phone);
+  const eventName = payload.isOnline ? "contact-online" : "contact-offline";
+
+  sseService.broadcastToPhone(mentorado.id, phone, eventName, {
+    phone,
+    isOnline: payload.isOnline,
+    lastSeen: payload.lastSeen ? new Date(payload.lastSeen * 1000).toISOString() : null,
+  });
 }
 
 /**
@@ -273,6 +456,60 @@ export function registerZapiWebhooks(router: Router): void {
 
       const payload = req.body as ZApiDisconnectedPayload;
       await handleDisconnected(payload);
+      res.status(200).json({ success: true });
+    } catch (_error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Typing start webhook
+  router.post("/webhooks/zapi/typing-start", async (req, res) => {
+    try {
+      if (
+        webhookToken &&
+        !validateWebhookToken(req.headers["client-token"] as string, webhookToken)
+      ) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const payload = req.body as ZApiTypingPayload;
+      await handleTypingEvent(payload, "typing-start");
+      res.status(200).json({ success: true });
+    } catch (_error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Typing stop webhook
+  router.post("/webhooks/zapi/typing-stop", async (req, res) => {
+    try {
+      if (
+        webhookToken &&
+        !validateWebhookToken(req.headers["client-token"] as string, webhookToken)
+      ) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const payload = req.body as ZApiTypingPayload;
+      await handleTypingEvent(payload, "typing-stop");
+      res.status(200).json({ success: true });
+    } catch (_error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Contact presence webhook
+  router.post("/webhooks/zapi/presence", async (req, res) => {
+    try {
+      if (
+        webhookToken &&
+        !validateWebhookToken(req.headers["client-token"] as string, webhookToken)
+      ) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const payload = req.body as ZApiPresencePayload;
+      await handlePresenceEvent(payload);
       res.status(200).json({ success: true });
     } catch (_error) {
       res.status(500).json({ error: "Internal server error" });

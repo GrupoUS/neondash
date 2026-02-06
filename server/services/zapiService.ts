@@ -76,6 +76,26 @@ export interface ZApiChat {
   profileThumbnail: string | null;
 }
 
+export interface ZApiContact {
+  id?: string;
+  phone?: string;
+  number?: string;
+  name?: string;
+  pushname?: string;
+  profilePicUrl?: string;
+}
+
+export interface ZApiProfilePictureResponse {
+  profilePicUrl?: string;
+  value?: string;
+}
+
+export interface ZApiPresenceResponse {
+  phone?: string;
+  isOnline?: boolean;
+  lastSeen?: number;
+}
+
 /**
  * Build headers for Z-API requests
  * Note: Authentication is done via URL path (token in URL).
@@ -236,6 +256,87 @@ export async function sendTextMessage(
     phone: normalizedPhone,
     message,
   });
+}
+
+/**
+ * Get all contacts from WhatsApp instance
+ */
+export async function getContacts(credentials: ZApiCredentials): Promise<ZApiContact[]> {
+  try {
+    const response = await zapiRequest<ZApiContact[]>(credentials, "contacts", "GET");
+    return Array.isArray(response) ? response : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get profile picture URL for a WhatsApp contact
+ */
+export async function getProfilePicture(
+  credentials: ZApiCredentials,
+  phone: string
+): Promise<ZApiProfilePictureResponse | null> {
+  const normalizedPhone = normalizePhoneNumber(phone);
+  try {
+    return await zapiRequest<ZApiProfilePictureResponse>(
+      credentials,
+      `profile-picture?phone=${encodeURIComponent(normalizedPhone)}`,
+      "GET"
+    );
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Subscribe or fetch presence information for a contact
+ */
+export async function getPresence(
+  credentials: ZApiCredentials,
+  phone: string
+): Promise<ZApiPresenceResponse | null> {
+  const normalizedPhone = normalizePhoneNumber(phone);
+  try {
+    return await zapiRequest<ZApiPresenceResponse>(credentials, "subscribe-presence", "POST", {
+      phone: normalizedPhone,
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Send typing state to a contact
+ */
+export async function sendTyping(
+  credentials: ZApiCredentials,
+  phone: string,
+  isTyping: boolean
+): Promise<boolean> {
+  const normalizedPhone = normalizePhoneNumber(phone);
+  const endpoint = isTyping ? "typing-start" : "typing-stop";
+  try {
+    await zapiRequest(credentials, endpoint, "POST", { phone: normalizedPhone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Mark a message as read in provider (best effort)
+ */
+export async function markMessageAsRead(
+  credentials: ZApiCredentials,
+  messageId: string
+): Promise<boolean> {
+  try {
+    await zapiRequest(credentials, "read-message", "POST", { messageId });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -406,7 +507,12 @@ export const zapiService = {
   getConnectionStatus,
   disconnect,
   sendTextMessage,
+  sendTyping,
+  markMessageAsRead,
   getChats,
+  getContacts,
+  getProfilePicture,
+  getPresence,
 
   // Phone utilities
   normalizePhoneNumber,

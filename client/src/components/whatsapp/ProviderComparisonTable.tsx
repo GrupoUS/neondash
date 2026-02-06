@@ -9,43 +9,37 @@ import {
 
 type ProviderComparisonRow = {
   feature: string;
-  zapi: string;
-  meta: string;
   baileys: string;
+  zapi: string;
   highlightBaileys?: boolean;
 };
 
 const PROVIDER_ROWS: ProviderComparisonRow[] = [
   {
     feature: "Custo",
-    zapi: "Pago (Mensalidade)",
-    meta: "Pago (Por conversa)",
     baileys: "Grátis (Open Source)",
+    zapi: "Pago (Mensalidade)",
     highlightBaileys: true,
   },
   {
     feature: "Estabilidade",
-    zapi: "Alta",
-    meta: "Muito Alta",
     baileys: "Média (Depende da conexão do celular)",
+    zapi: "Alta",
   },
   {
     feature: "Requisito",
-    zapi: "Celular conectado",
-    meta: "Nenhum (Cloud)",
     baileys: "Celular conectado e servidor ativo",
+    zapi: "Celular conectado",
   },
   {
     feature: "Risco de Banimento",
-    zapi: "Baixo",
-    meta: "Nulo (Oficial)",
     baileys: "Médio (Se abusar de envios)",
+    zapi: "Baixo",
   },
   {
     feature: "Multimídia",
-    zapi: "Sim",
-    meta: "Sim",
     baileys: "Sim (Texto, Imagem, Áudio)",
+    zapi: "Sim",
   },
 ];
 
@@ -60,9 +54,8 @@ export function ProviderComparisonTable() {
         <TableHeader>
           <TableRow>
             <TableHead>Recurso</TableHead>
-            <TableHead>Z-API</TableHead>
-            <TableHead>Meta Cloud API</TableHead>
             <TableHead className="text-emerald-600 font-semibold">Baileys (Self-Hosted)</TableHead>
+            <TableHead>Z-API</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -70,13 +63,12 @@ export function ProviderComparisonTable() {
           {PROVIDER_ROWS.map((row) => (
             <TableRow key={row.feature}>
               <TableCell className="font-medium">{row.feature}</TableCell>
-              <TableCell>{row.zapi}</TableCell>
-              <TableCell>{row.meta}</TableCell>
               <TableCell
                 className={row.highlightBaileys ? "text-emerald-600 font-semibold" : undefined}
               >
                 {row.baileys}
               </TableCell>
+              <TableCell>{row.zapi}</TableCell>
             </TableRow>
           ))}
         </TableBody>

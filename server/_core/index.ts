@@ -144,6 +144,12 @@ async function startServer() {
     // Register client
     sseService.addClient(mentorado.id, res);
 
+    const phoneQuery = req.query.phone;
+    const phone = typeof phoneQuery === "string" ? phoneQuery.trim() : "";
+    if (phone.length > 0) {
+      sseService.setClientPhone(mentorado.id, res, phone);
+    }
+
     // Cleanup on close
     req.on("close", () => {
       sseService.removeClient(mentorado.id, res);

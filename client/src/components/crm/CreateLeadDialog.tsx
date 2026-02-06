@@ -34,6 +34,7 @@ import {
   normalizeBrazilianPhone,
   validateBrazilianPhone,
 } from "../../../../shared/phone-utils";
+import { ProcedimentoSelector } from "../shared/ProcedimentoSelector";
 
 // Form schema - keeps valorEstimado as string for input
 const createLeadFormSchema = z.object({
@@ -58,7 +59,7 @@ const createLeadFormSchema = z.object({
   // Aesthetic Fields (B2C)
   dataNascimento: z.string().optional(),
   genero: z.string().optional(),
-  procedimentosInteresse: z.string().optional(), // Input as string, convert to array
+  procedimentosInteresse: z.array(z.number()).default([]),
   historicoEstetico: z.string().optional(),
   alergias: z.string().optional(),
   tipoPele: z.string().optional(),
@@ -76,7 +77,7 @@ interface CreateLeadDialogProps {
 export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialogProps) {
   const trpcUtils = trpc.useUtils();
   const form = useForm<CreateLeadFormValues>({
-    resolver: zodResolver(createLeadFormSchema),
+    resolver: zodResolver(createLeadFormSchema) as any,
     defaultValues: {
       nome: "",
       email: "",
@@ -95,7 +96,7 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
       // Aesthetic defaults
       dataNascimento: "",
       genero: "",
-      procedimentosInteresse: "",
+      procedimentosInteresse: [],
       historicoEstetico: "",
       alergias: "",
       tipoPele: "",
@@ -132,14 +133,6 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
 
     const anosEsteticaNumber = values.anosEstetica ? parseInt(values.anosEstetica, 10) : undefined;
 
-    // Convert comma-separated string to array
-    const procedimentosArray = values.procedimentosInteresse
-      ? values.procedimentosInteresse
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      : [];
-
     // Normalize phone to 55+digits format for WhatsApp compatibility
     const normalizedTelefone = values.telefone
       ? normalizeBrazilianPhone(values.telefone)
@@ -164,7 +157,7 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
       // Aesthetic Fields
       dataNascimento: values.dataNascimento || undefined,
       genero: values.genero,
-      procedimentosInteresse: procedimentosArray,
+      procedimentosInteresse: values.procedimentosInteresse,
       historicoEstetico: values.historicoEstetico,
       alergias: values.alergias,
       tipoPele: values.tipoPele,
@@ -366,9 +359,10 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
                     <FormItem>
                       <FormLabel>Procedimentos de Interesse</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Ex: Botox, Preenchimento (separe por vírgula)"
-                          {...field}
+                        <ProcedimentoSelector
+                          value={field.value}
+                          onChange={field.onChange}
+                          disabled={mutation.isPending}
                         />
                       </FormControl>
                       <FormMessage />

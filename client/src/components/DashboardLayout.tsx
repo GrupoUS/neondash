@@ -98,7 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/crm/leads", label: "CRM", icon: BriefcaseBusiness },
     { href: "/pacientes", label: "Pacientes", icon: HeartPulse },
 
-    { href: "/financeiro", label: "Financeiro", icon: TrendingUp },
+    { href: "/procedimentos", label: "Procedimentos", icon: TrendingUp },
     { href: "/chat", label: "Chat WhatsApp", icon: MessageCircle },
     { href: "/marketing", label: "Marketing", icon: TrendingUp },
     { href: "/configuracoes", label: "Configurações", icon: Settings2 },

@@ -8,7 +8,415 @@ import { insumos, procedimentoInsumos, procedimentos } from "../drizzle/schema";
 import { mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 
-export const precificacaoRouter = router({
+const DEFAULT_PROCEDIMENTOS = [
+  // FACIAIS
+  {
+    nome: "Harmonização Facial Completa",
+    categoria: "Facial",
+    precoVenda: 550000, // R$ 5.500,00 em centavos
+    custoOperacional: 50000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Full Face", quantidade: 1 },
+      { nome: "Cânula", quantidade: 2 },
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Álcool Suabe", quantidade: 2 },
+    ],
+  },
+  {
+    nome: "Botox (Toxina Botulínica)",
+    categoria: "Facial",
+    precoVenda: 150000, // R$ 1.500,00
+    custoOperacional: 20000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Botox", quantidade: 1 },
+      { nome: "Seringa 3ML", quantidade: 1 },
+      { nome: "Álcool Suabe", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Preenchimento Labial",
+    categoria: "Facial",
+    precoVenda: 180000, // R$ 1.800,00
+    custoOperacional: 15000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Labial", quantidade: 1 },
+      { nome: "Cânula", quantidade: 1 },
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Preenchimento Facial",
+    categoria: "Facial",
+    precoVenda: 250000, // R$ 2.500,00
+    custoOperacional: 20000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Diamond Bio", quantidade: 1 },
+      { nome: "Cânula", quantidade: 1 },
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Peeling Químico",
+    categoria: "Facial",
+    precoVenda: 55000, // R$ 550,00
+    custoOperacional: 10000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Fluido Biorelaxante", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Gaze", quantidade: 2 },
+    ],
+  },
+  {
+    nome: "Microagulhamento Facial",
+    categoria: "Facial",
+    precoVenda: 65000, // R$ 650,00
+    custoOperacional: 15000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Ponteira 5 Agulhas", quantidade: 1 },
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Limpeza de Pele Profunda",
+    categoria: "Facial",
+    precoVenda: 25000, // R$ 250,00
+    custoOperacional: 5000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Sabonete Líquido Pele", quantidade: 1 },
+      { nome: "Tônico Pele", quantidade: 1 },
+      { nome: "Esfoliante", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Bioestimulador de Colágeno",
+    categoria: "Facial",
+    precoVenda: 300000, // R$ 3.000,00
+    custoOperacional: 25000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Elleva 210 Bio", quantidade: 1 },
+      { nome: "Seringa 3ML", quantidade: 2 },
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Fios de PDO (Lifting)",
+    categoria: "Facial",
+    precoVenda: 400000, // R$ 4.000,00
+    custoOperacional: 30000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Fios de PDO", quantidade: 10 },
+      { nome: "Anestésico", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Álcool Suabe", quantidade: 3 },
+    ],
+  },
+  {
+    nome: "Skinbooster",
+    categoria: "Facial",
+    precoVenda: 130000, // R$ 1.300,00
+    custoOperacional: 15000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Diamond Bio", quantidade: 1 },
+      { nome: "Seringa 3ML", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Peeling de Diamante",
+    categoria: "Facial",
+    precoVenda: 42500, // R$ 425,00
+    custoOperacional: 8000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Ponteira SmartGR", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+
+  // CAPILARES
+  {
+    nome: "Intradermoterapia Capilar",
+    categoria: "Capilar",
+    precoVenda: 65000, // R$ 650,00
+    custoOperacional: 10000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Ativos - Alopecia Masculina", quantidade: 1 },
+      { nome: "Agulha 40x13", quantidade: 5 },
+      { nome: "Seringa 3ML", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Microagulhamento Capilar",
+    categoria: "Capilar",
+    precoVenda: 55000, // R$ 550,00
+    custoOperacional: 10000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Ponteira Capilar", quantidade: 1 },
+      { nome: "Ativos - IM Boom Capilar", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Dutasterida Intradérmica",
+    categoria: "Capilar",
+    precoVenda: 47500, // R$ 475,00
+    custoOperacional: 8000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Dudasterida", quantidade: 1 },
+      { nome: "Seringa 3ML", quantidade: 1 },
+      { nome: "Agulha 30x13", quantidade: 3 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Protocolo Boom Capilar",
+    categoria: "Capilar",
+    precoVenda: 85000, // R$ 850,00
+    custoOperacional: 12000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Ativos - IM Boom Capilar", quantidade: 1 },
+      { nome: "Agulha 40x13", quantidade: 5 },
+      { nome: "Seringa 3ML", quantidade: 2 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+
+  // CORPORAIS
+  {
+    nome: "Criolipólise",
+    categoria: "Corporal",
+    precoVenda: 140000, // R$ 1.400,00
+    custoOperacional: 30000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Papel Lençol", quantidade: 2 },
+    ],
+  },
+  {
+    nome: "Radiofrequência Corporal",
+    categoria: "Corporal",
+    precoVenda: 50000, // R$ 500,00
+    custoOperacional: 10000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Papel Lençol", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Drenagem Linfática",
+    categoria: "Corporal",
+    precoVenda: 25000, // R$ 250,00
+    custoOperacional: 5000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Creme Emoliente", quantidade: 1 },
+      { nome: "Papel Lençol", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Massagem Modeladora",
+    categoria: "Corporal",
+    precoVenda: 29000, // R$ 290,00
+    custoOperacional: 5000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Creme Emoliente", quantidade: 1 },
+      { nome: "Papel Lençol", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Intradermoterapia Corporal",
+    categoria: "Corporal",
+    precoVenda: 65000, // R$ 650,00
+    custoOperacional: 12000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Agulha 40x13", quantidade: 10 },
+      { nome: "Seringa 10ML", quantidade: 2 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Carboxiterapia",
+    categoria: "Corporal",
+    precoVenda: 50000, // R$ 500,00
+    custoOperacional: 10000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Oxigênio", quantidade: 100 },
+      { nome: "Agulha 30x13", quantidade: 5 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Lipocavitação",
+    categoria: "Corporal",
+    precoVenda: 42500, // R$ 425,00
+    custoOperacional: 8000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Papel Lençol", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Endermologia",
+    categoria: "Corporal",
+    precoVenda: 47500, // R$ 475,00
+    custoOperacional: 10000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Luvas", quantidade: 1 },
+      { nome: "Papel Lençol", quantidade: 1 },
+    ],
+  },
+
+  // DEPILAÇÃO
+  {
+    nome: "Depilação a Laser - Corpo Completo",
+    categoria: "Depilação",
+    precoVenda: 50000, // R$ 500,00
+    custoOperacional: 15000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [{ nome: "Luvas", quantidade: 1 }],
+  },
+  {
+    nome: "Depilação a Laser - Facial",
+    categoria: "Depilação",
+    precoVenda: 16500, // R$ 165,00
+    custoOperacional: 5000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [{ nome: "Luvas", quantidade: 1 }],
+  },
+  {
+    nome: "Depilação a Laser - Íntima",
+    categoria: "Depilação",
+    precoVenda: 27500, // R$ 275,00
+    custoOperacional: 8000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [{ nome: "Luvas", quantidade: 1 }],
+  },
+
+  // AVANÇADOS
+  {
+    nome: "Microagulhamento Microfocado",
+    categoria: "Avançado",
+    precoVenda: 250000, // R$ 2.500,00
+    custoOperacional: 50000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Máquina Lavien (Locação Diária)", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Ultrassom Microfocado",
+    categoria: "Avançado",
+    precoVenda: 350000, // R$ 3.500,00
+    custoOperacional: 70000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Locação Máquina Microfocado", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+  {
+    nome: "Laser Fracionado Corporal",
+    categoria: "Avançado",
+    precoVenda: 175000, // R$ 1.750,00
+    custoOperacional: 40000,
+    custoInvestimento: 0,
+    percentualParceiro: 0,
+    percentualImposto: 700,
+    insumos: [
+      { nome: "Máquina Lavien (Locação Diária)", quantidade: 1 },
+      { nome: "Luvas", quantidade: 1 },
+    ],
+  },
+];
+
+export const procedimentosRouter = router({
   // ═══════════════════════════════════════════════════════════════════════════
   // INSUMOS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -184,15 +592,70 @@ export const precificacaoRouter = router({
   procedimentos: router({
     list: mentoradoProcedure.query(async ({ ctx }) => {
       const db = getDb();
+      const mentoradoId = ctx.mentorado.id;
 
-      // Get all procedures
-      const procs = await db
+      let procs = await db
         .select()
         .from(procedimentos)
-        .where(eq(procedimentos.mentoradoId, ctx.mentorado.id))
+        .where(eq(procedimentos.mentoradoId, mentoradoId))
         .orderBy(procedimentos.nome);
 
-      // Get all procedure-insumo relationships with insumo data
+      // Auto-seed if empty
+      if (procs.length === 0) {
+        // console.log("Seeding default procedures for mentorado:", mentoradoId);
+
+        // Ensure insumos exist first (re-run seedDefaults logic internally or assume it's run)
+        // For safety, we verify specific insumos exist or map by name
+        const existingInsumos = await db
+          .select()
+          .from(insumos)
+          .where(eq(insumos.mentoradoId, mentoradoId));
+
+        const insumoMap = new Map(existingInsumos.map((i) => [i.nome, i.id]));
+
+        for (const defProc of DEFAULT_PROCEDIMENTOS) {
+          const [newProc] = await db
+            .insert(procedimentos)
+            .values({
+              mentoradoId,
+              nome: defProc.nome,
+              categoria: defProc.categoria,
+              precoVenda: defProc.precoVenda,
+              custoOperacional: defProc.custoOperacional,
+              custoInvestimento: defProc.custoInvestimento,
+              percentualParceiro: defProc.percentualParceiro,
+              percentualImposto: defProc.percentualImposto,
+            })
+            .returning({ id: procedimentos.id });
+
+          if (defProc.insumos) {
+            const insumosToInsert = defProc.insumos
+              .map((i) => {
+                const id = insumoMap.get(i.nome);
+                return id
+                  ? { procedimentoId: newProc.id, insumoId: id, quantidade: i.quantidade }
+                  : null;
+              })
+              .filter(
+                (i): i is { procedimentoId: number; insumoId: number; quantidade: number } =>
+                  i !== null
+              );
+
+            if (insumosToInsert.length > 0) {
+              await db.insert(procedimentoInsumos).values(insumosToInsert);
+            }
+          }
+        }
+
+        // Re-fetch
+        procs = await db
+          .select()
+          .from(procedimentos)
+          .where(eq(procedimentos.mentoradoId, mentoradoId))
+          .orderBy(procedimentos.nome);
+      }
+
+      // Get all procedure-insumo relationships
       const procInsumos = await db
         .select({
           procedimentoId: procedimentoInsumos.procedimentoId,
@@ -205,9 +668,8 @@ export const precificacaoRouter = router({
         .from(procedimentoInsumos)
         .innerJoin(insumos, eq(procedimentoInsumos.insumoId, insumos.id))
         .innerJoin(procedimentos, eq(procedimentoInsumos.procedimentoId, procedimentos.id))
-        .where(eq(procedimentos.mentoradoId, ctx.mentorado.id));
+        .where(eq(procedimentos.mentoradoId, mentoradoId));
 
-      // Map insumos to procedures
       return procs.map((proc) => ({
         ...proc,
         insumos: procInsumos.filter((pi) => pi.procedimentoId === proc.id),
@@ -218,6 +680,7 @@ export const precificacaoRouter = router({
       .input(
         z.object({
           nome: z.string().min(1, "Nome é obrigatório"),
+          categoria: z.string().optional(),
           precoVenda: z.number().positive("Preço deve ser positivo"),
           custoOperacional: z.number().optional(),
           custoInvestimento: z.number().optional(),
@@ -241,6 +704,7 @@ export const precificacaoRouter = router({
           .values({
             mentoradoId: ctx.mentorado.id,
             nome: input.nome,
+            categoria: input.categoria,
             precoVenda: input.precoVenda,
             custoOperacional: input.custoOperacional,
             custoInvestimento: input.custoInvestimento,
@@ -268,6 +732,7 @@ export const precificacaoRouter = router({
         z.object({
           id: z.number(),
           nome: z.string().optional(),
+          categoria: z.string().optional(),
           precoVenda: z.number().positive().optional(),
           custoOperacional: z.number().optional(),
           custoInvestimento: z.number().optional(),
@@ -302,6 +767,7 @@ export const precificacaoRouter = router({
           .update(procedimentos)
           .set({
             nome: input.nome,
+            categoria: input.categoria,
             precoVenda: input.precoVenda,
             custoOperacional: input.custoOperacional,
             custoInvestimento: input.custoInvestimento,

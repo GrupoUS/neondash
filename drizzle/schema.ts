@@ -478,7 +478,7 @@ export const leads = pgTable(
     // Campos Aesthetic (B2C)
     dataNascimento: date("data_nascimento"),
     genero: text("genero"),
-    procedimentosInteresse: text("procedimentos_interesse").array(),
+    procedimentosInteresse: integer("procedimentos_interesse").array(),
     historicoEstetico: text("historico_estetico"),
     alergias: text("alergias"),
     tipoPele: text("tipo_pele"),
@@ -873,12 +873,19 @@ export const whatsappMessages = pgTable(
     zapiMessageId: varchar("zapi_message_id", { length: 128 }),
     status: messageStatusEnum("status").default("pending").notNull(),
     isFromAi: simNaoEnum("is_from_ai").default("nao"),
+    mediaType: varchar("media_type", { length: 50 }),
+    mediaUrl: text("media_url"),
+    mediaThumbnail: text("media_thumbnail"),
+    mediaSize: integer("media_size"),
+    quotedMessageId: integer("quoted_message_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    readAt: timestamp("read_at"),
   },
   (table) => [
     index("whatsapp_messages_mentorado_idx").on(table.mentoradoId),
     index("whatsapp_messages_lead_idx").on(table.leadId),
     index("whatsapp_messages_phone_idx").on(table.phone),
+    index("whatsapp_messages_zapi_message_idx").on(table.zapiMessageId),
     index("whatsapp_messages_created_idx").on(table.createdAt),
   ]
 );
@@ -900,17 +907,52 @@ export const whatsappContacts = pgTable(
     phone: varchar("phone", { length: 20 }).notNull(),
     name: varchar("name", { length: 255 }),
     notes: text("notes"),
+    profilePicUrl: text("profile_pic_url"),
+    lastSeen: timestamp("last_seen"),
+    isOnline: simNaoEnum("is_online").default("nao").notNull(),
+    syncedAt: timestamp("synced_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("whatsapp_contacts_phone_mentorado_idx").on(table.mentoradoId, table.phone),
     index("whatsapp_contacts_mentorado_idx").on(table.mentoradoId),
+    index("whatsapp_contacts_phone_idx").on(table.phone),
+    index("whatsapp_contacts_last_seen_idx").on(table.lastSeen),
+    index("whatsapp_contacts_synced_idx").on(table.syncedAt),
   ]
 );
 
 export type WhatsappContact = typeof whatsappContacts.$inferSelect;
 export type InsertWhatsappContact = typeof whatsappContacts.$inferInsert;
+
+/**
+ * WhatsApp Reactions - Emoji reactions by message
+ */
+export const whatsappReactions = pgTable(
+  "whatsapp_reactions",
+  {
+    id: serial("id").primaryKey(),
+    messageId: integer("message_id")
+      .notNull()
+      .references(() => whatsappMessages.id, { onDelete: "cascade" }),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    phone: varchar("phone", { length: 20 }).notNull(),
+    emoji: varchar("emoji", { length: 32 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("whatsapp_reactions_message_idx").on(table.messageId),
+    index("whatsapp_reactions_phone_idx").on(table.phone),
+    index("whatsapp_reactions_created_idx").on(table.createdAt),
+    index("whatsapp_reactions_mentorado_idx").on(table.mentoradoId),
+  ]
+);
+
+export type WhatsappReaction = typeof whatsappReactions.$inferSelect;
+export type InsertWhatsappReaction = typeof whatsappReactions.$inferInsert;
 
 /**
  * AI Agent Config - Configuration for AI SDR per mentorado
@@ -1438,6 +1480,7 @@ export const procedimentos = pgTable(
     precoVenda: integer("preco_venda").notNull(), // em centavos
     custoOperacional: integer("custo_operacional").default(0), // em centavos
     custoInvestimento: integer("custo_investimento").default(0), // em centavos
+    categoria: varchar("categoria", { length: 100 }).default("Outros"),
     percentualParceiro: integer("percentual_parceiro").default(0), // 0-10000 (0-100%)
     percentualImposto: integer("percentual_imposto").default(700), // 700 = 7%
     createdAt: timestamp("created_at").defaultNow().notNull(),

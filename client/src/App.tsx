@@ -43,6 +43,7 @@ const MarketingPage = lazy(() => import("./pages/marketing/MarketingPage"));
 const PacientesPage = lazy(() => import("./pages/pacientes/PacientesPage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const ProcedimentosPage = lazy(() => import("./pages/ProcedimentosPage"));
 
 // Loading fallback for lazy components
 function PageLoader() {
@@ -81,6 +82,7 @@ function Router() {
       <Route path="/marketing" component={MarketingPage} />
       <Route path="/pacientes/:id" component={PacientesPage} />
       <Route path="/pacientes" component={PacientesPage} />
+      <Route path="/procedimentos" component={ProcedimentosPage} />
 
       {/* Public Pages - Meta Compliance */}
       <Route path="/privacidade" component={PrivacyPolicy} />

@@ -18,7 +18,7 @@ import { mentoradosRouter } from "./mentoradosRouter";
 import { metaApiRouter } from "./metaApiRouter";
 import { notificationsRouter } from "./notificationsRouter";
 import { pacientesRouter } from "./pacientesRouter";
-import { precificacaoRouter } from "./precificacaoRouter";
+import { procedimentosRouter } from "./procedimentosRouter";
 import { adminRouter } from "./routers/admin";
 import { authRouter } from "./routers/auth";
 import { calendarRouter } from "./routers/calendar";
@@ -28,6 +28,7 @@ import { mentorshipRouter } from "./routers/mentorship";
 import { planejamentoRouter } from "./routers/planejamento";
 import { playbookRouter } from "./routers/playbook";
 import { tasksRouter } from "./routers/tasks";
+import { whatsappRouter } from "./whatsappRouter";
 import { zapiRouter } from "./zapiRouter";
 
 export const appRouter = router({
@@ -48,6 +49,7 @@ export const appRouter = router({
   calendar: calendarRouter,
   crmColumns: crmColumnsRouter,
   zapi: zapiRouter,
+  whatsapp: whatsappRouter,
   baileys: baileysRouter,
   metaApi: metaApiRouter,
   aiAgent: aiAgentRouter,
@@ -57,7 +59,7 @@ export const appRouter = router({
   mentor: mentorRouter,
   mentorship: mentorshipRouter,
   financeiro: financeiroRouter,
-  precificacao: precificacaoRouter,
+  procedimentos: procedimentosRouter,
   marketing: marketingRouter,
   pacientes: pacientesRouter,
   facebookAds: facebookAdsRouter,

@@ -6,6 +6,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bot,
+  ChevronDown,
   Loader2,
   MessageCircle,
   Pencil,
@@ -14,12 +15,15 @@ import {
   Search,
   Settings,
   Sparkles,
-  User,
   Video,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ChatMessageBubble } from "@/components/chat/ChatMessageBubble";
+import { ConversationItem, type ConversationItemData } from "@/components/chat/ConversationItem";
+import { DateSeparator } from "@/components/chat/DateSeparator";
+import { MessageBubble, type MessageBubbleData } from "@/components/chat/MessageBubble";
+import { MessageInput } from "@/components/chat/MessageInput";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { VideoMessageComposer } from "@/components/chat/VideoMessageComposer";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +44,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useSSE } from "@/hooks/useSSE";
 import {
   useWhatsAppConversations,
   useWhatsAppMessages,
@@ -57,7 +62,119 @@ interface Conversation {
   lastMessage: string | null;
   lastMessageAt: Date | string | null;
   unreadCount: number;
+  profileThumbnail?: string | null;
 }
+
+type MessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";
+
+interface WhatsAppMessage {
+  id: number;
+  mentoradoId: number;
+  leadId: number | null;
+  phone: string;
+  direction: "inbound" | "outbound";
+  content: string;
+  zapiMessageId: string | null;
+  status: MessageStatus;
+  isFromAi: "sim" | "nao" | null;
+  mediaType?: string | null;
+  mediaUrl?: string | null;
+  mediaThumbnail?: string | null;
+  mediaSize?: number | null;
+  quotedMessageId?: number | null;
+  createdAt: Date | string;
+  readAt?: Date | string | null;
+}
+
+type TypingState = Record<string, { isTyping: boolean; at: number }>;
+type PresenceState = Record<string, boolean>;
+
+function normalizePhone(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function phonesMatch(left: string, right: string): boolean {
+  const a = normalizePhone(left);
+  const b = normalizePhone(right);
+  return a === b || (a.length >= 8 && b.length >= 8 && a.slice(-8) === b.slice(-8));
+}
+
+function ensureStatus(value: string | null | undefined): MessageStatus {
+  switch (value) {
+    case "pending":
+    case "sent":
+    case "delivered":
+    case "read":
+    case "failed":
+      return value;
+    default:
+      return "pending";
+  }
+}
+
+function mediaTypeFromRaw(
+  type: string | null | undefined
+): "image" | "audio" | "video" | "file" | null {
+  if (!type) return null;
+  const normalized = type.toLowerCase();
+
+  if (normalized.includes("image") || normalized.includes("foto")) return "image";
+  if (normalized.includes("audio") || normalized.includes("voice")) return "audio";
+  if (normalized.includes("video")) return "video";
+  if (normalized.includes("document") || normalized.includes("file")) return "file";
+
+  return "file";
+}
+
+function mapMessageToBubble(message: WhatsAppMessage): MessageBubbleData {
+  const type = mediaTypeFromRaw(message.mediaType);
+
+  return {
+    id: message.id,
+    direction: message.direction,
+    content: message.content ?? "",
+    createdAt: message.createdAt,
+    status: ensureStatus(message.status),
+    isFromAi: message.isFromAi,
+    media:
+      type && (message.mediaUrl || message.mediaThumbnail || message.mediaSize)
+        ? {
+            type,
+            url: message.mediaUrl ?? null,
+            thumbnailUrl: message.mediaThumbnail ?? null,
+            sizeBytes: message.mediaSize ?? null,
+          }
+        : null,
+    quote: null,
+    reactions: undefined,
+  };
+}
+
+function dayKey(value: Date | string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "invalid";
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function isNearBottom(element: HTMLElement, threshold = 120): boolean {
+  return element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+}
+
+const TYPING_TIMEOUT_MS = 4500;
+
+interface RenderMessageItem {
+  type: "message";
+  key: string;
+  message: MessageBubbleData;
+}
+
+interface RenderDateItem {
+  type: "date";
+  key: string;
+  date: Date | string;
+}
+
+type RenderItem = RenderMessageItem | RenderDateItem;
 
 export function ChatPage() {
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
@@ -128,17 +245,345 @@ export function ChatPage() {
     });
   };
 
-  // Filter conversations by search
-  const filteredConversations =
-    conversations?.filter((conv: Conversation) => {
-      if (!searchQuery) return true;
-      const nameMatch = conv.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const phoneMatch = conv.phone.includes(searchQuery);
-      return nameMatch || phoneMatch;
-    }) ?? [];
+  const [typingByPhone, setTypingByPhone] = useState<TypingState>({});
+  const [presenceByPhone, setPresenceByPhone] = useState<PresenceState>({});
+  const [messageOverrides, setMessageOverrides] = useState<
+    Record<number, Partial<WhatsAppMessage>>
+  >({});
+  const [pendingNewMessagesByPhone, setPendingNewMessagesByPhone] = useState<
+    Record<string, MessageBubbleData[]>
+  >({});
+
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  const {
+    onNewMessage,
+    onMessageRead,
+    onTypingStart,
+    onTypingStop,
+    onContactOnline,
+    onContactOffline,
+  } = useSSE({ enabled: Boolean(isAnyConnected) });
 
   // Get selected conversation data
   const selectedConversation = conversations?.find((c: Conversation) => c.phone === selectedPhone);
+
+  const mergedMessages = useMemo<WhatsAppMessage[]>(() => {
+    const safeMessages = ((messages as WhatsAppMessage[] | undefined) ?? []).map((msg) => {
+      const override = messageOverrides[msg.id];
+      return override ? { ...msg, ...override } : msg;
+    });
+
+    const pendings = selectedPhone ? (pendingNewMessagesByPhone[selectedPhone] ?? []) : [];
+    if (pendings.length === 0) return safeMessages;
+
+    const minNegativeId = safeMessages.reduce(
+      (current, item) => Math.min(current, Number(item.id) || 0),
+      0
+    );
+
+    const pendingAsMessages: WhatsAppMessage[] = pendings.map((pending, index) => {
+      const fallbackId = minNegativeId - index - 1;
+
+      return {
+        id: Number.isFinite(pending.id) ? pending.id : fallbackId,
+        mentoradoId: -1,
+        leadId: selectedConversation?.leadId ?? null,
+        phone: selectedPhone ?? "",
+        direction: pending.direction,
+        content: pending.content,
+        zapiMessageId: null,
+        status: pending.status,
+        isFromAi: pending.isFromAi ?? null,
+        mediaType: pending.media?.type ?? null,
+        mediaUrl: pending.media?.url ?? null,
+        mediaThumbnail: pending.media?.thumbnailUrl ?? null,
+        mediaSize: pending.media?.sizeBytes ?? null,
+        quotedMessageId: pending.quote?.messageId ?? null,
+        createdAt: pending.createdAt,
+        readAt: null,
+      };
+    });
+
+    return [...safeMessages, ...pendingAsMessages].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+  }, [
+    messages,
+    messageOverrides,
+    pendingNewMessagesByPhone,
+    selectedConversation?.leadId,
+    selectedPhone,
+  ]);
+
+  const renderItems = useMemo<RenderItem[]>(() => {
+    const items: RenderItem[] = [];
+    let previousDay = "";
+
+    for (const rawMessage of mergedMessages) {
+      const bubble = mapMessageToBubble(rawMessage);
+      const keyDay = dayKey(bubble.createdAt);
+
+      if (previousDay !== keyDay) {
+        previousDay = keyDay;
+        items.push({
+          type: "date",
+          key: `date-${keyDay}-${bubble.id}`,
+          date: bubble.createdAt,
+        });
+      }
+
+      items.push({
+        type: "message",
+        key: `message-${bubble.id}`,
+        message: bubble,
+      });
+    }
+
+    return items;
+  }, [mergedMessages]);
+
+  const selectedPhoneTyping = selectedPhone ? typingByPhone[selectedPhone] : undefined;
+  const isSelectedTyping = Boolean(
+    selectedPhoneTyping &&
+      selectedPhoneTyping.isTyping &&
+      Date.now() - selectedPhoneTyping.at < TYPING_TIMEOUT_MS
+  );
+
+  const conversationItems = useMemo<ConversationItemData[]>(() => {
+    return (
+      (conversations as Conversation[] | undefined)?.map((conversation) => {
+        const normalizedPhone = normalizePhone(conversation.phone);
+        const typing = typingByPhone[normalizedPhone] ?? typingByPhone[conversation.phone];
+        const online = presenceByPhone[normalizedPhone] ?? presenceByPhone[conversation.phone];
+
+        return {
+          phone: conversation.phone,
+          name: conversation.name,
+          avatarUrl: conversation.profileThumbnail ?? null,
+          lastMessage: conversation.lastMessage,
+          lastMessageAt: conversation.lastMessageAt,
+          unreadCount: conversation.unreadCount,
+          isOnline: Boolean(online),
+          isTyping: Boolean(typing?.isTyping && Date.now() - typing.at < TYPING_TIMEOUT_MS),
+        };
+      }) ?? []
+    );
+  }, [conversations, presenceByPhone, typingByPhone]);
+
+  useEffect(() => {
+    if (!selectedPhone) return;
+
+    const normalized = normalizePhone(selectedPhone);
+    setTypingByPhone((previous) => {
+      if (!previous[normalized]) return previous;
+      const next = { ...previous };
+      delete next[normalized];
+      return next;
+    });
+
+    setPendingNewMessagesByPhone((previous) => {
+      if (!previous[normalized] && !previous[selectedPhone]) return previous;
+      const next = { ...previous };
+      delete next[normalized];
+      delete next[selectedPhone];
+      return next;
+    });
+  }, [selectedPhone]);
+
+  useEffect(() => {
+    if (!selectedPhone) return;
+
+    const normalizedSelected = normalizePhone(selectedPhone);
+
+    const unsubscribeNewMessage = onNewMessage((payload) => {
+      if (!payload.phone || (payload.direction !== "inbound" && payload.direction !== "outbound"))
+        return;
+
+      const payloadPhone = normalizePhone(payload.phone);
+      const isCurrentConversation =
+        payloadPhone === normalizedSelected || phonesMatch(payload.phone, selectedPhone);
+
+      if (!isCurrentConversation) {
+        refetchConversations();
+        return;
+      }
+
+      const incomingMessage: MessageBubbleData = {
+        id: Number(payload.id ?? Date.now()),
+        direction: payload.direction,
+        content: payload.content ?? "",
+        createdAt: payload.createdAt ?? new Date().toISOString(),
+        status: ensureStatus(payload.status),
+        media: payload.mediaType
+          ? {
+              type: mediaTypeFromRaw(payload.mediaType) ?? "file",
+              url: payload.mediaUrl ?? null,
+            }
+          : null,
+      };
+
+      setPendingNewMessagesByPhone((previous) => {
+        const key = payloadPhone;
+        const existing = previous[key] ?? [];
+
+        const alreadyExists = existing.some((item) => item.id === incomingMessage.id);
+        if (alreadyExists) return previous;
+
+        return {
+          ...previous,
+          [key]: [...existing, incomingMessage],
+        };
+      });
+
+      refetchMessages();
+      refetchConversations();
+
+      setTypingByPhone((previous) => {
+        if (!previous[payloadPhone]) return previous;
+        const next = { ...previous };
+        delete next[payloadPhone];
+        return next;
+      });
+    });
+
+    const unsubscribeMessageRead = onMessageRead((payload) => {
+      if (!payload.messageId) return;
+
+      setMessageOverrides((previous) => ({
+        ...previous,
+        [payload.messageId as number]: {
+          status: ensureStatus(payload.status ?? "read"),
+          readAt: payload.readAt ? new Date(payload.readAt) : new Date(),
+        },
+      }));
+    });
+
+    const unsubscribeTypingStart = onTypingStart((payload) => {
+      if (!payload.phone) return;
+
+      const payloadPhone = normalizePhone(payload.phone);
+      const isCurrentConversation =
+        payloadPhone === normalizedSelected || phonesMatch(payload.phone, selectedPhone);
+      if (!isCurrentConversation) return;
+
+      setTypingByPhone((previous) => ({
+        ...previous,
+        [payloadPhone]: {
+          isTyping: true,
+          at: payload.at ? new Date(payload.at).getTime() : Date.now(),
+        },
+      }));
+    });
+
+    const unsubscribeTypingStop = onTypingStop((payload) => {
+      if (!payload.phone) return;
+      const payloadPhone = normalizePhone(payload.phone);
+
+      setTypingByPhone((previous) => {
+        if (!previous[payloadPhone]) return previous;
+        const next = { ...previous };
+        delete next[payloadPhone];
+        return next;
+      });
+    });
+
+    const unsubscribeContactOnline = onContactOnline((payload) => {
+      if (!payload.phone) return;
+      const payloadPhone = normalizePhone(payload.phone);
+      setPresenceByPhone((previous) => ({
+        ...previous,
+        [payloadPhone]: true,
+      }));
+    });
+
+    const unsubscribeContactOffline = onContactOffline((payload) => {
+      if (!payload.phone) return;
+      const payloadPhone = normalizePhone(payload.phone);
+      setPresenceByPhone((previous) => ({
+        ...previous,
+        [payloadPhone]: false,
+      }));
+    });
+
+    return () => {
+      unsubscribeNewMessage();
+      unsubscribeMessageRead();
+      unsubscribeTypingStart();
+      unsubscribeTypingStop();
+      unsubscribeContactOnline();
+      unsubscribeContactOffline();
+    };
+  }, [
+    onContactOffline,
+    onContactOnline,
+    onMessageRead,
+    onNewMessage,
+    onTypingStart,
+    onTypingStop,
+    refetchConversations,
+    refetchMessages,
+    selectedPhone,
+  ]);
+
+  const handleScroll = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const nearBottom = isNearBottom(viewport);
+    setShouldAutoScroll(nearBottom);
+    setShowScrollToBottom(!nearBottom);
+  }, []);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    bottomAnchorRef.current?.scrollIntoView({ behavior, block: "end" });
+  }, []);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    viewport.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      viewport.removeEventListener("scroll", handleScroll);
+    };
+  }, [handleScroll]);
+
+  useEffect(() => {
+    if (shouldAutoScroll) {
+      scrollToBottom("smooth");
+    }
+  }, [renderItems, shouldAutoScroll, scrollToBottom]);
+
+  const handleTypingChange = useCallback(() => {
+    // Front-only typing UX in this phase; backend sendTyping mutation can be wired in next phase.
+  }, []);
+
+  const handleAttachmentSelect = useCallback(() => {
+    // Placeholder for Phase 4 media upload.
+  }, []);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    setMessage((previous) => `${previous}${emoji}`);
+  }, []);
+
+  const handleAudioAction = useCallback(() => {
+    // Placeholder for audio recording in future phase.
+  }, []);
+
+  // Filter conversations by search
+  const filteredConversationItems = conversationItems.filter((conv) => {
+    if (!searchQuery) return true;
+    const nameMatch = conv.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const phoneMatch = conv.phone.includes(searchQuery);
+    return nameMatch || phoneMatch;
+  });
 
   const handleSend = () => {
     if (!message.trim() || sendMutation.isPending || !selectedPhone) return;
@@ -149,13 +594,6 @@ export function ChatPage() {
       message: message.trim(),
       ...(leadId && { leadId }),
     });
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
   };
 
   const handleAddContact = () => {
@@ -169,18 +607,6 @@ export function ChatPage() {
     setAddContactOpen(false);
     setNewContactPhone("");
     setNewContactName("");
-  };
-
-  const formatTime = (date: Date | string | null) => {
-    if (!date) return "";
-    const d = new Date(date);
-    const now = new Date();
-    const isToday = d.toDateString() === now.toDateString();
-
-    if (isToday) {
-      return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    }
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   };
 
   const isAiEnabled = aiConfig?.enabled === "sim";
@@ -332,49 +758,15 @@ export function ChatPage() {
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
-              ) : filteredConversations.length > 0 ? (
+              ) : filteredConversationItems.length > 0 ? (
                 <div className="py-2">
-                  {filteredConversations.map((conv: Conversation) => (
-                    <button
-                      type="button"
+                  {filteredConversationItems.map((conv) => (
+                    <ConversationItem
                       key={conv.phone}
-                      onClick={() => setSelectedPhone(conv.phone)}
-                      className={cn(
-                        "w-full px-4 py-3 flex items-center gap-3 hover:bg-accent/50 transition-colors text-left",
-                        selectedPhone === conv.phone && "bg-accent"
-                      )}
-                    >
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        {conv.leadId ? (
-                          <User className="w-5 h-5 text-primary" />
-                        ) : (
-                          <MessageCircle className="w-5 h-5 text-muted-foreground" />
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-sm truncate">
-                            {conv.name || conv.phone}
-                          </span>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {formatTime(conv.lastMessageAt)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-0.5">
-                          <p className="text-xs text-muted-foreground truncate">
-                            {conv.lastMessage || "Sem mensagens"}
-                          </p>
-                          {conv.unreadCount > 0 && (
-                            <Badge variant="default" className="h-5 min-w-5 text-xs">
-                              {conv.unreadCount}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </button>
+                      conversation={conv}
+                      isSelected={selectedPhone === conv.phone}
+                      onClick={setSelectedPhone}
+                    />
                   ))}
                 </div>
               ) : (
@@ -402,7 +794,25 @@ export function ChatPage() {
                       <h4 className="font-semibold text-sm text-slate-100">
                         {selectedConversation?.name || selectedPhone}
                       </h4>
-                      <p className="text-xs text-slate-400 font-medium">{selectedPhone}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-slate-400 font-medium">{selectedPhone}</p>
+                        <span
+                          className={cn(
+                            "h-2 w-2 rounded-full",
+                            selectedPhone
+                              ? presenceByPhone[normalizePhone(selectedPhone)]
+                                ? "bg-emerald-500"
+                                : "bg-slate-500"
+                              : "bg-slate-500"
+                          )}
+                          aria-hidden="true"
+                          title={
+                            selectedPhone && presenceByPhone[normalizePhone(selectedPhone)]
+                              ? "Contato online"
+                              : "Contato offline"
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -489,39 +899,83 @@ export function ChatPage() {
 
                 {/* Messages Area */}
                 <ScrollArea className="flex-1 px-4 py-4">
-                  <div className="space-y-3 max-w-3xl mx-auto">
-                    <AnimatePresence mode="popLayout">
-                      {messagesLoading ? (
-                        <motion.div
-                          key="loading"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex items-center justify-center h-32"
-                        >
-                          <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-                        </motion.div>
-                      ) : messages && messages.length > 0 ? (
-                        messages.map((msg) => <ChatMessageBubble key={msg.id} message={msg} />)
-                      ) : (
-                        <motion.div
-                          key="empty"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex flex-col items-center justify-center h-48 text-center"
-                        >
-                          <div className="p-4 rounded-full bg-slate-800 mb-3">
-                            <MessageCircle className="w-8 h-8 text-slate-500" />
-                          </div>
-                          <p className="text-sm text-slate-400 font-medium">
-                            Nenhuma mensagem ainda
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">Envie a primeira mensagem</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  <div ref={viewportRef} className="h-full overflow-y-auto pr-1">
+                    <div className="space-y-3 max-w-3xl mx-auto">
+                      <AnimatePresence mode="popLayout">
+                        {messagesLoading ? (
+                          <motion.div
+                            key="loading"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex items-center justify-center h-32"
+                          >
+                            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                          </motion.div>
+                        ) : renderItems.length > 0 ? (
+                          renderItems.map((item) =>
+                            item.type === "date" ? (
+                              <DateSeparator key={item.key} date={item.date} />
+                            ) : (
+                              <MessageBubble key={item.key} message={item.message} />
+                            )
+                          )
+                        ) : (
+                          <motion.div
+                            key="empty"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col items-center justify-center h-48 text-center"
+                          >
+                            <div className="p-4 rounded-full bg-slate-800 mb-3">
+                              <MessageCircle className="w-8 h-8 text-slate-500" />
+                            </div>
+                            <p className="text-sm text-slate-400 font-medium">
+                              Nenhuma mensagem ainda
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1">Envie a primeira mensagem</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <TypingIndicator
+                        isVisible={isSelectedTyping}
+                        label="Contato digitando…"
+                        lastActivityAt={selectedPhoneTyping?.at}
+                        timeoutMs={TYPING_TIMEOUT_MS}
+                        onTimeout={() => {
+                          if (!selectedPhone) return;
+                          const normalized = normalizePhone(selectedPhone);
+                          setTypingByPhone((previous) => {
+                            if (!previous[normalized]) return previous;
+                            const next = { ...previous };
+                            delete next[normalized];
+                            return next;
+                          });
+                        }}
+                      />
+
+                      <div ref={bottomAnchorRef} />
+                    </div>
                   </div>
+
+                  {showScrollToBottom ? (
+                    <div className="pointer-events-none absolute bottom-4 right-4">
+                      <Button
+                        type="button"
+                        size="icon"
+                        className="pointer-events-auto rounded-full shadow-lg"
+                        onClick={() => {
+                          setShouldAutoScroll(true);
+                          scrollToBottom("smooth");
+                        }}
+                        aria-label="Ir para o fim da conversa"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : null}
                 </ScrollArea>
 
                 {/* Input Area */}
@@ -537,14 +991,20 @@ export function ChatPage() {
                     >
                       <Video className="w-5 h-5" />
                     </Button>
-                    <Textarea
+
+                    <MessageInput
                       value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onKeyDown={handleKeyDown}
+                      onChange={setMessage}
+                      onSend={handleSend}
+                      onTypingChange={handleTypingChange}
+                      onAttachmentSelect={handleAttachmentSelect}
+                      onEmojiSelect={handleEmojiSelect}
+                      onAudioAction={handleAudioAction}
+                      disabled={sendMutation.isPending || !selectedPhone}
                       placeholder="Digite sua mensagem..."
-                      className="min-h-[44px] max-h-32 resize-none bg-slate-700/50 border-slate-600/50 text-slate-100 placeholder:text-slate-400 focus:ring-emerald-500/50 focus:border-emerald-500/50"
-                      rows={1}
+                      className="flex-1 rounded-md border-slate-600/50 bg-slate-700/50"
                     />
+
                     <Button
                       onClick={handleSend}
                       disabled={!message.trim() || sendMutation.isPending}

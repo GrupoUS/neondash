@@ -59,35 +59,35 @@ export function PrecificacaoTab() {
   const [tempInsumo, setTempInsumo] = useState({ insumoId: "", quantidade: "1" });
 
   const utils = trpc.useUtils();
-  const { data: procedimentos, isLoading } = trpc.precificacao.procedimentos.list.useQuery();
-  const { data: insumosDisponiveis } = trpc.precificacao.insumos.list.useQuery();
-  const { data: custoCalc } = trpc.precificacao.procedimentos.calcularCusto.useQuery(
+  const { data: procedimentos, isLoading } = trpc.procedimentos.procedimentos.list.useQuery();
+  const { data: insumosDisponiveis } = trpc.procedimentos.insumos.list.useQuery();
+  const { data: custoCalc } = trpc.procedimentos.procedimentos.calcularCusto.useQuery(
     { id: selectedProcedimentoId ?? 0 },
     { enabled: !!selectedProcedimentoId }
   );
 
-  const createMutation = trpc.precificacao.procedimentos.create.useMutation({
+  const createMutation = trpc.procedimentos.procedimentos.create.useMutation({
     onSuccess: () => {
       toast.success("Procedimento criado");
-      utils.precificacao.procedimentos.list.invalidate();
+      utils.procedimentos.procedimentos.list.invalidate();
       closeDialog();
     },
     onError: (e) => toast.error(e.message),
   });
 
-  const updateMutation = trpc.precificacao.procedimentos.update.useMutation({
+  const updateMutation = trpc.procedimentos.procedimentos.update.useMutation({
     onSuccess: () => {
       toast.success("Procedimento atualizado");
-      utils.precificacao.procedimentos.list.invalidate();
+      utils.procedimentos.procedimentos.list.invalidate();
       closeDialog();
     },
     onError: (e) => toast.error(e.message),
   });
 
-  const deleteMutation = trpc.precificacao.procedimentos.delete.useMutation({
+  const deleteMutation = trpc.procedimentos.procedimentos.delete.useMutation({
     onSuccess: () => {
       toast.success("Procedimento removido");
-      utils.precificacao.procedimentos.list.invalidate();
+      utils.procedimentos.procedimentos.list.invalidate();
     },
     onError: (e) => toast.error(e.message),
   });

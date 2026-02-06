@@ -12,7 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIAgentSettingsCard } from "@/components/whatsapp/AIAgentSettingsCard";
 import { BaileysConnectionCard } from "@/components/whatsapp/BaileysConnectionCard";
-import { MetaConnectionCard } from "@/components/whatsapp/MetaConnectionCard";
+// TODO: Reativar quando Meta Cloud API estiver configurado
+// import { MetaConnectionCard } from "@/components/whatsapp/MetaConnectionCard";
 import { ProviderComparisonTable } from "@/components/whatsapp/ProviderComparisonTable";
 import { WhatsAppConnectionCard } from "@/components/whatsapp/WhatsAppConnectionCard";
 
@@ -46,23 +47,24 @@ export function SettingsPage() {
           </p>
 
           <Tabs defaultValue="baileys" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
-              <TabsTrigger value="zapi">Z-API (Estável)</TabsTrigger>
-              <TabsTrigger value="meta">Meta Cloud API (Oficial)</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="baileys">Baileys (Self-Hosted)</TabsTrigger>
+              <TabsTrigger value="zapi">Z-API (Estável)</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="baileys" className="space-y-4">
+              <BaileysConnectionCard />
+            </TabsContent>
 
             <TabsContent value="zapi" className="space-y-4">
               <WhatsAppConnectionCard />
             </TabsContent>
 
+            {/* TODO: Reativar quando Meta Cloud API estiver configurado
             <TabsContent value="meta" className="space-y-4">
               <MetaConnectionCard />
             </TabsContent>
-
-            <TabsContent value="baileys" className="space-y-4">
-              <BaileysConnectionCard />
-            </TabsContent>
+            */}
           </Tabs>
 
           <ProviderComparisonTable />

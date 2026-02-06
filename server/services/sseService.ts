@@ -1,19 +1,35 @@
 import type { Response } from "express";
 
+export type ChatSSEEvent =
+  | "connected"
+  | "message"
+  | "new-message"
+  | "message-read"
+  | "typing-start"
+  | "typing-stop"
+  | "contact-online"
+  | "contact-offline"
+  | "status_update";
+
+interface SSEClient {
+  response: Response;
+  phone?: string;
+}
+
 /**
  * SSE Service for real-time chat message push
 
  * Manages client connections and broadcasts events to connected clients
  */
 class SSEService {
-  private clients: Map<number, Response[]> = new Map();
+  private clients: Map<number, SSEClient[]> = new Map();
 
   /**
    * Add a client connection for a mentorado
    */
   addClient(mentoradoId: number, res: Response): void {
     const existing = this.clients.get(mentoradoId) ?? [];
-    existing.push(res);
+    existing.push({ response: res });
     this.clients.set(mentoradoId, existing);
 
     // Send initial connection confirmation
@@ -27,7 +43,7 @@ class SSEService {
     const existing = this.clients.get(mentoradoId);
     if (!existing) return;
 
-    const filtered = existing.filter((r) => r !== res);
+    const filtered = existing.filter((client) => client.response !== res);
     if (filtered.length === 0) {
       this.clients.delete(mentoradoId);
     } else {
@@ -36,21 +52,54 @@ class SSEService {
   }
 
   /**
+   * Attach a phone filter to a specific client connection
+   */
+  setClientPhone(mentoradoId: number, res: Response, phone: string): void {
+    const existing = this.clients.get(mentoradoId);
+    if (!existing) return;
+
+    for (const client of existing) {
+      if (client.response === res) {
+        client.phone = phone;
+      }
+    }
+  }
+
+  /**
    * Broadcast an event to all clients of a mentorado
    */
-  broadcast(mentoradoId: number, eventName: string, data: unknown): void {
+  broadcast(mentoradoId: number, eventName: ChatSSEEvent, data: unknown): void {
     const clientResponses = this.clients.get(mentoradoId);
     if (!clientResponses || clientResponses.length === 0) return;
 
-    for (const res of clientResponses) {
-      this.sendToClient(res, eventName, data);
+    for (const client of clientResponses) {
+      this.sendToClient(client.response, eventName, data);
+    }
+  }
+
+  /**
+   * Broadcast an event to clients subscribed to a specific phone
+   */
+  broadcastToPhone(
+    mentoradoId: number,
+    phone: string,
+    eventName: ChatSSEEvent,
+    data: unknown
+  ): void {
+    const clientResponses = this.clients.get(mentoradoId);
+    if (!clientResponses || clientResponses.length === 0) return;
+
+    for (const client of clientResponses) {
+      if (!client.phone || client.phone === phone) {
+        this.sendToClient(client.response, eventName, data);
+      }
     }
   }
 
   /**
    * Send SSE event to a single client
    */
-  private sendToClient(res: Response, eventName: string, data: unknown): void {
+  private sendToClient(res: Response, eventName: ChatSSEEvent, data: unknown): void {
     try {
       res.write(`event: ${eventName}\n`);
       res.write(`data: ${JSON.stringify(data)}\n\n`);

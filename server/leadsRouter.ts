@@ -154,7 +154,7 @@ export const leadsRouter = router({
         // Aesthetic Fields (B2C)
         dataNascimento: z.string().optional(), // Date string
         genero: z.string().optional(),
-        procedimentosInteresse: z.array(z.string()).optional(),
+        procedimentosInteresse: z.array(z.number()).optional(),
         historicoEstetico: z.string().optional(),
         alergias: z.string().optional(),
         tipoPele: z.string().optional(),
@@ -235,7 +235,7 @@ export const leadsRouter = router({
         // Aesthetic Fields (B2C)
         dataNascimento: z.string().optional(),
         genero: z.string().optional(),
-        procedimentosInteresse: z.array(z.string()).optional(),
+        procedimentosInteresse: z.array(z.number()).optional(),
         historicoEstetico: z.string().optional(),
         alergias: z.string().optional(),
         tipoPele: z.string().optional(),

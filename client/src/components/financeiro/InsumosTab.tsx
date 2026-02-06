@@ -42,30 +42,30 @@ export function InsumosTab() {
   });
 
   const utils = trpc.useUtils();
-  const { data: insumos, isLoading } = trpc.precificacao.insumos.list.useQuery();
+  const { data: insumos, isLoading } = trpc.procedimentos.insumos.list.useQuery();
 
-  const createMutation = trpc.precificacao.insumos.create.useMutation({
+  const createMutation = trpc.procedimentos.insumos.create.useMutation({
     onSuccess: () => {
       toast.success("Insumo criado");
-      utils.precificacao.insumos.list.invalidate();
+      utils.procedimentos.insumos.list.invalidate();
       closeDialog();
     },
     onError: (e) => toast.error(e.message),
   });
 
-  const updateMutation = trpc.precificacao.insumos.update.useMutation({
+  const updateMutation = trpc.procedimentos.insumos.update.useMutation({
     onSuccess: () => {
       toast.success("Insumo atualizado");
-      utils.precificacao.insumos.list.invalidate();
+      utils.procedimentos.insumos.list.invalidate();
       closeDialog();
     },
     onError: (e) => toast.error(e.message),
   });
 
-  const deleteMutation = trpc.precificacao.insumos.delete.useMutation({
+  const deleteMutation = trpc.procedimentos.insumos.delete.useMutation({
     onSuccess: () => {
       toast.success("Insumo removido");
-      utils.precificacao.insumos.list.invalidate();
+      utils.procedimentos.insumos.list.invalidate();
     },
     onError: (e) => toast.error(e.message),
   });

@@ -1,6 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import type { Express } from "express";
-import { leads, mentorados, whatsappContacts, whatsappMessages } from "../../drizzle/schema";
+import {
+  leads,
+  mentorados,
+  statusLeadEnum,
+  whatsappContacts,
+  whatsappMessages,
+} from "../../drizzle/schema";
 import { getDb } from "../db";
 import {
   type BaileysConnectionEventPayload,
@@ -24,6 +30,31 @@ async function findLeadByPhone(mentoradoId: number, phone: string) {
       return baileysService.normalizePhone(lead.telefone) === baileysService.normalizePhone(phone);
     }) ?? null
   );
+}
+
+async function findOrCreateLead(mentoradoId: number, phone: string) {
+  const existing = await findLeadByPhone(mentoradoId, phone);
+  if (existing) return existing;
+
+  const db = getDb();
+  const fallbackStatus = statusLeadEnum.enumValues[0];
+  const targetStatus = statusLeadEnum.enumValues.includes("primeiro_contato")
+    ? "primeiro_contato"
+    : fallbackStatus;
+
+  const [created] = await db
+    .insert(leads)
+    .values({
+      mentoradoId,
+      nome: `Novo Contato WhatsApp ${phone.slice(-4)}`,
+      email: `${phone}@whatsapp.local`,
+      telefone: phone,
+      origem: "whatsapp",
+      status: targetStatus,
+    })
+    .returning();
+
+  return created ?? null;
 }
 
 export function registerBaileysWebhooks(app: Express) {
@@ -55,6 +86,7 @@ export function registerBaileysWebhooks(app: Express) {
       const db = getDb();
 
       if (status === "connected") {
+        // Successfully connected - persist to database
         await db
           .update(mentorados)
           .set({
@@ -64,7 +96,9 @@ export function registerBaileysWebhooks(app: Express) {
             updatedAt: new Date(),
           })
           .where(eq(mentorados.id, mentoradoId));
-      } else {
+      } else if (status === "disconnected") {
+        // Only clear connection when EXPLICITLY disconnected, not during "connecting" state
+        // This prevents the connection from being marked as disconnected during normal reconnection cycles
         await db
           .update(mentorados)
           .set({
@@ -75,6 +109,7 @@ export function registerBaileysWebhooks(app: Express) {
           })
           .where(eq(mentorados.id, mentoradoId));
       }
+      // Note: "connecting" status is intentionally ignored to preserve existing connection state
 
       sseService.broadcast(mentoradoId, "status_update", {
         status,
@@ -94,7 +129,7 @@ export function registerBaileysWebhooks(app: Express) {
 
       const db = getDb();
       const normalizedPhone = baileysService.normalizePhone(phone);
-      const lead = await findLeadByPhone(mentoradoId, normalizedPhone);
+      const lead = await findOrCreateLead(mentoradoId, normalizedPhone);
 
       const [savedMessage] = await db
         .insert(whatsappMessages)
@@ -111,7 +146,7 @@ export function registerBaileysWebhooks(app: Express) {
         })
         .returning();
 
-      sseService.broadcast(mentoradoId, "message", {
+      sseService.broadcastToPhone(mentoradoId, normalizedPhone, "new-message", {
         id: savedMessage?.id,
         phone: normalizedPhone,
         leadId: lead?.id ?? null,
@@ -120,6 +155,19 @@ export function registerBaileysWebhooks(app: Express) {
         status: "delivered",
         provider: "baileys",
         createdAt: savedMessage?.createdAt ?? new Date().toISOString(),
+      });
+    }
+  );
+
+  baileysSessionManager.on(
+    "connection.update",
+    ({ mentoradoId, connected, phone }: BaileysConnectionEventPayload) => {
+      if (!phone) return;
+      const normalizedPhone = baileysService.normalizePhone(phone);
+      const eventName = connected ? "contact-online" : "contact-offline";
+      sseService.broadcastToPhone(mentoradoId, normalizedPhone, eventName, {
+        phone: normalizedPhone,
+        isOnline: connected,
       });
     }
   );

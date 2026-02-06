@@ -10,7 +10,7 @@
 import { and, eq } from "drizzle-orm";
 import type { Router } from "express";
 import type { Lead } from "../../drizzle/schema";
-import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
+import { leads, mentorados, statusLeadEnum, whatsappMessages } from "../../drizzle/schema";
 import { createLogger } from "../_core/logger";
 import { getDb } from "../db";
 import { sseService } from "../services/sseService";
@@ -56,6 +56,10 @@ export interface MetaIncomingMessage {
   audio?: { id: string; mime_type: string };
   video?: { id: string; mime_type: string };
   document?: { id: string; filename: string; mime_type: string };
+  reaction?: {
+    message_id: string;
+    emoji: string;
+  };
   interactive?: {
     type: "button_reply" | "list_reply";
     button_reply?: { id: string; title: string };
@@ -160,6 +164,31 @@ async function findLeadByPhone(mentoradoId: number, phone: string) {
   );
 }
 
+async function findOrCreateLead(mentoradoId: number, phone: string, contactName?: string) {
+  const existing = await findLeadByPhone(mentoradoId, phone);
+  if (existing) return existing;
+
+  const db = getDb();
+  const fallbackStatus = statusLeadEnum.enumValues[0];
+  const targetStatus = statusLeadEnum.enumValues.includes("primeiro_contato")
+    ? "primeiro_contato"
+    : fallbackStatus;
+
+  const [created] = await db
+    .insert(leads)
+    .values({
+      mentoradoId,
+      nome: contactName?.trim() || `Novo Contato WhatsApp ${phone.slice(-4)}`,
+      email: `${phone}@whatsapp.local`,
+      telefone: phone,
+      origem: "whatsapp",
+      status: targetStatus,
+    })
+    .returning();
+
+  return created ?? null;
+}
+
 /**
  * Extract text content from various message types
  */
@@ -216,7 +245,25 @@ async function handleIncomingMessage(
   const normalizedPhone = message.from;
 
   // Find associated lead
-  const lead = await findLeadByPhone(mentorado.id, normalizedPhone);
+  const lead = await findOrCreateLead(mentorado.id, normalizedPhone, contactName);
+
+  let quotedMessageId: number | null = null;
+  if (message.reaction?.message_id) {
+    const db = getDb();
+    const [quoted] = await db
+      .select({ id: whatsappMessages.id })
+      .from(whatsappMessages)
+      .where(
+        and(
+          eq(whatsappMessages.mentoradoId, mentorado.id),
+          eq(whatsappMessages.zapiMessageId, message.reaction.message_id)
+        )
+      )
+      .limit(1);
+    quotedMessageId = quoted?.id ?? null;
+  }
+
+  const mediaType = ["text", "interactive"].includes(message.type) ? null : message.type;
 
   // Store message
   const db = getDb();
@@ -231,19 +278,29 @@ async function handleIncomingMessage(
       zapiMessageId: message.id, // Reuse field for Meta message ID
       status: "delivered",
       isFromAi: "nao",
+      mediaType,
+      quotedMessageId,
     })
     .returning();
 
   // Broadcast via SSE
-  sseService.broadcast(mentorado.id, "message", {
+  sseService.broadcastToPhone(mentorado.id, normalizedPhone, "new-message", {
     id: savedMessage?.id,
     phone: normalizedPhone,
     leadId: lead?.id ?? null,
     direction: "inbound",
     content,
     status: "delivered",
+    mediaType,
+    quotedMessageId,
     senderName: contactName,
     createdAt: savedMessage?.createdAt ?? new Date().toISOString(),
+  });
+
+  sseService.broadcastToPhone(mentorado.id, normalizedPhone, "typing-stop", {
+    phone: normalizedPhone,
+    at: new Date().toISOString(),
+    provider: "meta",
   });
 
   logger.info("Meta message saved", {
@@ -269,7 +326,10 @@ async function handleMessageStatus(status: MetaMessageStatus): Promise<void> {
   // Update message status in database
   const [updated] = await db
     .update(whatsappMessages)
-    .set({ status: status.status })
+    .set({
+      status: status.status,
+      readAt: status.status === "read" ? new Date() : null,
+    })
     .where(
       and(
         eq(whatsappMessages.zapiMessageId, status.id),
@@ -280,14 +340,19 @@ async function handleMessageStatus(status: MetaMessageStatus): Promise<void> {
     .returning({
       mentoradoId: whatsappMessages.mentoradoId,
       id: whatsappMessages.id,
+      phone: whatsappMessages.phone,
+      readAt: whatsappMessages.readAt,
     });
 
   // Broadcast status update via SSE
   if (updated) {
-    sseService.broadcast(updated.mentoradoId, "status_update", {
+    const event = status.status === "read" ? "message-read" : "status_update";
+    sseService.broadcastToPhone(updated.mentoradoId, updated.phone, event, {
       messageId: updated.id,
       zapiMessageId: status.id,
+      phone: updated.phone,
       status: status.status,
+      readAt: updated.readAt,
     });
   }
 

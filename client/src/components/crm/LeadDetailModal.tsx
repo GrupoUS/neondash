@@ -52,6 +52,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { LeadChatWindow } from "../chat/LeadChatWindow";
+import { ProcedimentoSelector } from "../shared/ProcedimentoSelector";
 import { AddInteractionDialog } from "./AddInteractionDialog";
 
 interface LeadDetailModalProps {
@@ -103,6 +104,45 @@ const staggerContainer = {
       delayChildren: 0.1,
     },
   },
+};
+
+const ProcedureListDisplay = ({ procedureIds }: { procedureIds: number[] }) => {
+  const { data: procedures } = trpc.procedimentos.procedimentos.list.useQuery();
+
+  if (!procedureIds || procedureIds.length === 0) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+
+  const procedureNames = procedureIds
+    .map((id) => {
+      const proc = procedures?.find((p: { id: number; nome: string }) => p.id === id);
+      return proc ? proc.nome : undefined;
+    })
+    .filter(Boolean);
+
+  if (procedureNames.length === 0 && procedures) {
+    // If procedures loaded but no names found (maybe deleted?), show IDs? Or just dash.
+    // Let's show IDs just in case for now or fallback
+    return (
+      <span className="text-sm text-muted-foreground">
+        Procedimentos ID: {procedureIds.join(", ")}
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {procedureNames.map((name, i) => (
+        <Badge
+          key={i}
+          variant="secondary"
+          className="px-2 py-0.5 text-xs font-normal bg-primary/10 text-primary border-0"
+        >
+          {name}
+        </Badge>
+      ))}
+    </div>
+  );
 };
 
 export function LeadDetailModal({
@@ -200,7 +240,7 @@ export function LeadDetailModal({
       tags: editData.tags as string[],
       dataNascimento: (editData.dataNascimento as string) || undefined,
       genero: editData.genero as string,
-      procedimentosInteresse: editData.procedimentosInteresse as string[],
+      procedimentosInteresse: editData.procedimentosInteresse as number[],
       historicoEstetico: editData.historicoEstetico as string,
       alergias: editData.alergias as string,
       tipoPele: editData.tipoPele as string,
@@ -723,42 +763,17 @@ export function LeadDetailModal({
                               Interesse em
                             </Label>
                             {isEditing ? (
-                              <Input
-                                value={
-                                  Array.isArray(editData?.procedimentosInteresse)
-                                    ? (editData.procedimentosInteresse as string[]).join(", ")
-                                    : (editData?.procedimentosInteresse as string) || ""
+                              <ProcedimentoSelector
+                                value={(editData?.procedimentosInteresse as number[]) || []}
+                                onChange={(val) =>
+                                  setEditData({ ...editData, procedimentosInteresse: val })
                                 }
-                                onChange={(e) =>
-                                  setEditData({
-                                    ...editData,
-                                    procedimentosInteresse: e.target.value
-                                      .split(",")
-                                      .map((s: string) => s.trim()),
-                                  })
-                                }
-                                placeholder="Botox, Preenchimento, etc (separar por vírgula)"
-                                className="bg-background/50 border-border/50 h-9"
+                                disabled={updateMutation.isPending}
                               />
                             ) : (
-                              <div className="flex flex-wrap gap-1.5">
-                                {data.lead.procedimentosInteresse &&
-                                data.lead.procedimentosInteresse.length > 0 ? (
-                                  data.lead.procedimentosInteresse.map(
-                                    (proc: string, i: number) => (
-                                      <Badge
-                                        key={i}
-                                        variant="secondary"
-                                        className="px-2 py-0.5 text-xs font-normal bg-primary/10 text-primary border-0"
-                                      >
-                                        {proc}
-                                      </Badge>
-                                    )
-                                  )
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">—</span>
-                                )}
-                              </div>
+                              <ProcedureListDisplay
+                                procedureIds={(data.lead.procedimentosInteresse as number[]) || []}
+                              />
                             )}
                           </div>
 

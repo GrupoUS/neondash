@@ -5,6 +5,7 @@ import { clerkMiddleware, getAuth } from "@clerk/express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import express from "express";
 import { appRouter } from "../routers";
+import { registerBaileysWebhooks } from "../webhooks/baileysWebhook";
 import { handleClerkWebhook } from "../webhooks/clerk";
 import { registerMetaWebhooks } from "../webhooks/metaWebhook";
 import { registerZapiWebhooks } from "../webhooks/zapiWebhook";
@@ -58,6 +59,11 @@ async function startServer() {
   // Z-API Webhooks (for WhatsApp integration)
   // ─────────────────────────────────────────────────────────────────────────
   registerZapiWebhooks(app);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Baileys Webhooks (Self-Hosted)
+  // ─────────────────────────────────────────────────────────────────────────
+  registerBaileysWebhooks(app);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Meta WhatsApp Cloud API Webhooks

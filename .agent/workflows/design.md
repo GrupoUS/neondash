@@ -57,19 +57,9 @@ Comprehensive design workflow combining **research/planning** → **design syste
 - [ ] ST-001.1: {Subtask} → File: `path` → Validation: {check}
 ```
 
----
-
 ## Phase 0: Requirement Analysis (MANDATORY)
 
 **⛔ Complete before designing!**
-
-### Constraints
-| Constraint | Question |
-|------------|----------|
-| Timeline | How much time? |
-| Content | Ready or placeholder? |
-| Brand | Existing guidelines? |
-| Audience | Who exactly? |
 
 ### Extract
 - **Product type**: SaaS, dashboard, landing, etc.
@@ -78,8 +68,6 @@ Comprehensive design workflow combining **research/planning** → **design syste
 
 ### Socratic Gate
 If unclear, ASK: "What color palette?", "What style?", "Layout preference?"
-
----
 
 ## Phase 1: Design System (ui-ux-pro-max)
 
@@ -101,8 +89,6 @@ python3 .agent/skills/ui-ux-pro-max/scripts/search.py "query" --stack shadcn|rea
 
 **Domains:** `product`, `style`, `typography`, `color`, `landing`, `chart`, `ux`, `react`, `web`
 **Stacks:** `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`, `shadcn`
-
----
 
 ## Phase 1.5: AI Prototyping (Stitch)
 
@@ -132,8 +118,6 @@ For hero images or specific visuals needed in the design:
 # REQUIRED: Use --model gemini-3-pro for high fidelity
 python3 .agent/skills/frontend-design/scripts/generate_images.py "Prompt" "filename" --model gemini-3-pro
 ```
-
----
 
 ## Phase 1.3: shadcn Registry Search (MANDATORY)
 
@@ -238,8 +222,6 @@ mcp_context7_query-docs libraryId="/shadcn-ui/ui" query="[component_name]"
 # @aceternity: https://ui.aceternity.com/components
 ```
 
----
-
 ## Phase 2: Asset Generation (Optional)
 
 ### Image Generation
@@ -254,8 +236,6 @@ Guide: `algorithmic-art-guide.md`
 ### Canvas Art (PDF/PNG)
 Fonts: `.agent/skills/frontend-design/assets/canvas-fonts/`
 Guide: `canvas-design-guide.md`
-
----
 
 ## Phase 3: Implementation
 
@@ -294,8 +274,6 @@ export function FeatureCard({ ...props }) {
 - WCAG 2.1 AA (contrast 4.5:1, keyboard nav)
 - `prefers-reduced-motion` respected
 
----
-
 ## Phase 4: Validation (MANDATORY)
 
 ```bash
@@ -303,8 +281,6 @@ python3 .agent/skills/frontend-design/scripts/ux_audit.py <path>
 python3 .agent/skills/frontend-design/scripts/accessibility_checker.py <file>
 bun run check && bun run lint && bun test
 ```
-
----
 
 ## Phase 5: Store Design Patterns (Evolution Core)
 
@@ -338,8 +314,6 @@ python3 memory_manager.py capture "Implemented: Asymmetric hero layout breaking 
 python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "dashboard layout pattern"
 ```
 
----
-
 ## Anti-Patterns (FORBIDDEN)
 
 | ❌ Forbidden | ✅ Alternative |
@@ -350,8 +324,6 @@ python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "das
 | Glassmorphism everywhere | High-contrast flat |
 | Purple/Violet | **PURPLE BAN ✅** |
 | Emoji as icons | SVG (Heroicons/Lucide) |
-
----
 
 ## Pre-Delivery Checklist
 
@@ -378,8 +350,6 @@ python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "das
 - [ ] `bun run lint` ✓
 - [ ] UX audit script ✓
 
----
-
 ## Skill References
 
 | Skill | Key Files |
@@ -390,14 +360,3 @@ python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "das
 | gpus-theme | `assets/theme-tokens.css`, `assets/tailwind-theme.ts` |
 
 ---
-
-## Usage
-```bash
-/design "Dashboard brutalista para métricas"
-/design "Landing minimalista para clínica"
-/design  # interactive mode
-```
-
----
-
-> 🔴 **MAESTRO RULE:** "If I can find this layout in a Tailwind UI template, I have FAILED."

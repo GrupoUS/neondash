@@ -34,18 +34,21 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get connection status for both providers
+  // Get connection status for all providers
   const { data: zapiStatus, isLoading: isLoadingZapi } = trpc.zapi.getStatus.useQuery();
   const { data: metaStatus, isLoading: isLoadingMeta } = trpc.metaApi.getStatus.useQuery();
+  const { data: baileysStatus, isLoading: isLoadingBaileys } = trpc.baileys.getStatus.useQuery();
 
-  // Determine active provider: Meta takes priority if connected
-  const provider: "meta" | "zapi" | null = metaStatus?.connected
+  // Determine active provider: Meta > Z-API > Baileys
+  const provider: "meta" | "zapi" | "baileys" | null = metaStatus?.connected
     ? "meta"
     : zapiStatus?.connected
       ? "zapi"
-      : null;
+      : baileysStatus?.connected
+        ? "baileys"
+        : null;
 
-  const isLoadingStatus = isLoadingZapi || isLoadingMeta;
+  const isLoadingStatus = isLoadingZapi || isLoadingMeta || isLoadingBaileys;
 
   // Get TanStack Query utils for cache invalidation
   const utils = trpc.useUtils();
@@ -63,10 +66,32 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
     refetch: refetchMetaMessages,
   } = trpc.metaApi.getMessages.useQuery({ leadId }, { enabled: !!leadId && provider === "meta" });
 
+  const {
+    data: baileysMessages,
+    isLoading: isLoadingBaileysMessages,
+    refetch: refetchBaileysMessages,
+  } = trpc.baileys.getMessages.useQuery(
+    { leadId },
+    { enabled: !!leadId && provider === "baileys" }
+  );
+
   // Use messages from the active provider
-  const messages = provider === "meta" ? metaMessages : zapiMessages;
-  const isLoadingMessages = provider === "meta" ? isLoadingMetaMessages : isLoadingZapiMessages;
-  const refetchMessages = provider === "meta" ? refetchMetaMessages : refetchZapiMessages;
+  const messages =
+    provider === "meta" ? metaMessages : provider === "zapi" ? zapiMessages : baileysMessages;
+
+  const isLoadingMessages =
+    provider === "meta"
+      ? isLoadingMetaMessages
+      : provider === "zapi"
+        ? isLoadingZapiMessages
+        : isLoadingBaileysMessages;
+
+  const refetchMessages =
+    provider === "meta"
+      ? refetchMetaMessages
+      : provider === "zapi"
+        ? refetchZapiMessages
+        : refetchBaileysMessages;
 
   // Handle incoming SSE message
   const handleSSEMessage = useCallback(
@@ -78,15 +103,17 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
           // Invalidate the active provider's messages
           if (provider === "meta") {
             utils.metaApi.getMessages.invalidate({ leadId });
-          } else {
+          } else if (provider === "zapi") {
             utils.zapi.getMessages.invalidate({ leadId });
+          } else if (provider === "baileys") {
+            utils.baileys.getMessages.invalidate({ leadId });
           }
         }
       } catch {
         // Malformed JSON - ignore
       }
     },
-    [leadId, provider, utils.metaApi.getMessages, utils.zapi.getMessages]
+    [leadId, provider, utils.metaApi.getMessages, utils.zapi.getMessages, utils.baileys.getMessages]
   );
 
   // Handle SSE status update
@@ -94,10 +121,18 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
     // Invalidate to get updated status icons
     if (provider === "meta") {
       utils.metaApi.getMessages.invalidate({ leadId });
-    } else {
+    } else if (provider === "zapi") {
       utils.zapi.getMessages.invalidate({ leadId });
+    } else if (provider === "baileys") {
+      utils.baileys.getMessages.invalidate({ leadId });
     }
-  }, [leadId, provider, utils.metaApi.getMessages, utils.zapi.getMessages]);
+  }, [
+    leadId,
+    provider,
+    utils.metaApi.getMessages,
+    utils.zapi.getMessages,
+    utils.baileys.getMessages,
+  ]);
 
   // Setup SSE connection
   useEffect(() => {
@@ -138,9 +173,21 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
       textareaRef.current?.focus();
     },
   });
+  const baileysSendMutation = trpc.baileys.sendMessage.useMutation({
+    onSuccess: () => {
+      setMessage("");
+      refetchBaileysMessages();
+      textareaRef.current?.focus();
+    },
+  });
 
   // Use the active provider's mutation
-  const sendMutation = provider === "meta" ? metaSendMutation : zapiSendMutation;
+  const sendMutation =
+    provider === "meta"
+      ? metaSendMutation
+      : provider === "zapi"
+        ? zapiSendMutation
+        : baileysSendMutation;
 
   const handleSend = () => {
     if (!message.trim() || sendMutation.isPending || !phone) return;

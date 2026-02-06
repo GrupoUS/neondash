@@ -9,7 +9,18 @@ import { FinancialCoachSettingsCard } from "@/components/financeiro/FinancialCoa
 import { MarketingAgentSettingsCard } from "@/components/settings/MarketingAgentSettingsCard";
 import { SdrAgentSettingsCard } from "@/components/settings/SdrAgentSettingsCard";
 import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIAgentSettingsCard } from "@/components/whatsapp/AIAgentSettingsCard";
+import { BaileysConnectionCard } from "@/components/whatsapp/BaileysConnectionCard";
+import { MetaConnectionCard } from "@/components/whatsapp/MetaConnectionCard";
 import { WhatsAppConnectionCard } from "@/components/whatsapp/WhatsAppConnectionCard";
 
 export function SettingsPage() {
@@ -38,10 +49,80 @@ export function SettingsPage() {
             <h2 className="text-xl font-semibold">Integração WhatsApp</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Conecte sua conta WhatsApp para enviar e receber mensagens diretamente do CRM via Z-API.
-            Escaneie o QR code com seu celular para conectar.
+            Escolha o provedor de conexão do WhatsApp que melhor se adapta às suas necessidades.
           </p>
-          <WhatsAppConnectionCard />
+
+          <Tabs defaultValue="baileys" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="zapi">Z-API (Estável)</TabsTrigger>
+              <TabsTrigger value="meta">Meta Cloud API (Oficial)</TabsTrigger>
+              <TabsTrigger value="baileys">Baileys (Self-Hosted)</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="zapi" className="space-y-4">
+              <WhatsAppConnectionCard />
+            </TabsContent>
+
+            <TabsContent value="meta" className="space-y-4">
+              <MetaConnectionCard />
+            </TabsContent>
+
+            <TabsContent value="baileys" className="space-y-4">
+              <BaileysConnectionCard />
+            </TabsContent>
+          </Tabs>
+
+          <div className="mt-8 border rounded-lg overflow-hidden">
+            <div className="bg-muted px-4 py-3 border-b">
+              <h3 className="font-medium text-sm">Comparativo de Provedores</h3>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Recurso</TableHead>
+                  <TableHead>Z-API</TableHead>
+                  <TableHead>Meta Cloud API</TableHead>
+                  <TableHead className="text-emerald-600 font-semibold">
+                    Baileys (Self-Hosted)
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">Custo</TableCell>
+                  <TableCell>Pago (Mensalidade)</TableCell>
+                  <TableCell>Pago (Por conversa)</TableCell>
+                  <TableCell className="text-emerald-600 font-semibold">
+                    Grátis (Open Source)
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Estabilidade</TableCell>
+                  <TableCell>Alta</TableCell>
+                  <TableCell>Muito Alta</TableCell>
+                  <TableCell>Média (Depende da conexão do celular)</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Requisito</TableCell>
+                  <TableCell>Celular conectado</TableCell>
+                  <TableCell>Nenhum (Cloud)</TableCell>
+                  <TableCell>Celular conectado e servidor ativo</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Risco de Banimento</TableCell>
+                  <TableCell>Baixo</TableCell>
+                  <TableCell>Nulo (Oficial)</TableCell>
+                  <TableCell>Médio (Se abusar de envios)</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Multimídia</TableCell>
+                  <TableCell>Sim</TableCell>
+                  <TableCell>Sim</TableCell>
+                  <TableCell>Sim (Texto, Imagem, Áudio)</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </section>
 
         <Separator />

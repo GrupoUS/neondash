@@ -1,7 +1,6 @@
 ---
 description: Unified frontend design workflow using planning, ui-ux-pro-max, and frontend-design skills. Triggers on /design command.
 ---
-
 # Command: /design
 
 Comprehensive design workflow combining **research/planning** → **design system** → **implementation** → **validation**.
@@ -57,19 +56,9 @@ Comprehensive design workflow combining **research/planning** → **design syste
 - [ ] ST-001.1: {Subtask} → File: `path` → Validation: {check}
 ```
 
----
-
 ## Phase 0: Requirement Analysis (MANDATORY)
 
 **⛔ Complete before designing!**
-
-### Constraints
-| Constraint | Question |
-|------------|----------|
-| Timeline | How much time? |
-| Content | Ready or placeholder? |
-| Brand | Existing guidelines? |
-| Audience | Who exactly? |
 
 ### Extract
 - **Product type**: SaaS, dashboard, landing, etc.
@@ -78,8 +67,6 @@ Comprehensive design workflow combining **research/planning** → **design syste
 
 ### Socratic Gate
 If unclear, ASK: "What color palette?", "What style?", "Layout preference?"
-
----
 
 ## Phase 1: Design System (ui-ux-pro-max)
 
@@ -101,8 +88,6 @@ python3 .agent/skills/ui-ux-pro-max/scripts/search.py "query" --stack shadcn|rea
 
 **Domains:** `product`, `style`, `typography`, `color`, `landing`, `chart`, `ux`, `react`, `web`
 **Stacks:** `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`, `shadcn`
-
----
 
 ## Phase 1.5: AI Prototyping (Stitch)
 
@@ -133,7 +118,108 @@ For hero images or specific visuals needed in the design:
 python3 .agent/skills/frontend-design/scripts/generate_images.py "Prompt" "filename" --model gemini-3-pro
 ```
 
----
+## Phase 1.3: shadcn Registry Search (MANDATORY)
+
+> [!IMPORTANT]
+> **Before building any component**, search the 6 configured registries for existing solutions.
+
+### Registry Reference (`components.json`)
+
+| Registry | URL Pattern | Specialty |
+|----------|-------------|-----------|
+| `@kokonutui` | `kokonutui.com/r/{name}.json` | Modern animated components |
+| `@tailark` | `tailark.com/r/{name}.json` | Premium Tailwind blocks |
+| `@cult-ui` | `cult-ui.com/r/{name}.json` | Cult-favorite UI patterns |
+| `@reui` | `reui.io/r/{name}.json` | Minimalist React UI |
+| `@react-bits` | `reactbits.dev/r/{name}.json` | Micro-interactions & bits |
+| `@aceternity` | `ui.aceternity.com/registry/{name}.json` | Animated premium components |
+
+### Search Protocol
+
+**Step 1: Identify Component Need**
+```
+Component needed: [card, button, modal, hero, pricing, testimonial, etc.]
+```
+
+**Step 2: Query Registry JSONs**
+```bash
+# Check if component exists in registry (use read_url_content or curl)
+# Pattern: {registry_url}/{component_name}.json
+
+# Example: Search for "hero" component
+curl -s https://kokonutui.com/r/hero.json
+curl -s https://tailark.com/r/hero.json
+curl -s https://cult-ui.com/r/hero.json
+curl -s https://reui.io/r/hero.json
+curl -s https://reactbits.dev/r/hero.json
+curl -s https://ui.aceternity.com/registry/hero.json
+```
+
+**Step 3: Install from Registry**
+```bash
+# Install from specific registry
+bunx shadcn@latest add @kokonutui/animated-card
+bunx shadcn@latest add @tailark/hero-section
+bunx shadcn@latest add @cult-ui/dock
+bunx shadcn@latest add @reui/button
+bunx shadcn@latest add @react-bits/animated-tooltip
+bunx shadcn@latest add @aceternity/sparkles
+```
+
+### Component Category Mapping
+
+| Need | Priority Registries | Common Names |
+|------|---------------------|--------------|
+| **Cards** | `@kokonutui`, `@aceternity` | `card`, `bento-grid`, `hover-card` |
+| **Buttons** | `@reui`, `@cult-ui` | `button`, `shiny-button`, `magnetic-button` |
+| **Heroes** | `@tailark`, `@aceternity` | `hero`, `hero-section`, `lamp` |
+| **Navigation** | `@kokonutui`, `@cult-ui` | `navbar`, `dock`, `sidebar` |
+| **Charts** | `@kokonutui` | `chart-card`, `stats` |
+| **Modals** | `@cult-ui`, `@reui` | `modal`, `dialog`, `drawer` |
+| **Forms** | `@reui`, `@tailark` | `input`, `form`, `select` |
+| **Animations** | `@aceternity`, `@react-bits` | `sparkles`, `background-beams`, `spotlight` |
+| **Testimonials** | `@tailark`, `@aceternity` | `testimonial`, `marquee`, `infinite-moving-cards` |
+| **Pricing** | `@tailark`, `@kokonutui` | `pricing`, `pricing-card` |
+
+### Decision Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  COMPONENT NEEDED: [name]                                   │
+├─────────────────────────────────────────────────────────────┤
+│  1. CHECK LOCAL: client/src/components/ui/                  │
+│     └─→ Exists? → USE IT (extend if needed)                 │
+│                                                              │
+│  2. CHECK REGISTRIES (priority order):                      │
+│     └─→ @aceternity (animations)                            │
+│     └─→ @kokonutui (modern)                                 │
+│     └─→ @tailark (blocks)                                   │
+│     └─→ @cult-ui (patterns)                                 │
+│     └─→ @reui (minimal)                                     │
+│     └─→ @react-bits (micro)                                 │
+│                                                              │
+│  3. FOUND? → bunx shadcn@latest add @{registry}/{name}      │
+│                                                              │
+│  4. NOT FOUND? → Build custom (Phase 3)                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Quick Search Commands
+
+```bash
+# List installed components
+ls client/src/components/ui/
+
+# Search shadcn docs for component
+# Use context7 MCP for official docs
+mcp_context7_query-docs libraryId="/shadcn-ui/ui" query="[component_name]"
+
+# Search registry websites for available components
+# @kokonutui: https://kokonutui.com/docs/components
+# @tailark: https://tailark.com/components
+# @cult-ui: https://cult-ui.com/docs/components
+# @aceternity: https://ui.aceternity.com/components
+```
 
 ## Phase 2: Asset Generation (Optional)
 
@@ -149,8 +235,6 @@ Guide: `algorithmic-art-guide.md`
 ### Canvas Art (PDF/PNG)
 Fonts: `.agent/skills/frontend-design/assets/canvas-fonts/`
 Guide: `canvas-design-guide.md`
-
----
 
 ## Phase 3: Implementation
 
@@ -189,8 +273,6 @@ export function FeatureCard({ ...props }) {
 - WCAG 2.1 AA (contrast 4.5:1, keyboard nav)
 - `prefers-reduced-motion` respected
 
----
-
 ## Phase 4: Validation (MANDATORY)
 
 ```bash
@@ -198,8 +280,6 @@ python3 .agent/skills/frontend-design/scripts/ux_audit.py <path>
 python3 .agent/skills/frontend-design/scripts/accessibility_checker.py <file>
 bun run check && bun run lint && bun test
 ```
-
----
 
 ## Phase 5: Store Design Patterns (Evolution Core)
 
@@ -233,8 +313,6 @@ python3 memory_manager.py capture "Implemented: Asymmetric hero layout breaking 
 python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "dashboard layout pattern"
 ```
 
----
-
 ## Anti-Patterns (FORBIDDEN)
 
 | ❌ Forbidden | ✅ Alternative |
@@ -245,8 +323,6 @@ python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "das
 | Glassmorphism everywhere | High-contrast flat |
 | Purple/Violet | **PURPLE BAN ✅** |
 | Emoji as icons | SVG (Heroicons/Lucide) |
-
----
 
 ## Pre-Delivery Checklist
 
@@ -273,8 +349,6 @@ python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "das
 - [ ] `bun run lint` ✓
 - [ ] UX audit script ✓
 
----
-
 ## Skill References
 
 | Skill | Key Files |
@@ -285,14 +359,3 @@ python3 .agent/skills/evolution-core/scripts/memory_manager.py query --text "das
 | gpus-theme | `assets/theme-tokens.css`, `assets/tailwind-theme.ts` |
 
 ---
-
-## Usage
-```bash
-/design "Dashboard brutalista para métricas"
-/design "Landing minimalista para clínica"
-/design  # interactive mode
-```
-
----
-
-> 🔴 **MAESTRO RULE:** "If I can find this layout in a Tailwind UI template, I have FAILED."

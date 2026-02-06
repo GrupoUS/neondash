@@ -1,5 +1,5 @@
-import { Info, Loader2, X } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ChevronUp, Info, Loader2, X } from "lucide-react";
+import { type ReactNode, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { NeonCard } from "@/components/ui/neon-card";
@@ -11,6 +11,9 @@ interface OnboardingCardProps {
   actionLabel?: string;
   onAction?: () => void;
   isActionLoading?: boolean;
+  /** Extra content shown in expanded section */
+  expandedContent?: ReactNode;
+  expandedLabel?: string;
 }
 
 export function OnboardingCard({
@@ -20,10 +23,13 @@ export function OnboardingCard({
   actionLabel,
   onAction,
   isActionLoading,
+  expandedContent,
+  expandedLabel = "Ver guia de KPIs",
 }: OnboardingCardProps) {
   const [isDismissed, setIsDismissed] = useState(() => {
     return localStorage.getItem(storageKey) === "dismissed";
   });
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleDismiss = () => {
     localStorage.setItem(storageKey, "dismissed");
@@ -43,6 +49,34 @@ export function OnboardingCard({
               <li key={`step-${index + 1}`}>{step}</li>
             ))}
           </ol>
+
+          {/* Expanded content section */}
+          {expandedContent && (
+            <div className="mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-primary hover:text-primary/80"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                    Ocultar guia
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                    {expandedLabel}
+                  </>
+                )}
+              </Button>
+              {isExpanded && (
+                <div className="mt-3 pt-3 border-t border-primary/10">{expandedContent}</div>
+              )}
+            </div>
+          )}
+
           {actionLabel && onAction && (
             <Button
               size="sm"

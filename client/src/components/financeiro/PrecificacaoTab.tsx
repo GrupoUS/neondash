@@ -229,6 +229,89 @@ export function PrecificacaoTab() {
           "Vincule os insumos utilizados no procedimento",
           "Clique na calculadora (📊) para ver o lucro final",
         ]}
+        expandedLabel="📊 Guia de análise de KPIs"
+        expandedContent={
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              Após clicar na calculadora, você verá indicadores de saúde financeira. Veja como
+              interpretar cada um:
+            </p>
+
+            {/* Margem Líquida */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">Margem Líquida %</span>
+                <span className="text-xs text-muted-foreground">(Lucro Final ÷ Preço Venda)</span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Quanto sobra de lucro real após todos os custos e impostos.
+              </p>
+              <div className="flex gap-4 text-xs">
+                <span className="text-emerald-500">🟢 ≥40% Excelente</span>
+                <span className="text-amber-500">🟡 20-40% Atenção</span>
+                <span className="text-red-500">🔴 &lt;20% Revisar custos</span>
+              </div>
+            </div>
+
+            {/* Markup */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">Markup (x)</span>
+                <span className="text-xs text-muted-foreground">(Preço Venda ÷ Custo Total)</span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Quantas vezes o preço de venda é maior que o custo. Ideal: 2x a 3x para estética.
+              </p>
+              <div className="flex gap-4 text-xs">
+                <span className="text-emerald-500">🟢 ≥2.5x Ótimo</span>
+                <span className="text-amber-500">🟡 1.5-2.5x Aceitável</span>
+                <span className="text-red-500">🔴 &lt;1.5x Margem baixa</span>
+              </div>
+            </div>
+
+            {/* ROI */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">ROI %</span>
+                <span className="text-xs text-muted-foreground">
+                  (Lucro Final ÷ Custo Total × 100)
+                </span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Retorno sobre o investimento em cada procedimento. Maior = mais rentável.
+              </p>
+              <div className="flex gap-4 text-xs">
+                <span className="text-emerald-500">🟢 ≥50% Alto retorno</span>
+                <span className="text-amber-500">🟡 20-50% Moderado</span>
+                <span className="text-red-500">🔴 &lt;20% Baixo retorno</span>
+              </div>
+            </div>
+
+            {/* Eficiência */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-foreground">Eficiência (Insumos/Total)</span>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Proporção do custo total que são insumos. Quanto menor, mais custos são
+                mão-de-obra/overhead.
+              </p>
+              <div className="flex gap-4 text-xs">
+                <span className="text-muted-foreground">Insumo-intensivo: 40-60%</span>
+                <span className="text-muted-foreground">Serviço-intensivo: 10-30%</span>
+              </div>
+            </div>
+
+            {/* Dica */}
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-2 mt-3">
+              <p className="text-xs text-amber-200">
+                💡 <strong>Dica:</strong> Se a margem está baixa, revise primeiro os insumos (maior
+                custo variável), depois negocie % do parceiro e, por último, considere aumentar o
+                preço de venda.
+              </p>
+            </div>
+          </div>
+        }
       />
 
       <div className="flex justify-end">

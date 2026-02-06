@@ -3,8 +3,9 @@
  * Full inbox layout with contact list and conversation view
  */
 
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
+  ArrowLeft,
   Bot,
   ChevronDown,
   Loader2,
@@ -18,13 +19,15 @@ import {
   Video,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { ConversationItem, type ConversationItemData } from "@/components/chat/ConversationItem";
-import { DateSeparator } from "@/components/chat/DateSeparator";
-import { MessageBubble, type MessageBubbleData } from "@/components/chat/MessageBubble";
+import { ConversationSkeleton } from "@/components/chat/ConversationSkeleton";
+import type { MessageBubbleData } from "@/components/chat/MessageBubble";
 import { MessageInput } from "@/components/chat/MessageInput";
+import { MessageSkeleton } from "@/components/chat/MessageSkeleton";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import { VideoMessageComposer } from "@/components/chat/VideoMessageComposer";
+import { type RenderItem, VirtualizedMessageList } from "@/components/chat/VirtualizedMessageList";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,21 +165,8 @@ function isNearBottom(element: HTMLElement, threshold = 120): boolean {
 
 const TYPING_TIMEOUT_MS = 4500;
 
-interface RenderMessageItem {
-  type: "message";
-  key: string;
-  message: MessageBubbleData;
-}
-
-interface RenderDateItem {
-  type: "date";
-  key: string;
-  date: Date | string;
-}
-
-type RenderItem = RenderMessageItem | RenderDateItem;
-
 export function ChatPage() {
+  const search = useSearch();
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [message, setMessage] = useState("");
@@ -184,6 +174,12 @@ export function ChatPage() {
   const [newContactPhone, setNewContactPhone] = useState("");
   const [newContactName, setNewContactName] = useState("");
   const [videoComposerOpen, setVideoComposerOpen] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+
+  // Parse query params for initial phone/lead selection
+  const queryParams = useMemo(() => new URLSearchParams(search), [search]);
+  const initialPhone = queryParams.get("phone");
+  const initialLeadId = queryParams.get("leadId");
 
   // Use extracted hooks for multi-provider support
   const {
@@ -201,6 +197,31 @@ export function ChatPage() {
     isLoading: messagesLoading,
     refetch: refetchMessages,
   } = useWhatsAppMessages(activeProvider, selectedPhone, { refetchIntervalMs: false });
+
+  // Auto-select conversation from query params
+  useEffect(() => {
+    if (!conversations || conversations.length === 0) return;
+
+    // If phone param provided, try to find matching conversation
+    if (initialPhone && !selectedPhone) {
+      const match = conversations.find((c: Conversation) => phonesMatch(c.phone, initialPhone));
+      if (match) {
+        setSelectedPhone(match.phone);
+      } else {
+        // If no existing conversation, set the phone for new conversation
+        setSelectedPhone(initialPhone);
+      }
+    }
+
+    // If leadId param provided without phone, find by leadId
+    if (initialLeadId && !initialPhone && !selectedPhone) {
+      const leadIdNum = parseInt(initialLeadId, 10);
+      const match = conversations.find((c: Conversation) => c.leadId === leadIdNum);
+      if (match) {
+        setSelectedPhone(match.phone);
+      }
+    }
+  }, [conversations, initialPhone, initialLeadId, selectedPhone]);
 
   // Get AI Agent config
   const { data: aiConfig } = trpc.aiAgent.getConfig.useQuery();
@@ -241,6 +262,7 @@ export function ChatPage() {
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
+  // Refs for scroll handling
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -701,8 +723,14 @@ export function ChatPage() {
 
         {/* Main Content - Inbox Layout */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Contact List Sidebar */}
-          <div className="w-80 border-r border-border/50 flex flex-col bg-card/30">
+          {/* Contact List Sidebar - Hidden on mobile when conversation selected */}
+          <div
+            className={cn(
+              "border-r border-border/50 flex flex-col bg-card/30",
+              "w-full sm:w-72 md:w-80 lg:w-80",
+              selectedPhone ? "hidden sm:flex" : "flex"
+            )}
+          >
             {/* Search & Add */}
             <div className="p-4 space-y-3">
               <div className="relative">
@@ -766,9 +794,7 @@ export function ChatPage() {
             {/* Conversations List */}
             <ScrollArea className="flex-1">
               {conversationsLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                </div>
+                <ConversationSkeleton count={5} />
               ) : filteredConversationItems.length > 0 ? (
                 <div className="py-2">
                   {filteredConversationItems.map((conv) => (
@@ -776,7 +802,10 @@ export function ChatPage() {
                       key={conv.phone}
                       conversation={conv}
                       isSelected={selectedPhone === conv.phone}
-                      onClick={setSelectedPhone}
+                      onClick={(phone) => {
+                        setSelectedPhone(phone);
+                        setShowSidebar(false);
+                      }}
                     />
                   ))}
                 </div>
@@ -791,13 +820,31 @@ export function ChatPage() {
             </ScrollArea>
           </div>
 
-          {/* Conversation View */}
-          <div className="flex-1 flex flex-col bg-slate-900/30">
+          {/* Conversation View - Full width on mobile when selected */}
+          <div
+            className={cn(
+              "flex-1 flex flex-col bg-slate-900/30",
+              selectedPhone ? "flex" : "hidden sm:flex"
+            )}
+          >
             {selectedPhone ? (
               <>
                 {/* Chat Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 bg-slate-800/50">
+                <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-700/50 bg-slate-800/50">
                   <div className="flex items-center gap-3">
+                    {/* Back button for mobile */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setSelectedPhone(null);
+                        setShowSidebar(true);
+                      }}
+                      className="sm:hidden text-slate-400 hover:text-slate-100"
+                      aria-label="Voltar para lista de conversas"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </Button>
                     <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-500/30">
                       <MessageCircle className="w-5 h-5 text-emerald-400" />
                     </div>
@@ -909,34 +956,39 @@ export function ChatPage() {
                 </div>
 
                 {/* Messages Area */}
-                <ScrollArea className="flex-1 px-4 py-4">
-                  <div ref={viewportRef} className="h-full overflow-y-auto pr-1">
-                    <div className="space-y-3 max-w-3xl mx-auto">
-                      <AnimatePresence mode="popLayout">
-                        {messagesLoading ? (
+                <div className="flex-1 px-4 py-4 relative">
+                  <div className="h-full max-w-3xl mx-auto">
+                    {messagesLoading ? (
+                      <div className="flex flex-col items-center justify-center h-48">
+                        <MessageSkeleton count={4} />
+                      </div>
+                    ) : (
+                      <VirtualizedMessageList
+                        items={renderItems}
+                        isLoading={messagesLoading}
+                        autoScrollToBottom={shouldAutoScroll}
+                        footer={
+                          <TypingIndicator
+                            isVisible={isSelectedTyping}
+                            label="Contato digitando…"
+                            lastActivityAt={selectedPhoneTyping?.at}
+                            timeoutMs={TYPING_TIMEOUT_MS}
+                            onTimeout={() => {
+                              if (!selectedPhone) return;
+                              const normalized = normalizePhone(selectedPhone);
+                              setTypingByPhone((previous) => {
+                                if (!previous[normalized]) return previous;
+                                const next = { ...previous };
+                                delete next[normalized];
+                                return next;
+                              });
+                            }}
+                          />
+                        }
+                        emptyState={
                           <motion.div
-                            key="loading"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="flex items-center justify-center h-32"
-                          >
-                            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-                          </motion.div>
-                        ) : renderItems.length > 0 ? (
-                          renderItems.map((item) =>
-                            item.type === "date" ? (
-                              <DateSeparator key={item.key} date={item.date} />
-                            ) : (
-                              <MessageBubble key={item.key} message={item.message} />
-                            )
-                          )
-                        ) : (
-                          <motion.div
-                            key="empty"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
                             className="flex flex-col items-center justify-center h-48 text-center"
                           >
                             <div className="p-4 rounded-full bg-slate-800 mb-3">
@@ -947,30 +999,10 @@ export function ChatPage() {
                             </p>
                             <p className="text-xs text-slate-500 mt-1">Envie a primeira mensagem</p>
                           </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <TypingIndicator
-                        isVisible={isSelectedTyping}
-                        label="Contato digitando…"
-                        lastActivityAt={selectedPhoneTyping?.at}
-                        timeoutMs={TYPING_TIMEOUT_MS}
-                        onTimeout={() => {
-                          if (!selectedPhone) return;
-                          const normalized = normalizePhone(selectedPhone);
-                          setTypingByPhone((previous) => {
-                            if (!previous[normalized]) return previous;
-                            const next = { ...previous };
-                            delete next[normalized];
-                            return next;
-                          });
-                        }}
+                        }
                       />
-
-                      <div ref={bottomAnchorRef} />
-                    </div>
+                    )}
                   </div>
-
                   {showScrollToBottom ? (
                     <div className="pointer-events-none absolute bottom-4 right-4">
                       <Button
@@ -987,7 +1019,7 @@ export function ChatPage() {
                       </Button>
                     </div>
                   ) : null}
-                </ScrollArea>
+                </div>
 
                 {/* Input Area */}
                 <div className="p-4 border-t border-slate-700/50 bg-slate-800/80">

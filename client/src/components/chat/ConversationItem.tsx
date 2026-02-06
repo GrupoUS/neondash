@@ -72,6 +72,8 @@ export function ConversationItem({
     <button
       type="button"
       onClick={() => onClick?.(conversation.phone)}
+      aria-label={`Conversa com ${displayName}${conversation.unreadCount ? `, ${conversation.unreadCount} mensagens não lidas` : ""}`}
+      aria-pressed={isSelected}
       className={cn(
         "w-full px-4 py-3 flex items-center gap-3 transition-colors text-left",
         "hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

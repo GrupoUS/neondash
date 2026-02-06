@@ -192,7 +192,7 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[1200px] w-[95vw] p-0 overflow-hidden bg-background border-border/60 gap-0 shadow-2xl"
+        className="max-w-[1400px] w-[95vw] p-0 overflow-hidden bg-background border-border/60 gap-0 shadow-2xl"
         aria-describedby="add-patient-description"
       >
         <DialogTitle className="sr-only">Cadastrar Novo Paciente</DialogTitle>
@@ -201,7 +201,7 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
           médica.
         </div>
 
-        <div className="flex min-h-[75vh] max-h-[90vh]">
+        <div className="flex h-auto min-h-[600px] max-h-[90vh]">
           {/* Enhanced Sidebar */}
           <div className="w-[320px] shrink-0 bg-gradient-to-b from-card to-card/95 border-r border-border/60 p-8 hidden lg:flex lg:flex-col">
             {/* Header */}
@@ -325,9 +325,9 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Mobile step indicator */}
-            <div className="lg:hidden p-5 border-b border-border/60 bg-card/80 backdrop-blur-sm">
+            <div className="lg:hidden p-5 border-b border-border/60 bg-card/80 backdrop-blur-sm shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-bold text-lg text-foreground">{STEPS[step - 1].title}</h2>
                 <span className="text-sm font-medium text-muted-foreground tabular-nums">
@@ -338,7 +338,7 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
             </div>
 
             {/* Form content */}
-            <div className="flex-1 p-10 overflow-y-auto">
+            <div className="flex-1 p-8 lg:p-10 overflow-y-auto">
               {/* Step header */}
               <div className="mb-10 hidden lg:block">
                 <div className="flex items-center gap-4 mb-2">
@@ -680,7 +680,7 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
             </div>
 
             {/* Footer Navigation */}
-            <div className="p-6 border-t border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between gap-4">
+            <div className="p-6 border-t border-border/60 bg-card/80 backdrop-blur-sm flex items-center justify-between gap-4 shrink-0">
               <Button
                 variant="ghost"
                 onClick={prevStep}

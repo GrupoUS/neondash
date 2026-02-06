@@ -9,6 +9,7 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react";
+import { memo, useCallback, useMemo } from "react";
 import { MediaPreview } from "@/components/chat/MediaPreview";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { linkify } from "@/lib/linkify";
 import { cn } from "@/lib/utils";
 
 type MessageDirection = "inbound" | "outbound";
@@ -71,6 +73,40 @@ interface MessageBubbleProps {
 
 export type { MessageBubbleProps };
 
+/**
+ * Component to render message content with clickable links
+ */
+function MessageContent({ content, isOutbound }: { content: string; isOutbound: boolean }) {
+  const segments = useMemo(() => linkify(content), [content]);
+
+  return (
+    <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+      {segments.map((segment, index) => {
+        if (segment.type === "url") {
+          return (
+            <a
+              key={index}
+              href={segment.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "underline underline-offset-2 transition-colors",
+                isOutbound
+                  ? "text-slate-900/80 hover:text-slate-900"
+                  : "text-blue-400 hover:text-blue-300"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {segment.content}
+            </a>
+          );
+        }
+        return <span key={index}>{segment.content}</span>;
+      })}
+    </p>
+  );
+}
+
 function formatTime(value: Date | string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -96,7 +132,10 @@ function renderStatusIcon(status: MessageStatus) {
   }
 }
 
-export function MessageBubble({
+/**
+ * Optimized message bubble component with memoization for performance
+ */
+function MessageBubbleBase({
   message,
   className,
   onReply,
@@ -107,8 +146,28 @@ export function MessageBubble({
   const isOutbound = message.direction === "outbound";
   const quoteText = message.quote?.content?.trim() || null;
 
+  // Stable callbacks to prevent unnecessary re-renders
+  const handleReply = useCallback(() => {
+    onReply?.({ messageId: message.id });
+  }, [onReply, message.id]);
+
+  const handleReact = useCallback(() => {
+    onReact?.({ messageId: message.id });
+  }, [onReact, message.id]);
+
+  const handleCopy = useCallback(() => {
+    onCopy?.({ messageId: message.id });
+  }, [onCopy, message.id]);
+
+  const handleDelete = useCallback(() => {
+    onDelete?.({ messageId: message.id });
+  }, [onDelete, message.id]);
+
   return (
-    <div className={cn("flex w-full", isOutbound ? "justify-end" : "justify-start", className)}>
+    <article
+      className={cn("flex w-full", isOutbound ? "justify-end" : "justify-start", className)}
+      aria-label={`Mensagem ${isOutbound ? "enviada" : "recebida"} às ${formatTime(message.createdAt)}`}
+    >
       <div
         className={cn(
           "group max-w-[82%] rounded-2xl px-3.5 py-2.5 shadow-sm",
@@ -131,9 +190,7 @@ export function MessageBubble({
             {message.media && <MediaPreview media={message.media} compact />}
 
             {message.content.trim().length > 0 && (
-              <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-                {message.content}
-              </p>
+              <MessageContent content={message.content} isOutbound={isOutbound} />
             )}
 
             {message.reactions && message.reactions.length > 0 && (
@@ -177,22 +234,19 @@ export function MessageBubble({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align={isOutbound ? "end" : "start"}>
-              <DropdownMenuItem onClick={() => onReply?.({ messageId: message.id })}>
+              <DropdownMenuItem onClick={handleReply}>
                 <MessageCircleReply className="h-4 w-4" />
                 Responder
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onReact?.({ messageId: message.id })}>
+              <DropdownMenuItem onClick={handleReact}>
                 <Smile className="h-4 w-4" />
                 Reagir
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onCopy?.({ messageId: message.id })}>
+              <DropdownMenuItem onClick={handleCopy}>
                 <Copy className="h-4 w-4" />
                 Copiar
               </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => onDelete?.({ messageId: message.id })}
-              >
+              <DropdownMenuItem variant="destructive" onClick={handleDelete}>
                 <Trash2 className="h-4 w-4" />
                 Excluir
               </DropdownMenuItem>
@@ -200,8 +254,48 @@ export function MessageBubble({
           </DropdownMenu>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
+/**
+ * Custom props comparator for MessageBubble to minimize unnecessary re-renders
+ */
+function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubbleProps): boolean {
+  // Compare message data
+  const prevMessage = prevProps.message;
+  const nextMessage = nextProps.message;
+
+  if (prevMessage.id !== nextMessage.id) return false;
+  if (prevMessage.direction !== nextMessage.direction) return false;
+  if (prevMessage.content !== nextMessage.content) return false;
+  if (prevMessage.status !== nextMessage.status) return false;
+  if (prevMessage.createdAt !== nextMessage.createdAt) return false;
+  if (prevMessage.isFromAi !== nextMessage.isFromAi) return false;
+
+  // Compare media object
+  if (prevMessage.media?.url !== nextMessage.media?.url) return false;
+  if (prevMessage.media?.type !== nextMessage.media?.type) return false;
+  if (prevMessage.media?.thumbnailUrl !== nextMessage.media?.thumbnailUrl) return false;
+
+  // Compare reactions
+  if (JSON.stringify(prevMessage.reactions) !== JSON.stringify(nextMessage.reactions)) return false;
+
+  // Compare callbacks (shallow reference check is fine here)
+  if (prevProps.onReply !== nextProps.onReply) return false;
+  if (prevProps.onReact !== nextProps.onReact) return false;
+  if (prevProps.onCopy !== nextProps.onCopy) return false;
+  if (prevProps.onDelete !== nextProps.onDelete) return false;
+
+  // Compare className
+  if (prevProps.className !== nextProps.className) return false;
+
+  return true;
+}
+
+// Export memoized component
+export const MessageBubble = memo(MessageBubbleBase, arePropsEqual);
+MessageBubble.displayName = "MessageBubble";
+
+// Default export for convenience
 export default MessageBubble;

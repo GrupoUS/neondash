@@ -22,7 +22,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -49,6 +49,7 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useWhatsAppProvider } from "@/hooks/useWhatsAppProvider";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import { LeadChatWindow } from "../chat/LeadChatWindow";
@@ -166,6 +167,32 @@ export function LeadDetailModal({
     { enabled: !!leadId }
   );
 
+  // Get active WhatsApp provider and fetch messages for this lead
+  const { activeProvider } = useWhatsAppProvider();
+
+  // Fetch WhatsApp messages for this lead from all providers
+  const { data: zapiMessages } = trpc.zapi.getMessages.useQuery(
+    { leadId: leadId!, limit: 50 },
+    { enabled: !!leadId && activeProvider === "zapi" }
+  );
+
+  const { data: metaMessages } = trpc.metaApi.getMessages.useQuery(
+    { leadId: leadId!, limit: 50 },
+    { enabled: !!leadId && activeProvider === "meta" }
+  );
+
+  const { data: baileysMessages } = trpc.baileys.getMessages.useQuery(
+    { leadId: leadId!, limit: 50 },
+    { enabled: !!leadId && activeProvider === "baileys" }
+  );
+
+  // Use messages from the active provider
+  const whatsappMessages = useMemo(() => {
+    if (activeProvider === "meta") return metaMessages || [];
+    if (activeProvider === "baileys") return baileysMessages || [];
+    return zapiMessages || [];
+  }, [activeProvider, metaMessages, baileysMessages, zapiMessages]);
+
   // Delete mutation
   const deleteMutation = trpc.leads.delete.useMutation({
     onSuccess: () => {
@@ -191,7 +218,6 @@ export function LeadDetailModal({
         email: data.lead.email,
         telefone: data.lead.telefone || "",
         empresa: data.lead.empresa || "",
-        valorEstimado: (data.lead.valorEstimado || 0) / 100,
         origem: data.lead.origem || "outro",
         status: data.lead.status || "novo",
         tags: data.lead.tags || [],
@@ -568,6 +594,9 @@ export function LeadDetailModal({
                       >
                         <MessageSquare className="h-4 w-4" />
                         <span className="hidden sm:inline">WhatsApp</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {data?.lead?.telefone}
+                        </Badge>
                       </Button>
                       <Button
                         variant="outline"
@@ -709,7 +738,10 @@ export function LeadDetailModal({
                                 <Input
                                   value={(editData?.telefone as string) || ""}
                                   onChange={(e) =>
-                                    setEditData({ ...editData, telefone: e.target.value })
+                                    setEditData({
+                                      ...editData,
+                                      telefone: e.target.value,
+                                    })
                                   }
                                   className="bg-background/50 border-border/50 h-9"
                                 />
@@ -942,6 +974,84 @@ export function LeadDetailModal({
                         initial="hidden"
                         animate="visible"
                       >
+                        {/* WhatsApp Messages Section */}
+                        {whatsappMessages.length > 0 && (
+                          <motion.div variants={sectionVariants} className="relative pl-6">
+                            <div className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-emerald-500 ring-4 ring-background shadow-md" />
+                            <div className="space-y-1 mb-4">
+                              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                                <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+                                Histórico WhatsApp
+                              </p>
+                              <span className="text-xs text-muted-foreground">
+                                {whatsappMessages.length} mensagem(ns)
+                              </span>
+                            </div>
+
+                            <div className="space-y-3">
+                              {whatsappMessages.map((msg) => (
+                                <div
+                                  key={msg.id}
+                                  className={cn(
+                                    "p-3 rounded-lg border text-sm",
+                                    msg.direction === "outbound"
+                                      ? "bg-emerald-500/5 border-emerald-500/20 ml-4"
+                                      : "bg-muted/30 border-border/50 mr-4"
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-[10px] h-5 px-1.5 capitalize",
+                                        msg.direction === "outbound"
+                                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                                          : "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                                      )}
+                                    >
+                                      {msg.direction === "outbound" ? "Enviada" : "Recebida"}
+                                    </Badge>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {format(new Date(msg.createdAt), "dd/MM/yyyy HH:mm")}
+                                    </span>
+                                  </div>
+                                  <p className="text-foreground/90 line-clamp-3">{msg.content}</p>
+                                  <div className="flex items-center justify-between mt-2">
+                                    {msg.isFromAi === "sim" && (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-[10px] h-4 px-1.5 bg-purple-500/10 text-purple-600 border-0"
+                                      >
+                                        IA
+                                      </Badge>
+                                    )}
+                                    {msg.status && (
+                                      <span
+                                        className={cn(
+                                          "text-[10px] ml-auto",
+                                          msg.status === "read"
+                                            ? "text-blue-500"
+                                            : msg.status === "delivered"
+                                              ? "text-emerald-500"
+                                              : msg.status === "failed"
+                                                ? "text-destructive"
+                                                : "text-muted-foreground"
+                                        )}
+                                      >
+                                        {msg.status === "read" && "Lida"}
+                                        {msg.status === "delivered" && "Entregue"}
+                                        {msg.status === "sent" && "Enviada"}
+                                        {msg.status === "pending" && "Pendente"}
+                                        {msg.status === "failed" && "Falhou"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+
                         {/* Creation Event */}
                         <motion.div variants={sectionVariants} className="relative pl-6">
                           <div className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-primary ring-4 ring-background shadow-md" />
@@ -989,7 +1099,7 @@ export function LeadDetailModal({
                                 </div>
                                 {interaction.duracao && (
                                   <span className="text-[11px] text-muted-foreground flex items-center gap-1 bg-muted/30 px-2 py-0.5 rounded-full">
-                                    <Clock className="h-3 w-3" /> {interaction.duracao}m
+                                    <Clock className="h-3 w-3" /> {interaction.duracao}
                                   </span>
                                 )}
                               </div>

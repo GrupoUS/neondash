@@ -1490,29 +1490,35 @@ export const pacientes = pgTable(
       .notNull()
       .references(() => mentorados.id, { onDelete: "cascade" }),
     nomeCompleto: varchar("nome_completo", { length: 255 }).notNull(),
+    nomePreferido: varchar("nome_preferido", { length: 100 }), // NEW
     email: varchar("email", { length: 320 }),
     telefone: varchar("telefone", { length: 20 }),
     dataNascimento: date("data_nascimento"),
     genero: pacienteGeneroEnum("genero"),
     cpf: varchar("cpf", { length: 14 }),
+    rg: varchar("rg", { length: 20 }), // NEW
     
-    // Endereço Detalhado
-    cep: varchar("cep", { length: 10 }),
-    logradouro: text("logradouro"),
+    // Address Fields (Structured)
+    endereco: text("endereco"), // Legacy full address (keep as fallback)
+    cep: varchar("cep", { length: 9 }),
+    logradouro: varchar("logradouro", { length: 255 }),
     numero: varchar("numero", { length: 20 }),
     complemento: varchar("complemento", { length: 100 }),
     bairro: varchar("bairro", { length: 100 }),
     cidade: varchar("cidade", { length: 100 }),
-    estado: varchar("estado", { length: 2 }),
+    estado: varchar("estado", { length: 2 }), // UF
+    
+    // Insurance
+    convenio: varchar("convenio", { length: 100 }), // NEW
+    numeroCarteirinha: varchar("numero_carteirinha", { length: 50 }), // NEW
     
     // Contato Extra
-    nomePreferido: varchar("nome_preferido", { length: 100 }),
     telefoneSecundario: varchar("telefone_secundario", { length: 20 }),
     metodoContatoPreferido: varchar("metodo_contato_preferido", { length: 20 }).default("whatsapp"),
     
     // Documentos Extra
-    rg: varchar("rg", { length: 20 }),
-    convenio: varchar("convenio", { length: 100 }),
+    // rg: varchar("rg", { length: 20 }), // Duplicate removed
+    // convenio: varchar("convenio", { length: 100 }), // Duplicate removed
     numeroConvenio: varchar("numero_convenio", { length: 50 }),
     
     // Contato Emergência

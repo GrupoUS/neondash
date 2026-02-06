@@ -23,11 +23,13 @@ import { useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 
 import DashboardLayout from "@/components/DashboardLayout";
+// import { PatientFormDialog } from "@/components/pacientes/PatientFormDialog"; // Replaced
+import { AddPatientWizard } from "@/components/pacientes/AddPatientWizard"; // New
 import { AIChatWidget } from "@/components/pacientes/AIChatWidget";
 import { DocumentManager } from "@/components/pacientes/DocumentManager";
-import { PatientFormDialog } from "@/components/pacientes/PatientFormDialog";
 import { PatientInfoCard } from "@/components/pacientes/PatientInfoCard";
 import { PatientMedicalCard } from "@/components/pacientes/PatientMedicalCard";
+import { PatientStats } from "@/components/pacientes/PatientStats"; // New
 import { PatientStatsCard } from "@/components/pacientes/PatientStatsCard";
 import { PatientTimeline } from "@/components/pacientes/PatientTimeline";
 import { PhotoComparison } from "@/components/pacientes/PhotoComparison";
@@ -61,7 +63,6 @@ import { cn } from "@/lib/utils";
 function PatientsList() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"ativo" | "inativo" | undefined>(undefined);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [, navigate] = useLocation();
 
   const { data, isLoading } = trpc.pacientes.list.useQuery({
@@ -72,6 +73,14 @@ function PatientsList() {
 
   return (
     <div className="space-y-6">
+      {/* KPI Stats */}
+      <PatientStats
+        total={data?.total || 0}
+        active={data?.items.filter((i) => i.status === "ativo").length || 0} // Placeholder until dedicated endpoint
+        newThisMonth={0}
+        upcomingAppointments={0}
+      />
+
       {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -108,21 +117,11 @@ function PatientsList() {
         </div>
       </div>
 
-      {/* Patient Grid */}
+      {/* Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={`skeleton-${i}-${Date.now()}`}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-xl" />
           ))}
         </div>
       ) : data?.items.length === 0 ? (
@@ -134,7 +133,11 @@ function PatientsList() {
               ? "Tente ajustar sua busca ou adicione um novo paciente."
               : "Comece adicionando seu primeiro paciente."}
           </p>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button
+            onClick={() => {
+              /* Handled by parent component */
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" /> Novo Paciente
           </Button>
         </Card>
@@ -143,7 +146,7 @@ function PatientsList() {
           {data?.items.map((paciente) => (
             <Card
               key={paciente.id}
-              className="group cursor-pointer relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 border-2 border-transparent hover:border-primary/30"
+              className="group overflow-hidden border-primary/20 hover:border-primary/50 transition-all duration-300 hover:shadow-lg bg-background/50 backdrop-blur-sm"
             >
               {/* Gradient overlay on hover */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -254,9 +257,6 @@ function PatientsList() {
           ))}
         </div>
       )}
-
-      {/* Create Patient Dialog */}
-      <PatientFormDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
       {/* Total Count */}
       {data && data.total > 0 && (
@@ -527,6 +527,7 @@ function PatientDetail({ id }: { id: number }) {
 export default function PacientesPage() {
   const [, params] = useRoute("/pacientes/:id");
   const patientId = params?.id ? Number(params.id) : null;
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   return (
     <DashboardLayout>
@@ -542,7 +543,7 @@ export default function PacientesPage() {
             </p>
           </div>
           {!patientId && (
-            <Button>
+            <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Novo Paciente
             </Button>
           )}
@@ -554,6 +555,9 @@ export default function PacientesPage() {
         </div>
 
         {patientId ? <PatientDetail id={patientId} /> : <PatientsList />}
+
+        {/* Creation Wizard */}
+        <AddPatientWizard open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
       </div>
     </DashboardLayout>
   );

@@ -1,30 +1,11 @@
 /**
- * useWhatsAppProvider - Custom hook for multi-provider WhatsApp support
+ * useWhatsAppProvider - Custom hooks for multi-provider WhatsApp support
  * Handles Meta, Baileys, and Z-API providers with priority logic
  */
 
 import { trpc } from "@/lib/trpc";
 
 export type WhatsAppProvider = "meta" | "baileys" | "zapi";
-
-interface WhatsAppMessage {
-  id: number;
-  content: string | null;
-  direction: string;
-  createdAt: Date | null;
-  status: string | null;
-  isFromAi: string | null;
-  [key: string]: unknown;
-}
-
-interface Conversation {
-  phone: string;
-  name: string | null;
-  leadId: number | null;
-  lastMessage: string | null;
-  lastMessageAt: Date | string | null;
-  unreadCount: number;
-}
 
 export function useWhatsAppProvider() {
   // Get status for all providers
@@ -83,7 +64,7 @@ export function useWhatsAppConversations(activeProvider: WhatsAppProvider | null
     refetchInterval: 10000,
   });
 
-  const conversations: Conversation[] | undefined =
+  const conversations =
     activeProvider === "meta"
       ? metaConversations
       : activeProvider === "baileys"
@@ -135,7 +116,7 @@ export function useWhatsAppMessages(activeProvider: WhatsAppProvider | null, pho
     { enabled: !!phone && activeProvider === "baileys", refetchInterval: 5000 }
   );
 
-  const messages: WhatsAppMessage[] | undefined =
+  const messages =
     activeProvider === "meta"
       ? metaMessages
       : activeProvider === "baileys"

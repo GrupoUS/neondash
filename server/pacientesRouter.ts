@@ -23,20 +23,49 @@ import { patientChat } from "./services/patientAiService";
 
 const createPacienteSchema = z.object({
   nomeCompleto: z.string().min(1, "Nome é obrigatório"),
+  nomePreferido: z.string().optional().nullable(), // NEW
   email: z.string().email().optional().nullable(),
   telefone: z.string().optional().nullable(),
   dataNascimento: z.string().optional().nullable(),
   genero: z.enum(["masculino", "feminino", "outro", "prefiro_nao_dizer"]).optional().nullable(),
   cpf: z.string().optional().nullable(),
-  endereco: z.string().optional().nullable(),
+  rg: z.string().optional().nullable(), // NEW
+
+  // Address
+  endereco: z.string().optional().nullable(), // Legacy fallback
+  cep: z.string().optional().nullable(),
+  logradouro: z.string().optional().nullable(),
+  numero: z.string().optional().nullable(),
+  complemento: z.string().optional().nullable(),
+  bairro: z.string().optional().nullable(),
+  cidade: z.string().optional().nullable(),
+  estado: z.string().optional().nullable(),
+
+  // Insurance
+  convenio: z.string().optional().nullable(),
+  numeroCarteirinha: z.string().optional().nullable(),
+
+  // Medical Info (Optional Initial)
+  infoMedica: z
+    .object({
+      tipoSanguineo: z.string().optional().nullable(),
+      alergias: z.string().optional().nullable(),
+      medicamentosAtuais: z.string().optional().nullable(),
+      queixasPrincipais: z.array(z.string()).optional().nullable(),
+    })
+    .optional(),
+
   fotoUrl: z.string().url().optional().nullable(),
   observacoes: z.string().optional().nullable(),
 });
 
-const updatePacienteSchema = createPacienteSchema.partial().extend({
-  id: z.number(),
-  status: z.enum(["ativo", "inativo"]).optional(),
-});
+const updatePacienteSchema = createPacienteSchema
+  .omit({ infoMedica: true })
+  .partial()
+  .extend({
+    id: z.number(),
+    status: z.enum(["ativo", "inativo"]).optional(),
+  });
 
 const upsertInfoMedicaSchema = z.object({
   pacienteId: z.number(),
@@ -291,11 +320,28 @@ export const pacientesRouter = router({
       .values({
         mentoradoId,
         nomeCompleto: input.nomeCompleto,
+        nomePreferido: input.nomePreferido,
         email: input.email,
         telefone: input.telefone,
         dataNascimento: input.dataNascimento,
         genero: input.genero,
         cpf: input.cpf,
+        rg: input.rg,
+
+        // Address
+        endereco: input.endereco,
+        cep: input.cep,
+        logradouro: input.logradouro,
+        numero: input.numero,
+        complemento: input.complemento,
+        bairro: input.bairro,
+        cidade: input.cidade,
+        estado: input.estado,
+
+        // Insurance
+        convenio: input.convenio,
+        numeroCarteirinha: input.numeroCarteirinha,
+
         fotoUrl: input.fotoUrl,
         observacoes: input.observacoes,
       })
@@ -310,14 +356,46 @@ export const pacientesRouter = router({
 
     await verifyPatientOwnership(mentoradoId, input.id);
 
-    const { id, ...updateData } = input;
-    const [updated] = await db
-      .update(pacientes)
-      .set({ ...updateData, updatedAt: new Date() })
-      .where(eq(pacientes.id, id))
-      .returning();
+    return await db.transaction(async (tx) => {
+      const { id, infoMedica, ...updateData } = input;
 
-    return updated;
+      // Update patient core data
+      const [updated] = await tx
+        .update(pacientes)
+        .set({ ...updateData, updatedAt: new Date() })
+        .where(eq(pacientes.id, id))
+        .returning();
+
+      // Upsert medical info if provided
+      if (infoMedica) {
+        // Check if exists
+        const [existingInfo] = await tx
+          .select({ id: pacientesInfoMedica.id })
+          .from(pacientesInfoMedica)
+          .where(eq(pacientesInfoMedica.pacienteId, id))
+          .limit(1);
+
+        if (existingInfo) {
+          await tx
+            .update(pacientesInfoMedica)
+            .set({
+              ...infoMedica,
+              updatedAt: new Date(),
+            })
+            .where(eq(pacientesInfoMedica.id, existingInfo.id));
+        } else {
+          await tx.insert(pacientesInfoMedica).values({
+            pacienteId: id,
+            tipoSanguineo: infoMedica.tipoSanguineo,
+            alergias: infoMedica.alergias,
+            medicamentosAtuais: infoMedica.medicamentosAtuais,
+            queixasPrincipais: infoMedica.queixasPrincipais,
+          });
+        }
+      }
+
+      return updated;
+    });
   }),
 
   delete: mentoradoProcedure

@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { and, arrayContains, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { interacoes, leads } from "../drizzle/schema";
+import { validateBrazilianPhone } from "../shared/phone-utils";
 import { mentoradoProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 
@@ -163,13 +164,26 @@ export const leadsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
+      // Validate and normalize phone if provided
+      let normalizedPhone: string | undefined;
+      if (input.telefone) {
+        const phoneValidation = validateBrazilianPhone(input.telefone);
+        if (!phoneValidation.valid) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: phoneValidation.error || "Telefone inválido",
+          });
+        }
+        normalizedPhone = phoneValidation.normalized;
+      }
+
       const [newLead] = await db
         .insert(leads)
         .values({
           mentoradoId: ctx.mentorado.id,
           nome: input.nome,
           email: input.email,
-          telefone: input.telefone,
+          telefone: normalizedPhone,
           empresa: input.empresa,
           origem: input.origem,
           valorEstimado: input.valorEstimado,
@@ -246,13 +260,26 @@ export const leadsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
-      // 3. Update
+      // 3. Validate and normalize phone if provided
+      let normalizedPhone: string | undefined;
+      if (input.telefone) {
+        const phoneValidation = validateBrazilianPhone(input.telefone);
+        if (!phoneValidation.valid) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: phoneValidation.error || "Telefone inválido",
+          });
+        }
+        normalizedPhone = phoneValidation.normalized;
+      }
+
+      // 4. Update
       await db
         .update(leads)
         .set({
           nome: input.nome,
           email: input.email,
-          telefone: input.telefone,
+          telefone: normalizedPhone ?? input.telefone,
           empresa: input.empresa,
           valorEstimado: input.valorEstimado,
           tags: input.tags,

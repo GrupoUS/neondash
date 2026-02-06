@@ -65,6 +65,15 @@ const updatePacienteSchema = createPacienteSchema
   .extend({
     id: z.number(),
     status: z.enum(["ativo", "inativo"]).optional(),
+    // Add infoMedica back for update mutation transaction
+    infoMedica: z
+      .object({
+        tipoSanguineo: z.string().optional().nullable(),
+        alergias: z.string().optional().nullable(),
+        medicamentosAtuais: z.string().optional().nullable(),
+        queixasPrincipais: z.array(z.string()).optional().nullable(),
+      })
+      .optional(),
   });
 
 const upsertInfoMedicaSchema = z.object({

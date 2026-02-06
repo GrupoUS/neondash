@@ -234,10 +234,15 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
       ? metaSendMutation
       : provider === "zapi"
         ? zapiSendMutation
-        : baileysSendMutation;
+        : provider === "baileys"
+          ? baileysSendMutation
+          : null;
+
+  const isSending = sendMutation?.isPending ?? false;
+  const hasSendError = sendMutation?.isError ?? false;
 
   const handleSend = () => {
-    if (!message.trim() || sendMutation.isPending || !phone) return;
+    if (!provider || !sendMutation || !message.trim() || isSending || !phone) return;
     sendMutation.mutate({ phone, message: message.trim(), leadId });
   };
 
@@ -375,18 +380,18 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
           />
           <Button
             onClick={handleSend}
-            disabled={!message.trim() || sendMutation.isPending}
+            disabled={!provider || !message.trim() || isSending}
             size="icon"
             className="shrink-0 h-11 w-11 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
           >
-            {sendMutation.isPending ? (
+            {isSending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Send className="w-5 h-5" />
             )}
           </Button>
         </div>
-        {sendMutation.isError && (
+        {hasSendError && (
           <p className="text-xs text-red-400 mt-2 font-medium">
             Erro ao enviar mensagem. Tente novamente.
           </p>

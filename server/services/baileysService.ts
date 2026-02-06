@@ -6,7 +6,27 @@ import type { ConnectionState, WAMessageContent, WAProto, WASocket } from "@whis
 import { DisconnectReason, makeWASocket, useMultiFileAuthState } from "@whiskeysockets/baileys";
 import pino from "pino";
 
-const SESSIONS_DIR = path.resolve(__dirname, "../../.baileys-sessions");
+function parseBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
+  if (value == null) return defaultValue;
+
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on", "sim"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off", "nao", "não"].includes(normalized)) {
+    return false;
+  }
+
+  return defaultValue;
+}
+
+const SESSION_DIR_ENV = process.env.BAILEYS_SESSION_DIR?.trim();
+const SESSIONS_DIR = path.resolve(
+  __dirname,
+  SESSION_DIR_ENV && SESSION_DIR_ENV.length > 0 ? SESSION_DIR_ENV : "../../.baileys-sessions"
+);
+const BAILEYS_ENABLE_LOGGING = parseBooleanEnv(process.env.BAILEYS_ENABLE_LOGGING, false);
+const BAILEYS_LOG_LEVEL = BAILEYS_ENABLE_LOGGING ? "warn" : "silent";
 const DEFAULT_RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 
@@ -84,7 +104,7 @@ const DISCONNECTED_SOCKET = {
   end: () => undefined,
 } as unknown as WASocket;
 
-const logger = pino({ level: "warn", name: "baileys" });
+const logger = pino({ level: BAILEYS_LOG_LEVEL, name: "baileys" });
 
 class BaileysService extends EventEmitter {
   private sessions = new Map<number, SessionRuntime>();
@@ -384,7 +404,7 @@ class BaileysService extends EventEmitter {
       const socket = makeWASocket({
         auth: state,
         printQRInTerminal: false,
-        logger: pino({ level: "silent" }) as ReturnType<typeof pino>,
+        logger,
         browser: ["Neon Dash", "Chrome", "1.0.0"],
       });
 

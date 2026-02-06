@@ -104,7 +104,8 @@ export function registerBaileysWebhooks(app: Express) {
           phone: normalizedPhone,
           direction: "inbound",
           content,
-          zapiMessageId: message.key?.id ?? null,
+          // Keep provider-specific IDs out of Z-API-specific semantics to avoid cross-provider collisions.
+          zapiMessageId: null,
           status: "delivered",
           isFromAi: "nao",
         })

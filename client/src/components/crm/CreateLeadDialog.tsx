@@ -1,8 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,6 +29,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import {
+  maskPhoneInput,
+  normalizeBrazilianPhone,
+  validateBrazilianPhone,
+} from "../../../../shared/phone-utils";
 
 // Form schema - keeps valorEstimado as string for input
 const createLeadFormSchema = z.object({
@@ -134,10 +140,15 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
           .filter(Boolean)
       : [];
 
+    // Normalize phone to 55+digits format for WhatsApp compatibility
+    const normalizedTelefone = values.telefone
+      ? normalizeBrazilianPhone(values.telefone)
+      : undefined;
+
     mutation.mutate({
       nome: values.nome,
       email: values.email,
-      telefone: values.telefone,
+      telefone: normalizedTelefone,
       empresa: values.empresa,
       origem: values.origem,
       valorEstimado: valorEstimadoCents,
@@ -206,15 +217,42 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
                 <FormField
                   control={form.control}
                   name="telefone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>WhatsApp / Telefone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const [phoneError, setPhoneError] = useState<string | null>(null);
+                    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const masked = maskPhoneInput(e.target.value);
+                      field.onChange(masked);
+                      // Validate on change if phone has enough digits
+                      const digits = masked.replace(/\D/g, "");
+                      if (digits.length >= 10) {
+                        const result = validateBrazilianPhone(masked);
+                        setPhoneError(result.valid ? null : result.error || null);
+                      } else {
+                        setPhoneError(null);
+                      }
+                    };
+                    return (
+                      <FormItem>
+                        <FormLabel>WhatsApp / Telefone</FormLabel>
+                        <div className="flex gap-2">
+                          <Badge variant="outline" className="h-9 px-3 flex items-center shrink-0">
+                            +55
+                          </Badge>
+                          <FormControl>
+                            <Input
+                              placeholder="(11) 99999-9999"
+                              {...field}
+                              onChange={handlePhoneChange}
+                            />
+                          </FormControl>
+                        </div>
+                        {phoneError && (
+                          <p className="text-sm font-medium text-destructive">{phoneError}</p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
                 <FormField
                   control={form.control}

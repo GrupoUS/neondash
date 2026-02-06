@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { leads, mentorados, whatsappContacts, whatsappMessages } from "../drizzle/schema";
@@ -5,6 +6,18 @@ import { protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { baileysService } from "./services/baileysService";
 import { baileysSessionManager } from "./services/baileysSessionManager";
+
+function getMentoradoOrThrow(
+  mentorado: {
+    id: number;
+  } | null
+): { id: number } {
+  if (!mentorado) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Mentorado not found" });
+  }
+
+  return mentorado;
+}
 
 async function linkOrphanMessages(mentoradoId: number): Promise<number> {
   const db = getDb();
@@ -48,8 +61,8 @@ async function linkOrphanMessages(mentoradoId: number): Promise<number> {
 
 export const baileysRouter = router({
   getStatus: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.mentorado) throw new Error("Mentorado not found");
-    const status = await baileysSessionManager.getSessionStatus(ctx.mentorado.id);
+    const mentorado = getMentoradoOrThrow(ctx.mentorado);
+    const status = await baileysSessionManager.getSessionStatus(mentorado.id);
 
     return {
       connected: status.connected,
@@ -61,14 +74,14 @@ export const baileysRouter = router({
   }),
 
   connect: protectedProcedure.mutation(async ({ ctx }) => {
-    if (!ctx.mentorado) throw new Error("Mentorado not found");
-    await baileysSessionManager.connect(ctx.mentorado.id);
+    const mentorado = getMentoradoOrThrow(ctx.mentorado);
+    await baileysSessionManager.connect(mentorado.id);
     return { success: true };
   }),
 
   disconnect: protectedProcedure.mutation(async ({ ctx }) => {
-    if (!ctx.mentorado) throw new Error("Mentorado not found");
-    await baileysSessionManager.logout(ctx.mentorado.id);
+    const mentorado = getMentoradoOrThrow(ctx.mentorado);
+    await baileysSessionManager.logout(mentorado.id);
 
     const db = getDb();
     await db
@@ -79,16 +92,16 @@ export const baileysRouter = router({
         baileysConnectedAt: null,
         updatedAt: new Date(),
       })
-      .where(eq(mentorados.id, ctx.mentorado.id));
+      .where(eq(mentorados.id, mentorado.id));
 
     return { success: true };
   }),
 
   getQRCode: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.mentorado) throw new Error("Mentorado not found");
-    await baileysSessionManager.connect(ctx.mentorado.id);
+    const mentorado = getMentoradoOrThrow(ctx.mentorado);
+    await baileysSessionManager.connect(mentorado.id);
 
-    const status = await baileysSessionManager.getSessionStatus(ctx.mentorado.id);
+    const status = await baileysSessionManager.getSessionStatus(mentorado.id);
     return {
       qr: status.qr,
       connected: status.connected,
@@ -105,15 +118,15 @@ export const baileysRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.mentorado) throw new Error("Mentorado not found");
+      const mentorado = getMentoradoOrThrow(ctx.mentorado);
       const normalizedPhone = baileysService.normalizePhone(input.phone);
-      await baileysService.sendMessage(ctx.mentorado.id, normalizedPhone, input.message);
+      await baileysService.sendMessage(mentorado.id, normalizedPhone, input.message);
 
       const db = getDb();
       const [savedMessage] = await db
         .insert(whatsappMessages)
         .values({
-          mentoradoId: ctx.mentorado.id,
+          mentoradoId: mentorado.id,
           leadId: input.leadId ?? null,
           phone: normalizedPhone,
           direction: "outbound",
@@ -135,9 +148,9 @@ export const baileysRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      if (!ctx.mentorado) throw new Error("Mentorado not found");
+      const mentorado = getMentoradoOrThrow(ctx.mentorado);
       const db = getDb();
-      const conditions = [eq(whatsappMessages.mentoradoId, ctx.mentorado.id)];
+      const conditions = [eq(whatsappMessages.mentoradoId, mentorado.id)];
 
       if (input.leadId) {
         conditions.push(eq(whatsappMessages.leadId, input.leadId));
@@ -165,7 +178,7 @@ export const baileysRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      if (!ctx.mentorado) throw new Error("Mentorado not found");
+      const mentorado = getMentoradoOrThrow(ctx.mentorado);
       const db = getDb();
       const normalizedPhone = baileysService.normalizePhone(input.phone);
 
@@ -174,7 +187,7 @@ export const baileysRouter = router({
         .from(whatsappMessages)
         .where(
           and(
-            eq(whatsappMessages.mentoradoId, ctx.mentorado.id),
+            eq(whatsappMessages.mentoradoId, mentorado.id),
             eq(whatsappMessages.phone, normalizedPhone)
           )
         )

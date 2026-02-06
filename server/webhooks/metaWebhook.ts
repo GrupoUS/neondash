@@ -7,7 +7,7 @@
  *
  * @see https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/
  */
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { Router } from "express";
 import type { Lead } from "../../drizzle/schema";
 import { leads, mentorados, whatsappMessages } from "../../drizzle/schema";
@@ -264,12 +264,19 @@ async function handleIncomingMessage(
  */
 async function handleMessageStatus(status: MetaMessageStatus): Promise<void> {
   const db = getDb();
+  const normalizedRecipientPhone = status.recipient_id.replace(/\D/g, "");
 
   // Update message status in database
   const [updated] = await db
     .update(whatsappMessages)
     .set({ status: status.status })
-    .where(eq(whatsappMessages.zapiMessageId, status.id))
+    .where(
+      and(
+        eq(whatsappMessages.zapiMessageId, status.id),
+        eq(whatsappMessages.direction, "outbound"),
+        eq(whatsappMessages.phone, normalizedRecipientPhone)
+      )
+    )
     .returning({
       mentoradoId: whatsappMessages.mentoradoId,
       id: whatsappMessages.id,

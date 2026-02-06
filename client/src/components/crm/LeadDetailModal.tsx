@@ -8,7 +8,7 @@ import {
   FileText,
   Loader2,
   Mail,
-  MessageSquare,
+  MessageCircle,
   Phone,
   ShieldAlert,
   Sparkles,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,6 +95,7 @@ export function LeadDetailModal({
   const [editData, setEditData] = useState<Record<string, unknown>>(null!);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState("detalhes");
+  const [, navigate] = useLocation();
 
   const utils = trpc.useUtils();
 
@@ -486,9 +488,17 @@ export function LeadDetailModal({
                       variant="outline"
                       size="sm"
                       className="h-8 gap-1.5 bg-white/5 border-white/10 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500 text-xs"
-                      onClick={() => handleQuickAction("whatsapp")}
+                      onClick={() => {
+                        const phone = data?.lead?.telefone;
+                        if (phone) {
+                          onClose();
+                          navigate(`/chat?phone=${encodeURIComponent(phone)}&leadId=${leadId}`);
+                        } else {
+                          toast.error("Lead não possui número de telefone");
+                        }
+                      }}
                     >
-                      <MessageSquare className="h-3.5 w-3.5" />
+                      <MessageCircle className="h-3.5 w-3.5" />
                       WhatsApp
                     </Button>
                     <Button

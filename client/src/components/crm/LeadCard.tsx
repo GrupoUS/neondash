@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarPlus, Phone } from "lucide-react";
+import { CalendarPlus, MessageCircle } from "lucide-react";
 import { memo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -214,7 +214,7 @@ function LeadCardComponent({
               }}
               title="Enviar WhatsApp"
             >
-              <Phone className="h-3.5 w-3.5" />
+              <MessageCircle className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>

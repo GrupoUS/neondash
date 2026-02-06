@@ -1,7 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { leads, mentorados, whatsappContacts, whatsappMessages } from "../drizzle/schema";
+import {
+  leads,
+  mentorados,
+  whatsappContacts,
+  whatsappMessages,
+  whatsappReactions,
+} from "../drizzle/schema";
 import { protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { baileysService } from "./services/baileysService";

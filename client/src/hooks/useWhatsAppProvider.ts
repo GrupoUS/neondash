@@ -9,6 +9,7 @@ export type WhatsAppProvider = "meta" | "baileys" | "zapi";
 
 interface WhatsAppRealtimeOptions {
   refetchIntervalMs?: number | false;
+  enabled?: boolean;
 }
 
 export function useWhatsAppProvider() {
@@ -42,14 +43,14 @@ export function useWhatsAppProvider() {
 
 export function useWhatsAppConversations(
   activeProvider: WhatsAppProvider | null,
-  { refetchIntervalMs = 10000 }: WhatsAppRealtimeOptions = {}
+  { refetchIntervalMs = 10000, enabled = true }: WhatsAppRealtimeOptions = {}
 ) {
   const {
     data: zapiConversations,
     isLoading: zapiLoading,
     refetch: refetchZapi,
   } = trpc.zapi.getAllConversations.useQuery(undefined, {
-    enabled: activeProvider === "zapi",
+    enabled: enabled && activeProvider === "zapi",
     refetchInterval: refetchIntervalMs,
   });
 
@@ -58,7 +59,7 @@ export function useWhatsAppConversations(
     isLoading: metaLoading,
     refetch: refetchMeta,
   } = trpc.metaApi.getAllConversations.useQuery(undefined, {
-    enabled: activeProvider === "meta",
+    enabled: enabled && activeProvider === "meta",
     refetchInterval: refetchIntervalMs,
   });
 
@@ -67,7 +68,7 @@ export function useWhatsAppConversations(
     isLoading: baileysLoading,
     refetch: refetchBaileys,
   } = trpc.baileys.getAllConversations.useQuery(undefined, {
-    enabled: activeProvider === "baileys",
+    enabled: enabled && activeProvider === "baileys",
     refetchInterval: refetchIntervalMs,
   });
 
@@ -98,7 +99,7 @@ export function useWhatsAppConversations(
 export function useWhatsAppMessages(
   activeProvider: WhatsAppProvider | null,
   phone: string | null,
-  { refetchIntervalMs = 5000 }: WhatsAppRealtimeOptions = {}
+  { refetchIntervalMs = 5000, enabled = true }: WhatsAppRealtimeOptions = {}
 ) {
   const {
     data: zapiMessages,
@@ -106,7 +107,7 @@ export function useWhatsAppMessages(
     refetch: refetchZapi,
   } = trpc.zapi.getMessagesByPhone.useQuery(
     { phone: phone ?? "" },
-    { enabled: !!phone && activeProvider === "zapi", refetchInterval: refetchIntervalMs }
+    { enabled: enabled && !!phone && activeProvider === "zapi", refetchInterval: refetchIntervalMs }
   );
 
   const {
@@ -115,7 +116,7 @@ export function useWhatsAppMessages(
     refetch: refetchMeta,
   } = trpc.metaApi.getMessagesByPhone.useQuery(
     { phone: phone ?? "" },
-    { enabled: !!phone && activeProvider === "meta", refetchInterval: refetchIntervalMs }
+    { enabled: enabled && !!phone && activeProvider === "meta", refetchInterval: refetchIntervalMs }
   );
 
   const {
@@ -124,7 +125,10 @@ export function useWhatsAppMessages(
     refetch: refetchBaileys,
   } = trpc.baileys.getMessagesByPhone.useQuery(
     { phone: phone ?? "" },
-    { enabled: !!phone && activeProvider === "baileys", refetchInterval: refetchIntervalMs }
+    {
+      enabled: enabled && !!phone && activeProvider === "baileys",
+      refetchInterval: refetchIntervalMs,
+    }
   );
 
   const messages =

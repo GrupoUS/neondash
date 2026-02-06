@@ -192,7 +192,7 @@ export function AddPatientWizard({ open, onOpenChange }: AddPatientWizardProps) 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-[1600px] w-[95vw] p-0 overflow-hidden bg-background border-border/60 gap-0 shadow-2xl"
+        className="sm:max-w-[90vw] lg:max-w-[1500px] w-[95vw] p-0 overflow-hidden bg-background border-border/60 gap-0 shadow-2xl"
         aria-describedby="add-patient-description"
       >
         <DialogTitle className="sr-only">Cadastrar Novo Paciente</DialogTitle>

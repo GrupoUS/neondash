@@ -430,11 +430,18 @@ export function InstagramPublisher() {
       return;
     }
 
+    if (scheduledDate) {
+      toast.error("Agendamento de post ainda não está disponível. Use Publicar Agora.");
+      return;
+    }
+
     setIsPublishing(true);
+    const hashTagSuffix =
+      hashtags.length > 0 ? `\n\n${hashtags.map((h) => `#${h}`).join(" ")}` : "";
+
     await publishPost.mutateAsync({
-      mentoradoId: mentorado.id,
       imageUrl,
-      caption: `${caption}\n\n${hashtags.map((h) => `#${h}`).join(" ")}`,
+      caption: `${caption}${hashTagSuffix}`,
     });
   };
 
@@ -538,6 +545,12 @@ export function InstagramPublisher() {
                 )}
               </Button>
             </div>
+            {scheduledDate && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Agendamento ainda não suportado neste fluxo. A ação acima publicará imediatamente
+                após remover a data.
+              </p>
+            )}
           </NeonCard>
         </div>
       </div>

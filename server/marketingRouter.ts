@@ -10,7 +10,7 @@
  */
 
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -296,11 +296,18 @@ export const marketingRouter = router({
 
     const [post] = await db.insert(marketingPosts).values(values).returning();
 
+    const [postCountRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(marketingPosts)
+      .where(eq(marketingPosts.campaignId, input.campaignId));
+
+    const totalPosts = Number(postCountRow?.count ?? 0);
+
     // Update campaign post count
     await db
       .update(marketingCampaigns)
       .set({
-        totalPosts: campaign.id, // Will be recalculated
+        totalPosts,
         updatedAt: new Date(),
       })
       .where(eq(marketingCampaigns.id, input.campaignId));

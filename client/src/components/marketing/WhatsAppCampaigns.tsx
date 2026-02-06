@@ -50,20 +50,30 @@ import { cn } from "@/lib/utils";
 
 // Types
 interface SegmentationFilters {
-  status?: string[];
+  status?: LeadStatus[];
   tags?: string[];
   lastInteractionDaysAgo?: number;
   source?: string[];
 }
 
+type LeadStatus =
+  | "novo"
+  | "primeiro_contato"
+  | "qualificado"
+  | "proposta"
+  | "negociacao"
+  | "fechado"
+  | "perdido";
+
 const LEAD_STATUSES = [
   { value: "novo", label: "Novo", color: "bg-blue-500" },
-  { value: "contatado", label: "Contatado", color: "bg-yellow-500" },
+  { value: "primeiro_contato", label: "Primeiro Contato", color: "bg-yellow-500" },
   { value: "qualificado", label: "Qualificado", color: "bg-green-500" },
-  { value: "agendado", label: "Agendado", color: "bg-purple-500" },
-  { value: "convertido", label: "Convertido", color: "bg-emerald-500" },
+  { value: "proposta", label: "Proposta", color: "bg-purple-500" },
+  { value: "negociacao", label: "Negociação", color: "bg-emerald-500" },
+  { value: "fechado", label: "Fechado", color: "bg-emerald-600" },
   { value: "perdido", label: "Perdido", color: "bg-red-500" },
-];
+] as const;
 
 // Campaign Builder Steps
 const STEPS = [
@@ -182,7 +192,7 @@ function AudienceStep({
   contactCount: number;
   isLoadingCount: boolean;
 }) {
-  const toggleStatus = (status: string) => {
+  const toggleStatus = (status: LeadStatus) => {
     const current = filters.status || [];
     if (current.includes(status)) {
       onFiltersChange({ ...filters, status: current.filter((s) => s !== status) });
@@ -497,12 +507,12 @@ export function WhatsAppCampaigns() {
 
   const statusConfig = {
     draft: { label: "Rascunho", icon: Clock, color: "text-muted-foreground" },
-    pending: { label: "Pendente", icon: Clock, color: "text-amber-600" },
+    scheduled: { label: "Agendada", icon: Clock, color: "text-amber-600" },
     sending: { label: "Enviando", icon: Loader2, color: "text-blue-600" },
-    completed: { label: "Concluída", icon: CheckCircle2, color: "text-green-600" },
+    sent: { label: "Enviada", icon: CheckCircle2, color: "text-green-600" },
     paused: { label: "Pausada", icon: Pause, color: "text-amber-600" },
-    cancelled: { label: "Cancelada", icon: X, color: "text-red-600" },
-  };
+    failed: { label: "Falha", icon: X, color: "text-red-600" },
+  } as const;
 
   return (
     <div className="space-y-6">
@@ -572,7 +582,13 @@ export function WhatsAppCampaigns() {
                       <div>
                         <p className="font-medium">{campaign.name}</p>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <StatusIcon className={cn("h-4 w-4", config.color)} />
+                          <StatusIcon
+                            className={cn(
+                              "h-4 w-4",
+                              config.color,
+                              campaign.status === "sending" && "animate-spin"
+                            )}
+                          />
                           <span>{config.label}</span>
                           {(campaign.messagesSent ?? 0) > 0 && (
                             <>

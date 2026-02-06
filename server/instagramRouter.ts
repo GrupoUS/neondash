@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { mentorados } from "../drizzle/schema";
 import { createLogger } from "./_core/logger";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { mentoradoProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import * as instagramPublishService from "./services/instagramPublishService";
 import { instagramService } from "./services/instagramService";
@@ -285,19 +285,18 @@ export const instagramRouter = router({
   /**
    * Publish a post directly with image URL and caption
    */
-  publishPost: protectedProcedure
+  publishPost: mentoradoProcedure
     .input(
       z.object({
-        mentoradoId: z.number(),
         imageUrl: z.string().url(),
         caption: z.string().max(2200),
       })
     )
-    .mutation(async ({ input }) => {
-      logger.info("publish_post", { mentoradoId: input.mentoradoId });
+    .mutation(async ({ ctx, input }) => {
+      logger.info("publish_post", { mentoradoId: ctx.mentorado.id, userId: ctx.user.id });
 
       const result = await instagramPublishService.publishPost(
-        input.mentoradoId,
+        ctx.mentorado.id,
         input.imageUrl,
         input.caption
       );

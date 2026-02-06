@@ -2,6 +2,7 @@
  * Z-API tRPC Router
  * Handles WhatsApp connection management and messaging
  */
+import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { leads, mentorados, whatsappContacts, whatsappMessages } from "../drizzle/schema";
@@ -1013,6 +1014,13 @@ export const zapiRouter = router({
         throw new Error("Campanha não encontrada");
       }
 
+      if (campaign.mentoradoId !== mentorado.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Acesso negado para esta campanha",
+        });
+      }
+
       // Get contacts based on filter or all
       const targetContacts = campaign.targetFilter
         ? await getContactsFromSegmentation(
@@ -1049,8 +1057,26 @@ export const zapiRouter = router({
    */
   getCampaignStats: protectedProcedure
     .input(z.object({ campaignId: z.number() }))
-    .query(async ({ input }) => {
-      const { getCampaignStats } = await import("./services/whatsappCampaignService");
+    .query(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithZapi(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const { getCampaignStats, getCampaign } = await import("./services/whatsappCampaignService");
+
+      const campaign = await getCampaign(input.campaignId);
+      if (!campaign) {
+        throw new Error("Campanha não encontrada");
+      }
+
+      if (campaign.mentoradoId !== mentorado.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Acesso negado para esta campanha",
+        });
+      }
+
       return getCampaignStats(input.campaignId);
     }),
 

@@ -33,44 +33,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
+import type { EmbeddedSignupResponse } from "@/types/facebook-sdk";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected";
-
-// Meta Embedded Signup response types
-interface EmbeddedSignupResponse {
-  authResponse: {
-    accessToken: string;
-    code: string;
-    data_access_expiration_time: number;
-    expiresIn: number;
-    userID: string;
-  };
-  status: string;
-}
-
-// Declare Facebook SDK types
-declare global {
-  interface Window {
-    FB: {
-      init: (params: {
-        appId: string;
-        autoLogAppEvents: boolean;
-        xfbml: boolean;
-        version: string;
-      }) => void;
-      login: (
-        callback: (response: EmbeddedSignupResponse) => void,
-        params: {
-          config_id: string;
-          response_type: string;
-          override_default_response_type: boolean;
-          extras: Record<string, unknown>;
-        }
-      ) => void;
-    };
-    fbAsyncInit: () => void;
-  }
-}
 
 export function MetaConnectionCard() {
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);

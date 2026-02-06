@@ -29,9 +29,9 @@ export const ENV = {
   instagramRedirectUri:
     process.env.INSTAGRAM_REDIRECT_URI ?? "http://localhost:3000/api/instagram/callback",
 
-  // Facebook Marketing API OAuth (optional, for Ads insights sync)
-  facebookAdsAppId: process.env.FACEBOOK_ADS_APP_ID,
-  facebookAdsAppSecret: process.env.FACEBOOK_ADS_APP_SECRET,
+  // Facebook Marketing API OAuth (reuses META_APP_ID/SECRET for Ads insights sync)
+  facebookAdsAppId: process.env.META_APP_ID,
+  facebookAdsAppSecret: process.env.META_APP_SECRET,
   facebookAdsRedirectUri:
     process.env.FACEBOOK_ADS_REDIRECT_URI ?? "http://localhost:3000/api/facebook-ads/callback",
 

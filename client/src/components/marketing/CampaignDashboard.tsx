@@ -5,6 +5,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlertTriangle,
   Calendar,
   CheckCircle2,
   Clock,
@@ -13,7 +14,6 @@ import {
   MessageSquare,
   MoreHorizontal,
   Pause,
-  Play,
   Plus,
   Send,
   TrendingUp,
@@ -71,12 +71,28 @@ interface Campaign {
   id: number;
   name: string;
   type: "whatsapp" | "instagram";
-  status: "active" | "paused" | "completed" | "draft";
+  status: WhatsAppCampaignStatus;
   messagesSent?: number;
   messagesDelivered?: number;
   targetContactsCount?: number;
   scheduledFor?: Date | null;
   createdAt: Date;
+}
+
+type WhatsAppCampaignStatus = "draft" | "scheduled" | "sending" | "sent" | "paused" | "failed";
+
+function normalizeCampaignStatus(status: string): WhatsAppCampaignStatus {
+  switch (status) {
+    case "draft":
+    case "scheduled":
+    case "sending":
+    case "sent":
+    case "paused":
+    case "failed":
+      return status;
+    default:
+      return "draft";
+  }
 }
 
 // KPI Card Component
@@ -152,30 +168,43 @@ function KPICard({
 
 // Campaign Card Component
 function CampaignCard({ campaign }: { campaign: Campaign }) {
-  const statusConfig = {
-    active: {
-      label: "Ativa",
+  const statusConfig: Record<
+    WhatsAppCampaignStatus,
+    { label: string; color: string; icon: React.ElementType }
+  > = {
+    draft: {
+      label: "Rascunho",
+      color: "bg-muted text-muted-foreground border-border",
+      icon: Clock,
+    },
+    scheduled: {
+      label: "Agendada",
+      color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+      icon: Calendar,
+    },
+    sending: {
+      label: "Enviando",
+      color: "bg-sky-500/10 text-sky-600 border-sky-500/20",
+      icon: Loader2,
+    },
+    sent: {
+      label: "Enviada",
       color: "bg-green-500/10 text-green-600 border-green-500/20",
-      icon: Play,
+      icon: CheckCircle2,
     },
     paused: {
       label: "Pausada",
       color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
       icon: Pause,
     },
-    completed: {
-      label: "Concluída",
-      color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-      icon: CheckCircle2,
-    },
-    draft: {
-      label: "Rascunho",
-      color: "bg-muted text-muted-foreground border-border",
-      icon: Clock,
+    failed: {
+      label: "Falha",
+      color: "bg-red-500/10 text-red-600 border-red-500/20",
+      icon: AlertTriangle,
     },
   };
 
-  const config = statusConfig[campaign.status];
+  const config = statusConfig[campaign.status] ?? statusConfig.draft;
   const StatusIcon = config.icon;
 
   const deliveryRate =
@@ -216,7 +245,9 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
               </h4>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className={config.color}>
-                  <StatusIcon className="h-3 w-3 mr-1" />
+                  <StatusIcon
+                    className={cn("h-3 w-3 mr-1", campaign.status === "sending" && "animate-spin")}
+                  />
                   {config.label}
                 </Badge>
                 {campaign.scheduledFor && (
@@ -243,7 +274,6 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
               <DropdownMenuItem>Editar</DropdownMenuItem>
-              {campaign.status === "active" && <DropdownMenuItem>Pausar</DropdownMenuItem>}
               {campaign.status === "paused" && <DropdownMenuItem>Retomar</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -330,7 +360,7 @@ export function CampaignDashboard() {
       id: c.id,
       name: c.name,
       type: "whatsapp" as const,
-      status: c.status as Campaign["status"],
+      status: normalizeCampaignStatus(c.status),
       messagesSent: c.messagesSent ?? 0,
       messagesDelivered: c.messagesDelivered ?? 0,
       targetContactsCount: c.targetContactsCount ?? 0,

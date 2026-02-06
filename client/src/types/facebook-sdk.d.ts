@@ -37,6 +37,34 @@ export interface FacebookPageWithInstagram {
   error?: { message: string };
 }
 
+// Meta Embedded Signup response for WhatsApp integration
+export interface EmbeddedSignupAuthResponse {
+  accessToken: string;
+  code: string;
+  data_access_expiration_time: number;
+  expiresIn: number;
+  userID: string;
+}
+
+export interface EmbeddedSignupResponse {
+  authResponse?: EmbeddedSignupAuthResponse;
+  status: string;
+}
+
+// Embedded Signup login options
+export interface EmbeddedSignupLoginOptions {
+  config_id: string;
+  response_type: string;
+  override_default_response_type: boolean;
+  extras: Record<string, unknown>;
+}
+
+// Standard login options
+export interface StandardLoginOptions {
+  scope: string;
+  return_scopes?: boolean;
+}
+
 // Global Window extension for Facebook SDK
 declare global {
   interface Window {
@@ -44,12 +72,26 @@ declare global {
     checkLoginState: () => void;
     checkFacebookAdsLoginState?: () => void;
     FB: {
-      init: (params: { appId: string; cookie: boolean; xfbml: boolean; version: string }) => void;
+      init: (params: {
+        appId: string;
+        cookie?: boolean;
+        xfbml: boolean;
+        version: string;
+        autoLogAppEvents?: boolean;
+      }) => void;
       getLoginStatus: (callback: (response: FacebookLoginStatusResponse) => void) => void;
-      login: (
-        callback: (response: FacebookLoginStatusResponse) => void,
-        options?: { scope: string; return_scopes?: boolean }
-      ) => void;
+      login: {
+        // Standard login overload
+        (
+          callback: (response: FacebookLoginStatusResponse) => void,
+          options?: StandardLoginOptions
+        ): void;
+        // Embedded Signup overload
+        (
+          callback: (response: EmbeddedSignupResponse) => void,
+          options: EmbeddedSignupLoginOptions
+        ): void;
+      };
       logout: (callback: () => void) => void;
       api: <T>(path: string, callback: (response: T) => void) => void;
       XFBML: {

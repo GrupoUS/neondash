@@ -40,6 +40,12 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  useWhatsAppConversations,
+  useWhatsAppMessages,
+  useWhatsAppProvider,
+  useWhatsAppSendMessage,
+} from "@/hooks/useWhatsAppProvider";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
@@ -62,17 +68,22 @@ export function ChatPage() {
   const [newContactName, setNewContactName] = useState("");
   const [videoComposerOpen, setVideoComposerOpen] = useState(false);
 
-  // Get WhatsApp connection status
-  const { data: connectionStatus, isLoading: statusLoading } = trpc.zapi.getStatus.useQuery();
-
-  // Get all conversations
+  // Use extracted hooks for multi-provider support
   const {
-    data: conversations,
+    activeProvider,
+    isConnected: isAnyConnected,
+    isLoading: statusLoading,
+  } = useWhatsAppProvider();
+  const {
+    conversations,
     isLoading: conversationsLoading,
     refetch: refetchConversations,
-  } = trpc.zapi.getAllConversations.useQuery(undefined, {
-    refetchInterval: 10000, // Poll every 10 seconds
-  });
+  } = useWhatsAppConversations(activeProvider);
+  const {
+    messages,
+    isLoading: messagesLoading,
+    refetch: refetchMessages,
+  } = useWhatsAppMessages(activeProvider, selectedPhone);
 
   // Get AI Agent config
   const { data: aiConfig } = trpc.aiAgent.getConfig.useQuery();
@@ -82,23 +93,11 @@ export function ChatPage() {
     },
   });
 
-  // Get messages for selected conversation
-  const {
-    data: messages,
-    isLoading: messagesLoading,
-    refetch: refetchMessages,
-  } = trpc.zapi.getMessagesByPhone.useQuery(
-    { phone: selectedPhone ?? "" },
-    { enabled: !!selectedPhone, refetchInterval: 5000 }
-  );
-
-  // Send message mutation
-  const sendMutation = trpc.zapi.sendMessage.useMutation({
-    onSuccess: () => {
-      setMessage("");
-      refetchMessages();
-      refetchConversations();
-    },
+  // Send message mutation with success callback
+  const sendMutation = useWhatsAppSendMessage(activeProvider, () => {
+    setMessage("");
+    refetchMessages();
+    refetchConversations();
   });
 
   // Edit contact state and mutation
@@ -186,8 +185,8 @@ export function ChatPage() {
 
   const isAiEnabled = aiConfig?.enabled === "sim";
 
-  // Not connected state
-  if (!statusLoading && !connectionStatus?.connected) {
+  // Not connected state - check if ANY provider is connected
+  if (!statusLoading && !isAnyConnected) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center h-[70vh] gap-6">

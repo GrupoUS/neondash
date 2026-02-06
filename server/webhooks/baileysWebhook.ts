@@ -40,7 +40,7 @@ export function registerBaileysWebhooks(app: Express) {
   baileysSessionManager.on(
     "qr",
     ({ mentoradoId, qr, status, connected }: BaileysQrEventPayload) => {
-      sseService.broadcast(mentoradoId, "connection_update", {
+      sseService.broadcast(mentoradoId, "status_update", {
         status,
         connected,
         qr,
@@ -76,7 +76,7 @@ export function registerBaileysWebhooks(app: Express) {
           .where(eq(mentorados.id, mentoradoId));
       }
 
-      sseService.broadcast(mentoradoId, "connection_update", {
+      sseService.broadcast(mentoradoId, "status_update", {
         status,
         connected,
         phone,

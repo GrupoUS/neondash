@@ -83,9 +83,28 @@ O sistema de preparação para calls oferece ferramentas completas para mentores
 |---------|-----|
 | **Clerk** | Auth & User management |
 | **Google APIs** | Calendar integration |
-| **Z-API** | WhatsApp Business |
+| **WhatsApp Providers** | Z-API, Meta Cloud API e Baileys |
 | **Instagram Graph API** | Métricas sociais |
 | **Gemini AI** | Coach inteligente |
+
+---
+
+## 💬 Integrações WhatsApp (Z-API, Meta Cloud API, Baileys)
+
+O projeto suporta três provedores para WhatsApp, com prioridades operacionais diferentes conforme estabilidade, compliance e custo.
+
+| Provedor | Tipo | Prós | Contras / Caveats Operacionais |
+|----------|------|------|--------------------------------|
+| **Meta Cloud API** | Oficial (Meta) | Maior previsibilidade, melhor alinhamento com políticas oficiais, melhor opção para escala/compliance | Onboarding mais complexo (Business Manager, permissões, webhook), custos por conversa |
+| **Z-API** | Terceiro (API sobre WhatsApp Web) | Setup rápido, curva operacional menor para times já habituados | Dependência de terceiro, risco operacional externo, limitação por instância/fornecedor |
+| **Baileys** | Self-hosted (não oficial) | Controle de infraestrutura, menor lock-in de fornecedor, flexibilidade técnica | Maior risco de estabilidade/política, manutenção de sessão/QR por conta própria, requer operação conservadora |
+
+### Recomendações de operação
+
+- **Priorizar Meta Cloud API** para ambientes de produção com necessidade de confiabilidade e compliance.
+- **Usar Baileys com cautela**: manter volume moderado, evitar automações agressivas e observar risco de bloqueio por comportamento incompatível com políticas.
+- **Manter transição sem perda de histórico**: migrações entre provedores devem preservar mensagens no banco e começar com fluxo não-destrutivo (dry-run).
+- **Não operar campanhas sem opt-in**: aplicar controles anti-spam, limites de envio e trilha de auditoria.
 
 ---
 

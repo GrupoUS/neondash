@@ -156,6 +156,34 @@ export const baileysRouter = router({
       return messages.reverse();
     }),
 
+  // Alias for getMessages to maintain API consistency with Meta and Z-API routers
+  getMessagesByPhone: protectedProcedure
+    .input(
+      z.object({
+        phone: z.string(),
+        limit: z.number().min(1).max(100).default(50),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.mentorado) throw new Error("Mentorado not found");
+      const db = getDb();
+      const normalizedPhone = baileysService.normalizePhone(input.phone);
+
+      const messages = await db
+        .select()
+        .from(whatsappMessages)
+        .where(
+          and(
+            eq(whatsappMessages.mentoradoId, ctx.mentorado.id),
+            eq(whatsappMessages.phone, normalizedPhone)
+          )
+        )
+        .orderBy(desc(whatsappMessages.createdAt))
+        .limit(input.limit);
+
+      return messages.reverse();
+    }),
+
   getAllConversations: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.mentorado) {
       return [];

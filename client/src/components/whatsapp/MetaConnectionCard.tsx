@@ -48,15 +48,16 @@ export function MetaConnectionCard() {
     { refetchInterval: status === "connecting" ? 5000 : 30000 }
   );
 
-  // Configure mutation (called after Embedded Signup)
-  const configureMutation = trpc.metaApi.configure.useMutation({
+  // Exchange code mutation (exchanges FB code for permanent credentials)
+
+  const exchangeCodeMutation = trpc.metaApi.exchangeCode.useMutation({
     onSuccess: () => {
       setError(null);
       setStatus("connected");
       refetchStatus();
     },
     onError: (err) => {
-      setError(err.message || "Erro ao configurar WhatsApp");
+      setError(err.message || "Erro ao trocar código de autorização");
       setStatus("disconnected");
     },
   });
@@ -117,24 +118,16 @@ export function MetaConnectionCard() {
     window.FB.login(
       (response: EmbeddedSignupResponse) => {
         if (response.authResponse) {
-          // User completed signup - exchange code for credentials
-          const { code, accessToken } = response.authResponse;
+          // User completed signup - exchange code for permanent credentials
+          const { code } = response.authResponse;
 
-          // In a real implementation, you would:
-          // 1. Send the code to your backend
-          // 2. Backend exchanges code for permanent access token
-          // 3. Backend stores credentials and returns WABA/Phone details
-
-          // For now, we'll use the access token directly (short-lived)
-          // Production should implement proper token exchange flow
-
-          // TODO: Implement token exchange on backend
-          // For demo, simulate with placeholder data
-          configureMutation.mutate({
-            wabaId: `waba_${code.slice(0, 8)}`, // Placeholder
-            phoneNumberId: `phone_${code.slice(0, 8)}`, // Placeholder
-            accessToken: accessToken,
-          });
+          if (code) {
+            // Send code to backend for token exchange
+            exchangeCodeMutation.mutate({ code });
+          } else {
+            setError("Código de autorização não recebido. Tente novamente.");
+            setStatus("disconnected");
+          }
         } else {
           setError("Signup cancelado ou falhou. Tente novamente.");
           setStatus("disconnected");
@@ -151,7 +144,7 @@ export function MetaConnectionCard() {
         },
       }
     );
-  }, [fbSdkLoaded, configureMutation, sdkError]);
+  }, [fbSdkLoaded, exchangeCodeMutation, sdkError]);
 
   const handleDisconnect = () => {
     disconnectMutation.mutate();
@@ -371,10 +364,10 @@ export function MetaConnectionCard() {
                 <Button
                   size="lg"
                   onClick={handleEmbeddedSignup}
-                  disabled={!fbSdkLoaded || configureMutation.isPending || !!sdkError}
+                  disabled={!fbSdkLoaded || exchangeCodeMutation.isPending || !!sdkError}
                   className="w-full max-w-xs bg-blue-600 hover:bg-blue-700"
                 >
-                  {configureMutation.isPending || sdkLoading ? (
+                  {exchangeCodeMutation.isPending || sdkLoading ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Smartphone className="w-4 h-4 mr-2" />

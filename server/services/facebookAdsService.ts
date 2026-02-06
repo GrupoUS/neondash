@@ -6,7 +6,7 @@
  * @module facebookAdsService
  */
 
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
   facebookAdAccounts,
   facebookAdsInsights,
@@ -226,6 +226,7 @@ export async function refreshAccessToken(accessToken: string): Promise<LongLived
 
 /**
  * Revoke Facebook Ads access for a mentorado
+ * Deletes all related data: tokens, ad accounts, insights, and sync logs
  *
  * @param mentoradoId - The mentorado to revoke access for
  * @param logger - Optional logger instance
@@ -236,17 +237,19 @@ export async function revokeAccess(mentoradoId: number, logger?: Logger): Promis
   const db = getDb();
 
   try {
-    // Delete token from database
-    await db.delete(facebookAdsTokens).where(eq(facebookAdsTokens.mentoradoId, mentoradoId));
-
-    // Delete ad accounts
+    // Delete all related data in order (insights and logs before tokens)
+    await db.delete(facebookAdsInsights).where(eq(facebookAdsInsights.mentoradoId, mentoradoId));
+    await db.delete(facebookAdsSyncLog).where(eq(facebookAdsSyncLog.mentoradoId, mentoradoId));
     await db.delete(facebookAdAccounts).where(eq(facebookAdAccounts.mentoradoId, mentoradoId));
+    await db.delete(facebookAdsTokens).where(eq(facebookAdsTokens.mentoradoId, mentoradoId));
 
     log.info("revoke_success", { mentoradoId });
     return true;
   } catch (error) {
     log.error("revoke_failed", error, { mentoradoId });
-    return false;
+    throw new Error(
+      `Failed to delete Facebook Ads data: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
 }
 
@@ -647,15 +650,16 @@ export async function deleteFacebookAdsToken(mentoradoId: number) {
 /**
  * Get insights history for a mentorado (last N months)
  */
-export async function getInsightsHistory(mentoradoId: number, _months: number = 6) {
+export async function getInsightsHistory(mentoradoId: number, months: number = 6) {
   const db = getDb();
 
-  // Note: Could add date filtering in future. Currently returns all insights.
+  // Order by year/month descending and limit to requested months
   const insights = await db
     .select()
     .from(facebookAdsInsights)
     .where(eq(facebookAdsInsights.mentoradoId, mentoradoId))
-    .orderBy(facebookAdsInsights.ano, facebookAdsInsights.mes);
+    .orderBy(desc(facebookAdsInsights.ano), desc(facebookAdsInsights.mes))
+    .limit(months);
 
   return insights;
 }

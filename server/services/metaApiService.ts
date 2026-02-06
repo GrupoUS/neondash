@@ -197,6 +197,52 @@ export async function sendTemplateMessage(
   return response.json();
 }
 
+export interface MetaSendVideoRequest {
+  to: string;
+  videoUrl: string;
+  caption?: string;
+}
+
+/**
+ * Send a video message via Meta WhatsApp Cloud API
+ * Uses the link-based approach for publicly accessible video URLs
+ *
+ * @see https://developers.facebook.com/docs/whatsapp/cloud-api/messages/video-messages
+ */
+export async function sendVideoMessage(
+  credentials: MetaApiCredentials,
+  { to, videoUrl, caption }: MetaSendVideoRequest
+): Promise<MetaSendMessageResponse> {
+  const url = buildUrl(credentials.phoneNumberId, "messages");
+  const normalizedPhone = normalizePhoneNumber(to);
+
+  const videoPayload: { link: string; caption?: string } = { link: videoUrl };
+  if (caption) {
+    videoPayload.caption = caption;
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: buildHeaders(credentials.accessToken),
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: normalizedPhone,
+      type: "video",
+      video: videoPayload,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = (await response.json()) as MetaApiError;
+    throw new Error(
+      `Meta API video send failed (${response.status}): ${errorData.error?.message || "Unknown error"}`
+    );
+  }
+
+  return response.json();
+}
+
 /**
  * Mark a message as read
  */
@@ -258,6 +304,7 @@ export async function getPhoneNumberDetails(credentials: MetaApiCredentials): Pr
 
 export const metaApiService = {
   sendTextMessage,
+  sendVideoMessage,
   sendTemplateMessage,
   markMessageAsRead,
   getPhoneNumberDetails,

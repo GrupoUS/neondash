@@ -34,18 +34,39 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get connection status
-  const { data: connectionStatus, isLoading: isLoadingStatus } = trpc.zapi.getStatus.useQuery();
+  // Get connection status for both providers
+  const { data: zapiStatus, isLoading: isLoadingZapi } = trpc.zapi.getStatus.useQuery();
+  const { data: metaStatus, isLoading: isLoadingMeta } = trpc.metaApi.getStatus.useQuery();
 
-  // Get messages for this lead (initial fetch, no polling - SSE handles updates)
-  const {
-    data: messages,
-    isLoading: isLoadingMessages,
-    refetch: refetchMessages,
-  } = trpc.zapi.getMessages.useQuery({ leadId }, { enabled: !!leadId });
+  // Determine active provider: Meta takes priority if connected
+  const provider: "meta" | "zapi" | null = metaStatus?.connected
+    ? "meta"
+    : zapiStatus?.connected
+      ? "zapi"
+      : null;
+
+  const isLoadingStatus = isLoadingZapi || isLoadingMeta;
 
   // Get TanStack Query utils for cache invalidation
   const utils = trpc.useUtils();
+
+  // Get messages for this lead based on provider
+  const {
+    data: zapiMessages,
+    isLoading: isLoadingZapiMessages,
+    refetch: refetchZapiMessages,
+  } = trpc.zapi.getMessages.useQuery({ leadId }, { enabled: !!leadId && provider === "zapi" });
+
+  const {
+    data: metaMessages,
+    isLoading: isLoadingMetaMessages,
+    refetch: refetchMetaMessages,
+  } = trpc.metaApi.getMessages.useQuery({ leadId }, { enabled: !!leadId && provider === "meta" });
+
+  // Use messages from the active provider
+  const messages = provider === "meta" ? metaMessages : zapiMessages;
+  const isLoadingMessages = provider === "meta" ? isLoadingMetaMessages : isLoadingZapiMessages;
+  const refetchMessages = provider === "meta" ? refetchMetaMessages : refetchZapiMessages;
 
   // Handle incoming SSE message
   const handleSSEMessage = useCallback(
@@ -54,20 +75,29 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
         const data = JSON.parse(event.data);
         // Only update if message is for the current lead
         if (data.leadId === leadId) {
-          utils.zapi.getMessages.invalidate({ leadId });
+          // Invalidate the active provider's messages
+          if (provider === "meta") {
+            utils.metaApi.getMessages.invalidate({ leadId });
+          } else {
+            utils.zapi.getMessages.invalidate({ leadId });
+          }
         }
       } catch {
         // Malformed JSON - ignore
       }
     },
-    [leadId, utils.zapi.getMessages]
+    [leadId, provider, utils.metaApi.getMessages, utils.zapi.getMessages]
   );
 
   // Handle SSE status update
   const handleSSEStatusUpdate = useCallback(() => {
     // Invalidate to get updated status icons
-    utils.zapi.getMessages.invalidate({ leadId });
-  }, [leadId, utils.zapi.getMessages]);
+    if (provider === "meta") {
+      utils.metaApi.getMessages.invalidate({ leadId });
+    } else {
+      utils.zapi.getMessages.invalidate({ leadId });
+    }
+  }, [leadId, provider, utils.metaApi.getMessages, utils.zapi.getMessages]);
 
   // Setup SSE connection
   useEffect(() => {
@@ -92,14 +122,25 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
     }
   }, [messages]);
 
-  // Send message mutation
-  const sendMutation = trpc.zapi.sendMessage.useMutation({
+  // Send message mutations for both providers
+  const zapiSendMutation = trpc.zapi.sendMessage.useMutation({
     onSuccess: () => {
       setMessage("");
-      refetchMessages();
+      refetchZapiMessages();
       textareaRef.current?.focus();
     },
   });
+
+  const metaSendMutation = trpc.metaApi.sendMessage.useMutation({
+    onSuccess: () => {
+      setMessage("");
+      refetchMetaMessages();
+      textareaRef.current?.focus();
+    },
+  });
+
+  // Use the active provider's mutation
+  const sendMutation = provider === "meta" ? metaSendMutation : zapiSendMutation;
 
   const handleSend = () => {
     if (!message.trim() || sendMutation.isPending || !phone) return;
@@ -114,7 +155,7 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
   };
 
   // Not connected state
-  if (!isLoadingStatus && !connectionStatus?.connected) {
+  if (!isLoadingStatus && provider === null) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4 p-6">
         <div className="p-4 rounded-full bg-muted">

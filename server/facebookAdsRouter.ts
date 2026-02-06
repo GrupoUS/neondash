@@ -146,14 +146,19 @@ export const facebookAdsRouter = router({
   disconnect: protectedProcedure
     .input(z.object({ mentoradoId: z.number() }))
     .mutation(async ({ input }) => {
-      const success = await facebookAdsService.revokeAccess(input.mentoradoId, logger);
-
-      return {
-        success,
-        message: success
-          ? "Facebook Ads desconectado com sucesso."
-          : "Erro ao desconectar Facebook Ads.",
-      };
+      try {
+        await facebookAdsService.revokeAccess(input.mentoradoId, logger);
+        return {
+          success: true,
+          message: "Facebook Ads desconectado com sucesso.",
+        };
+      } catch (error) {
+        logger.error("disconnect_failed", error, { mentoradoId: input.mentoradoId });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Erro ao desconectar Facebook Ads.",
+        });
+      }
     }),
 
   /**
@@ -313,14 +318,7 @@ export const facebookAdsRouter = router({
     logger.info("delete_data_request", { mentoradoId, userId });
 
     try {
-      const success = await facebookAdsService.revokeAccess(mentoradoId, logger);
-
-      if (!success) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Erro ao remover dados do Facebook Ads. Tente novamente.",
-        });
-      }
+      await facebookAdsService.revokeAccess(mentoradoId, logger);
 
       logger.info("delete_data_success", { mentoradoId });
 
@@ -331,13 +329,12 @@ export const facebookAdsRouter = router({
     } catch (error) {
       logger.error("delete_data_failed", error, { mentoradoId });
 
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "Erro ao processar solicitação de exclusão de dados.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Erro ao processar solicitação de exclusão de dados.",
       });
     }
   }),

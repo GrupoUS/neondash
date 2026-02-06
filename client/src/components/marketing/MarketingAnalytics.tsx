@@ -1,5 +1,6 @@
 /**
  * Marketing Analytics - Campaign performance charts and metrics
+ * Uses Facebook Ads tRPC endpoints for real data
  */
 
 import {
@@ -7,13 +8,14 @@ import {
   ArrowUpRight,
   BarChart3,
   Calendar,
+  DollarSign,
   Eye,
-  MessageSquare,
+  Loader2,
   MousePointerClick,
-  Send,
   TrendingUp,
   Users,
 } from "lucide-react";
+import { useState } from "react";
 import {
   Area,
   AreaChart,
@@ -42,29 +44,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
-// Mock data for charts
-const messageVolumeData = [
-  { date: "01/01", enviadas: 120, entregues: 115, lidas: 98 },
-  { date: "02/01", enviadas: 85, entregues: 82, lidas: 70 },
-  { date: "03/01", enviadas: 200, entregues: 195, lidas: 180 },
-  { date: "04/01", enviadas: 150, entregues: 148, lidas: 130 },
-  { date: "05/01", enviadas: 180, entregues: 175, lidas: 160 },
-  { date: "06/01", enviadas: 95, entregues: 90, lidas: 78 },
-  { date: "07/01", enviadas: 220, entregues: 215, lidas: 200 },
-];
+// Helper functions
+function formatCurrency(cents: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(cents / 100);
+}
 
-const campaignPerformance = [
-  { name: "Promo Janeiro", enviadas: 450, taxa: 94 },
-  { name: "Black Friday", enviadas: 1200, taxa: 96 },
-  { name: "Dia das Mães", enviadas: 800, taxa: 92 },
-  { name: "Reativação", enviadas: 350, taxa: 88 },
-];
+function formatNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+}
 
-const channelDistribution = [
-  { name: "WhatsApp", value: 65, color: "hsl(var(--chart-2))" },
-  { name: "Instagram", value: 35, color: "hsl(var(--chart-4))" },
+// Period options in months
+const PERIOD_OPTIONS = [
+  { value: "3", label: "Últimos 3 meses" },
+  { value: "6", label: "Últimos 6 meses" },
+  { value: "12", label: "Últimos 12 meses" },
 ];
 
 // Stat Card Component
@@ -74,33 +76,52 @@ function StatCard({
   change,
   icon: Icon,
   trend,
+  isLoading,
 }: {
   title: string;
   value: string | number;
-  change: number;
+  change?: number;
   icon: React.ElementType;
-  trend: "up" | "down";
+  trend?: "up" | "down" | null;
+  isLoading?: boolean;
 }) {
+  if (isLoading) {
+    return (
+      <NeonCard className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+          <Skeleton className="h-10 w-10 rounded-lg" />
+        </div>
+      </NeonCard>
+    );
+  }
+
   return (
     <NeonCard className="p-4 focus-within:ring-2 focus-within:ring-ring/40">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground mb-1">{title}</p>
           <p className="text-2xl font-bold tabular-nums">{value}</p>
-          <div
-            className={cn(
-              "flex items-center gap-1 text-sm mt-1",
-              trend === "up" ? "text-green-600" : "text-red-500"
-            )}
-          >
-            {trend === "up" ? (
-              <ArrowUpRight className="h-4 w-4" />
-            ) : (
-              <ArrowDownRight className="h-4 w-4" />
-            )}
-            <span className="tabular-nums">{change}%</span>
-            <span className="text-muted-foreground">vs. mês anterior</span>
-          </div>
+          {change !== undefined && trend && (
+            <div
+              className={cn(
+                "flex items-center gap-1 text-sm mt-1",
+                trend === "up" ? "text-green-600" : "text-red-500"
+              )}
+            >
+              {trend === "up" ? (
+                <ArrowUpRight className="h-4 w-4" />
+              ) : (
+                <ArrowDownRight className="h-4 w-4" />
+              )}
+              <span className="tabular-nums">{Math.abs(change)}%</span>
+              <span className="text-muted-foreground">vs. mês anterior</span>
+            </div>
+          )}
         </div>
         <div className="p-2.5 rounded-lg bg-primary/10">
           <Icon className="h-5 w-5 text-primary" />
@@ -144,6 +165,80 @@ function CustomTooltip({
 
 // Main Component
 export function MarketingAnalytics() {
+  const [months, setMonths] = useState<number>(6);
+
+  // Fetch mentorado data
+  const { data: mentorado, isLoading: mentoradoLoading } = trpc.mentorados.me.useQuery();
+
+  // Fetch Facebook Ads connection status
+  const connectionStatus = trpc.facebookAds.getConnectionStatus.useQuery(
+    { mentoradoId: mentorado?.id ?? 0 },
+    { enabled: !!mentorado?.id }
+  );
+
+  // Fetch current month summary for KPI cards
+  const summary = trpc.facebookAds.getCurrentMonthSummary.useQuery(
+    { mentoradoId: mentorado?.id ?? 0 },
+    { enabled: !!mentorado?.id && connectionStatus.data?.isConnected }
+  );
+
+  // Fetch insights history for charts
+  const insightsHistory = trpc.facebookAds.getInsightsHistory.useQuery(
+    { mentoradoId: mentorado?.id ?? 0, months },
+    { enabled: !!mentorado?.id && connectionStatus.data?.isConnected }
+  );
+
+  const isConnected = connectionStatus.data?.isConnected;
+  const isLoading = mentoradoLoading || connectionStatus.isLoading;
+  const hasData = summary.data?.hasData;
+
+  // Transform insights history to chart data
+  const chartData =
+    insightsHistory.data
+      ?.map((item) => ({
+        label: item.label,
+        impressions: item.impressions,
+        clicks: item.clicks,
+        spend: item.spend / 100, // Convert cents to BRL
+        reach: item.reach,
+      }))
+      .reverse() ?? []; // Reverse to show chronological order
+
+  // Channel distribution (placeholder since we only have Facebook Ads data)
+  const channelDistribution = [{ name: "Facebook Ads", value: 100, color: "hsl(var(--chart-1))" }];
+
+  // If not connected, show message
+  if (!isLoading && !isConnected) {
+    return (
+      <section className="space-y-6" aria-label="Painel de analytics de marketing">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <BarChart3 className="h-6 w-6 text-primary" aria-hidden="true" />
+              Analytics de Marketing
+            </h2>
+            <p className="text-muted-foreground mt-1">Acompanhe o desempenho das suas campanhas</p>
+          </div>
+        </header>
+
+        <NeonCard className="p-8 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="p-4 rounded-full bg-primary/10">
+              <BarChart3 className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Conecte seu Facebook Ads</h3>
+              <p className="text-muted-foreground max-w-md mx-auto mt-1">
+                Vincule sua conta de anúncios na aba "Facebook Ads" para visualizar métricas de
+                campanhas, investimento e resultados em tempo real.
+              </p>
+            </div>
+          </div>
+        </NeonCard>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-6" aria-label="Painel de analytics de marketing">
       {/* Header */}
@@ -155,85 +250,131 @@ export function MarketingAnalytics() {
           </h2>
           <p className="text-muted-foreground mt-1">Acompanhe o desempenho das suas campanhas</p>
         </div>
-        <Select defaultValue="30d">
+        <Select value={months.toString()} onValueChange={(value) => setMonths(Number(value))}>
           <SelectTrigger className="min-h-11 w-full sm:w-[180px]" aria-label="Selecionar período">
             <Calendar className="mr-2 h-4 w-4" aria-hidden="true" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
-            <SelectItem value="90d">Últimos 90 dias</SelectItem>
+            {PERIOD_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </header>
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Mensagens Enviadas" value="2,450" change={12} icon={Send} trend="up" />
         <StatCard
-          title="Taxa de Entrega"
-          value="96.5%"
-          change={2.3}
-          icon={MessageSquare}
-          trend="up"
+          title="Investimento"
+          value={hasData ? formatCurrency(summary.data?.spend ?? 0) : "—"}
+          change={summary.data?.trends?.spend}
+          icon={DollarSign}
+          trend={
+            summary.data?.trends?.spend ? (summary.data.trends.spend >= 0 ? "up" : "down") : null
+          }
+          isLoading={summary.isLoading}
         />
-        <StatCard title="Taxa de Leitura" value="84.2%" change={5.1} icon={Eye} trend="up" />
         <StatCard
-          title="Engajamento"
-          value="23.8%"
-          change={-1.2}
+          title="Impressões"
+          value={hasData ? formatNumber(summary.data?.impressions ?? 0) : "—"}
+          change={summary.data?.trends?.impressions}
+          icon={Eye}
+          trend={
+            summary.data?.trends?.impressions
+              ? summary.data.trends.impressions >= 0
+                ? "up"
+                : "down"
+              : null
+          }
+          isLoading={summary.isLoading}
+        />
+        <StatCard
+          title="Cliques"
+          value={hasData ? formatNumber(summary.data?.clicks ?? 0) : "—"}
+          change={summary.data?.trends?.clicks}
           icon={MousePointerClick}
-          trend="down"
+          trend={
+            summary.data?.trends?.clicks ? (summary.data.trends.clicks >= 0 ? "up" : "down") : null
+          }
+          isLoading={summary.isLoading}
+        />
+        <StatCard
+          title="Conversões"
+          value={hasData ? formatNumber(summary.data?.conversions ?? 0) : "—"}
+          change={summary.data?.trends?.conversions}
+          icon={TrendingUp}
+          trend={
+            summary.data?.trends?.conversions
+              ? summary.data.trends.conversions >= 0
+                ? "up"
+                : "down"
+              : null
+          }
+          isLoading={summary.isLoading}
         />
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Volume Chart */}
+        {/* Spend Chart */}
         <NeonCard className="lg:col-span-2">
           <NeonCardHeader>
             <NeonCardTitle className="text-lg flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" aria-hidden="true" />
-              Volume de Mensagens
+              Investimento e Resultados
             </NeonCardTitle>
           </NeonCardHeader>
           <NeonCardContent className="h-[300px]">
-            <p className="sr-only">Gráfico de área comparando mensagens enviadas e entregues.</p>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={messageVolumeData}>
-                <defs>
-                  <linearGradient id="colorEnviadas" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorEntregues" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="date" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="enviadas"
-                  name="Enviadas"
-                  stroke="hsl(var(--chart-1))"
-                  fillOpacity={1}
-                  fill="url(#colorEnviadas)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="entregues"
-                  name="Entregues"
-                  stroke="hsl(var(--chart-2))"
-                  fillOpacity={1}
-                  fill="url(#colorEntregues)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {insightsHistory.isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Nenhum dado disponível para o período selecionado
+              </div>
+            ) : (
+              <>
+                <p className="sr-only">Gráfico de área comparando investimento e cliques.</p>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="label" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="spend"
+                      name="Investimento (R$)"
+                      stroke="hsl(var(--chart-1))"
+                      fillOpacity={1}
+                      fill="url(#colorSpend)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="clicks"
+                      name="Cliques"
+                      stroke="hsl(var(--chart-2))"
+                      fillOpacity={1}
+                      fill="url(#colorClicks)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </>
+            )}
           </NeonCardContent>
         </NeonCard>
 
@@ -246,7 +387,7 @@ export function MarketingAnalytics() {
             </NeonCardTitle>
           </NeonCardHeader>
           <NeonCardContent className="h-[300px] flex items-center justify-center">
-            <p className="sr-only">Distribuição percentual entre WhatsApp e Instagram.</p>
+            <p className="sr-only">Distribuição percentual entre canais de marketing.</p>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -279,27 +420,39 @@ export function MarketingAnalytics() {
         </NeonCard>
       </div>
 
-      {/* Campaign Performance */}
+      {/* Performance by Period */}
       <NeonCard>
         <NeonCardHeader>
-          <NeonCardTitle className="text-lg">Performance por Campanha</NeonCardTitle>
+          <NeonCardTitle className="text-lg">Performance por Período</NeonCardTitle>
         </NeonCardHeader>
         <NeonCardContent className="h-[250px]">
-          <p className="sr-only">Ranking de campanhas por volume de mensagens enviadas.</p>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={campaignPerformance} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis type="number" className="text-xs" />
-              <YAxis dataKey="name" type="category" className="text-xs" width={100} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar
-                dataKey="enviadas"
-                name="Mensagens"
-                fill="hsl(var(--chart-1))"
-                radius={[0, 4, 4, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {insightsHistory.isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              Nenhum dado disponível para o período selecionado
+            </div>
+          ) : (
+            <>
+              <p className="sr-only">Ranking de períodos por impressões.</p>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis type="number" className="text-xs" />
+                  <YAxis dataKey="label" type="category" className="text-xs" width={80} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar
+                    dataKey="impressions"
+                    name="Impressões"
+                    fill="hsl(var(--chart-1))"
+                    radius={[0, 4, 4, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </>
+          )}
         </NeonCardContent>
       </NeonCard>
     </section>

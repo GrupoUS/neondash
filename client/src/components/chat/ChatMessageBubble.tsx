@@ -2,14 +2,22 @@
  * Chat Message Bubble Component
  * Displays a single message with direction-based styling and status indicators
  * WhatsApp-inspired design with high contrast colors
+ * Supports text and video message types
  */
 import { motion } from "framer-motion";
-import { AlertCircle, Check, CheckCheck, Clock, Sparkles } from "lucide-react";
+import { AlertCircle, Check, CheckCheck, Clock, Play, Sparkles } from "lucide-react";
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 type MessageDirection = "inbound" | "outbound";
 type MessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";
 type SimNao = "sim" | "nao";
+
+interface VideoContent {
+  type: "video";
+  url: string;
+  caption?: string;
+}
 
 interface WhatsappMessage {
   id: number;
@@ -28,9 +36,30 @@ interface ChatMessageBubbleProps {
   message: WhatsappMessage;
 }
 
+/**
+ * Parse message content to detect video messages
+ */
+function parseMessageContent(content: string): {
+  isVideo: boolean;
+  video?: VideoContent;
+  text?: string;
+} {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && parsed.type === "video" && parsed.url) {
+      return { isVideo: true, video: parsed as VideoContent };
+    }
+  } catch {
+    // Not JSON, treat as plain text
+  }
+  return { isVideo: false, text: content };
+}
+
 export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
   const isOutbound = message.direction === "outbound";
   const isFromAi = message.isFromAi === "sim";
+
+  const parsedContent = useMemo(() => parseMessageContent(message.content), [message.content]);
 
   const formatTime = (date: Date | string) => {
     const d = new Date(date);
@@ -83,14 +112,48 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
         )}
 
         {/* Message Content */}
-        <p
-          className={cn(
-            "text-sm whitespace-pre-wrap break-words leading-relaxed",
-            isOutbound ? "text-slate-900" : "text-slate-100"
-          )}
-        >
-          {message.content}
-        </p>
+        {parsedContent.isVideo && parsedContent.video ? (
+          // Video Message
+          <div className="space-y-2">
+            <div className="relative aspect-video bg-black/20 rounded-lg overflow-hidden min-w-[200px]">
+              <video
+                src={parsedContent.video.url}
+                className="w-full h-full object-contain"
+                controls
+                preload="metadata"
+              >
+                <track kind="captions" label="Português" default />
+              </video>
+              {/* Play overlay hint */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                  <Play className="w-5 h-5 text-white fill-white" />
+                </div>
+              </div>
+            </div>
+            {/* Caption */}
+            {parsedContent.video.caption && (
+              <p
+                className={cn(
+                  "text-sm whitespace-pre-wrap break-words leading-relaxed",
+                  isOutbound ? "text-slate-900" : "text-slate-100"
+                )}
+              >
+                {parsedContent.video.caption}
+              </p>
+            )}
+          </div>
+        ) : (
+          // Text Message
+          <p
+            className={cn(
+              "text-sm whitespace-pre-wrap break-words leading-relaxed",
+              isOutbound ? "text-slate-900" : "text-slate-100"
+            )}
+          >
+            {message.content}
+          </p>
+        )}
 
         {/* Timestamp and Status */}
         <div

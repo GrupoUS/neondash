@@ -75,7 +75,60 @@ export interface MetaMessageStatus {
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
+import crypto from "node:crypto";
+
 /**
+ * Validate X-Hub-Signature-256 from Meta webhook request
+ * @see https://developers.facebook.com/docs/graph-api/webhooks/getting-started#verification-requests
+ *
+ * @param signature - The X-Hub-Signature-256 header value
+ * @param rawBody - The raw request body as a string/buffer
+ * @returns true if signature is valid, false otherwise
+ */
+function validateWebhookSignature(
+  signature: string | undefined,
+  rawBody: string | Buffer
+): boolean {
+  const appSecret = process.env.META_APP_SECRET;
+
+  if (!appSecret) {
+    logger.error("META_APP_SECRET not configured - cannot validate webhook signature", null);
+    return false;
+  }
+
+  if (!signature) {
+    logger.warn("Missing X-Hub-Signature-256 header");
+    return false;
+  }
+
+  // Signature format: "sha256=<hex_signature>"
+  const expectedPrefix = "sha256=";
+  if (!signature.startsWith(expectedPrefix)) {
+    logger.warn("Invalid signature format - missing sha256= prefix");
+    return false;
+  }
+
+  const signatureHash = signature.slice(expectedPrefix.length);
+  const bodyString = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+
+  // Compute HMAC-SHA256 of the body using APP_SECRET
+  const expectedHash = crypto.createHmac("sha256", appSecret).update(bodyString).digest("hex");
+
+  // Constant-time comparison to prevent timing attacks
+  const isValid = crypto.timingSafeEqual(
+    Buffer.from(signatureHash, "hex"),
+    Buffer.from(expectedHash, "hex")
+  );
+
+  if (!isValid) {
+    logger.warn("Webhook signature mismatch - possible tampering");
+  }
+
+  return isValid;
+}
+
+/**
+
  * Find mentorado by Meta Phone Number ID
  */
 async function findMentoradoByPhoneNumberId(phoneNumberId: string) {
@@ -263,9 +316,24 @@ function verifyWebhook(req: Express.Request, res: Express.Response): void {
 
 /**
  * Webhook event handler (POST request)
+ * Validates X-Hub-Signature-256 before processing events
  */
 async function handleWebhook(req: Express.Request, res: Express.Response): Promise<void> {
   try {
+    // Validate X-Hub-Signature-256 to prevent unauthorized requests
+    const signature = (req as any).headers["x-hub-signature-256"] as string | undefined;
+
+    // Get raw body for signature validation
+    // Note: This requires express.json({ verify: (req, res, buf) => { req.rawBody = buf; }})
+    // or similar middleware to preserve the raw body
+    const rawBody = (req as any).rawBody || JSON.stringify((req as any).body);
+
+    if (!validateWebhookSignature(signature, rawBody)) {
+      logger.error("Webhook signature validation failed - rejecting request", null);
+      (res as any).sendStatus(403);
+      return;
+    }
+
     const body = (req as any).body as MetaWebhookPayload;
 
     // Verify this is a WhatsApp webhook

@@ -15,10 +15,12 @@ import {
   Settings,
   Sparkles,
   User,
+  Video,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { ChatMessageBubble } from "@/components/chat/ChatMessageBubble";
+import { VideoMessageComposer } from "@/components/chat/VideoMessageComposer";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +60,7 @@ export function ChatPage() {
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [newContactPhone, setNewContactPhone] = useState("");
   const [newContactName, setNewContactName] = useState("");
+  const [videoComposerOpen, setVideoComposerOpen] = useState(false);
 
   // Get WhatsApp connection status
   const { data: connectionStatus, isLoading: statusLoading } = trpc.zapi.getStatus.useQuery();
@@ -525,6 +528,16 @@ export function ChatPage() {
                 {/* Input Area */}
                 <div className="p-4 border-t border-slate-700/50 bg-slate-800/80">
                   <div className="flex gap-3 items-end max-w-3xl mx-auto">
+                    {/* Video Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setVideoComposerOpen(true)}
+                      disabled={!selectedPhone}
+                      className="shrink-0 h-11 w-11 text-slate-400 hover:text-slate-100 hover:bg-slate-700/50"
+                    >
+                      <Video className="w-5 h-5" />
+                    </Button>
                     <Textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
@@ -551,6 +564,18 @@ export function ChatPage() {
                       Erro ao enviar mensagem. Tente novamente.
                     </p>
                   )}
+
+                  {/* Video Message Composer */}
+                  <VideoMessageComposer
+                    open={videoComposerOpen}
+                    onOpenChange={setVideoComposerOpen}
+                    phone={selectedPhone ?? ""}
+                    leadId={selectedConversation?.leadId ?? undefined}
+                    onSuccess={() => {
+                      refetchMessages();
+                      refetchConversations();
+                    }}
+                  />
                 </div>
               </>
             ) : (

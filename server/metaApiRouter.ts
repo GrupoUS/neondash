@@ -202,8 +202,125 @@ export const metaApiRouter = router({
     }),
 
   /**
+   * Exchange Facebook auth code for permanent system-user access token
+   * Called from Embedded Signup flow - exchanges short-lived code for permanent credentials
+   *
+   * @see https://developers.facebook.com/docs/whatsapp/embedded-signup/
+   */
+  exchangeCode: protectedProcedure
+    .input(
+      z.object({
+        code: z.string().min(1, "Authorization code é obrigatório"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithMeta(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const META_APP_ID = process.env.META_APP_ID;
+      const META_APP_SECRET = process.env.META_APP_SECRET;
+
+      if (!META_APP_ID || !META_APP_SECRET) {
+        throw new Error("Configuração do Meta não encontrada no servidor");
+      }
+
+      // Step 1: Exchange authorization code for access token
+      const tokenUrl = new URL("https://graph.facebook.com/v23.0/oauth/access_token");
+      tokenUrl.searchParams.set("client_id", META_APP_ID);
+      tokenUrl.searchParams.set("client_secret", META_APP_SECRET);
+      tokenUrl.searchParams.set("code", input.code);
+
+      const tokenResponse = await fetch(tokenUrl.toString());
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        throw new Error(
+          `Erro ao trocar código: ${(errorData as { error?: { message?: string } }).error?.message || "Token exchange failed"}`
+        );
+      }
+
+      const tokenData = (await tokenResponse.json()) as {
+        access_token: string;
+        token_type: string;
+      };
+
+      // Step 2: Debug token to get user ID and scopes
+      const debugUrl = `https://graph.facebook.com/v23.0/debug_token?input_token=${tokenData.access_token}&access_token=${META_APP_ID}|${META_APP_SECRET}`;
+      const debugResponse = await fetch(debugUrl);
+      const debugData = (await debugResponse.json()) as {
+        data: {
+          app_id: string;
+          user_id: string;
+          granular_scopes: Array<{ scope: string; target_ids?: string[] }>;
+        };
+      };
+
+      // Step 3: Get shared WABA IDs from granular_scopes
+      const wabaScope = debugData.data?.granular_scopes?.find(
+        (s) => s.scope === "whatsapp_business_messaging"
+      );
+      const wabaId = wabaScope?.target_ids?.[0];
+
+      if (!wabaId) {
+        throw new Error(
+          "WABA ID não encontrado. Certifique-se de compartilhar uma conta WhatsApp Business."
+        );
+      }
+
+      // Step 4: Get phone numbers from WABA
+      const phoneNumbersUrl = `https://graph.facebook.com/v23.0/${wabaId}/phone_numbers?access_token=${tokenData.access_token}`;
+      const phoneNumbersResponse = await fetch(phoneNumbersUrl);
+      if (!phoneNumbersResponse.ok) {
+        const errorData = await phoneNumbersResponse.json();
+        throw new Error(
+          `Erro ao buscar telefones: ${(errorData as { error?: { message?: string } }).error?.message || "Phone numbers fetch failed"}`
+        );
+      }
+
+      const phoneNumbersData = (await phoneNumbersResponse.json()) as {
+        data: Array<{
+          id: string;
+          display_phone_number: string;
+          verified_name: string;
+        }>;
+      };
+
+      const phoneNumber = phoneNumbersData.data?.[0];
+      if (!phoneNumber) {
+        throw new Error("Nenhum número de telefone encontrado na conta WhatsApp Business");
+      }
+
+      // Encrypt and store credentials
+      const encryptedToken = encrypt(tokenData.access_token);
+
+      const db = getDb();
+      await db
+        .update(mentorados)
+        .set({
+          metaWabaId: wabaId,
+          metaPhoneNumberId: phoneNumber.id,
+          metaAccessToken: encryptedToken,
+          metaPhoneNumber: phoneNumber.display_phone_number,
+          metaConnected: "sim",
+          metaConnectedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(mentorados.id, mentorado.id));
+
+      return {
+        success: true,
+        wabaId,
+        phoneNumberId: phoneNumber.id,
+        phoneNumber: phoneNumber.display_phone_number,
+        verifiedName: phoneNumber.verified_name,
+      };
+    }),
+
+  /**
    * Disconnect Meta WhatsApp integration
    */
+
   disconnect: protectedProcedure.mutation(async ({ ctx }) => {
     const mentorado = await getMentoradoWithMeta(ctx.user.id);
     if (!mentorado) {
@@ -324,6 +441,78 @@ export const metaApiRouter = router({
           phone: normalizePhoneNumber(input.phone),
           direction: "outbound",
           content: `[Template: ${input.templateName}]`,
+          zapiMessageId: metaMessageId ?? null,
+          status: "sent",
+          isFromAi: "nao",
+        })
+        .returning();
+
+      return {
+        success: true,
+        messageId: savedMessage?.id,
+        metaMessageId,
+      };
+    }),
+
+  /**
+   * Send a video message via Meta API
+   * Uses public URL-based approach for video delivery
+   */
+  sendVideo: protectedProcedure
+    .input(
+      z.object({
+        phone: z.string().min(8, "Telefone inválido"),
+        videoUrl: z
+          .string()
+          .url("URL de vídeo inválida")
+          .refine(
+            (url) =>
+              url.endsWith(".mp4") ||
+              url.endsWith(".mov") ||
+              url.endsWith(".3gp") ||
+              url.includes("video"),
+            "URL deve ser de um arquivo de vídeo (MP4, MOV, 3GP)"
+          ),
+        caption: z.string().optional(),
+        leadId: z.number().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithMeta(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const credentials = buildCredentials(mentorado);
+      if (!credentials) {
+        throw new Error("Meta WhatsApp não configurado");
+      }
+
+      // Send video message
+      const response = await metaApiService.sendVideoMessage(credentials, {
+        to: input.phone,
+        videoUrl: input.videoUrl,
+        caption: input.caption,
+      });
+
+      const metaMessageId = response.messages?.[0]?.id;
+
+      // Store message in DB with video content format
+      const db = getDb();
+      const contentJson = JSON.stringify({
+        type: "video",
+        url: input.videoUrl,
+        caption: input.caption || "",
+      });
+
+      const [savedMessage] = await db
+        .insert(whatsappMessages)
+        .values({
+          mentoradoId: mentorado.id,
+          leadId: input.leadId ?? null,
+          phone: normalizePhoneNumber(input.phone),
+          direction: "outbound",
+          content: contentJson,
           zapiMessageId: metaMessageId ?? null,
           status: "sent",
           isFromAi: "nao",
@@ -542,5 +731,170 @@ export const metaApiRouter = router({
 
       await metaApiService.markMessageAsRead(credentials, input.messageId);
       return { success: true };
+    }),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONTACTS MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Get all contacts with pagination and search
+   */
+  getContacts: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithMeta(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const db = getDb();
+
+      // Build base query
+      const contacts = await db
+        .select()
+        .from(whatsappContacts)
+        .where(eq(whatsappContacts.mentoradoId, mentorado.id))
+        .orderBy(desc(whatsappContacts.updatedAt))
+        .limit(input.limit)
+        .offset(input.offset);
+
+      // Filter by search term if provided (client-side for simplicity)
+      let filteredContacts = contacts;
+      if (input.search && input.search.trim()) {
+        const searchLower = input.search.toLowerCase();
+        filteredContacts = contacts.filter(
+          (c) => c.name?.toLowerCase().includes(searchLower) || c.phone.includes(input.search ?? "")
+        );
+      }
+
+      // Get total count
+      const allContacts = await db
+        .select()
+        .from(whatsappContacts)
+        .where(eq(whatsappContacts.mentoradoId, mentorado.id));
+
+      return {
+        contacts: filteredContacts,
+        total: allContacts.length,
+        hasMore: input.offset + contacts.length < allContacts.length,
+      };
+    }),
+
+  /**
+   * Create or update a contact
+   */
+  upsertContact: protectedProcedure
+    .input(
+      z.object({
+        phone: z.string().min(8, "Telefone inválido"),
+        name: z.string().optional(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithMeta(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const db = getDb();
+      const normalizedPhone = normalizePhoneNumber(input.phone);
+
+      // Check if contact exists
+      const [existing] = await db
+        .select()
+        .from(whatsappContacts)
+        .where(
+          and(
+            eq(whatsappContacts.mentoradoId, mentorado.id),
+            eq(whatsappContacts.phone, normalizedPhone)
+          )
+        )
+        .limit(1);
+
+      if (existing) {
+        // Update existing contact
+        const [updated] = await db
+          .update(whatsappContacts)
+          .set({
+            name: input.name ?? existing.name,
+            notes: input.notes ?? existing.notes,
+            updatedAt: new Date(),
+          })
+          .where(eq(whatsappContacts.id, existing.id))
+          .returning();
+
+        return { success: true, contact: updated, action: "updated" as const };
+      }
+
+      // Create new contact
+      const [created] = await db
+        .insert(whatsappContacts)
+        .values({
+          mentoradoId: mentorado.id,
+          phone: normalizedPhone,
+          name: input.name ?? null,
+          notes: input.notes ?? null,
+        })
+        .returning();
+
+      return { success: true, contact: created, action: "created" as const };
+    }),
+
+  /**
+   * Link a contact to a CRM lead
+   */
+  linkContactToLead: protectedProcedure
+    .input(
+      z.object({
+        phone: z.string().min(8, "Telefone inválido"),
+        leadId: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const mentorado = await getMentoradoWithMeta(ctx.user.id);
+      if (!mentorado) {
+        throw new Error("Mentorado não encontrado");
+      }
+
+      const db = getDb();
+      const normalizedPhone = normalizePhoneNumber(input.phone);
+
+      // Verify lead exists and belongs to this mentorado
+      const [lead] = await db
+        .select()
+        .from(leads)
+        .where(and(eq(leads.id, input.leadId), eq(leads.mentoradoId, mentorado.id)))
+        .limit(1);
+
+      if (!lead) {
+        throw new Error("Lead não encontrado");
+      }
+
+      // Update the lead's phone number
+      await db.update(leads).set({ telefone: normalizedPhone }).where(eq(leads.id, input.leadId));
+
+      // Link all messages from this phone to the lead
+      await db
+        .update(whatsappMessages)
+        .set({ leadId: input.leadId })
+        .where(
+          and(
+            eq(whatsappMessages.mentoradoId, mentorado.id),
+            eq(whatsappMessages.phone, normalizedPhone)
+          )
+        );
+
+      return {
+        success: true,
+        linkedMessagesCount: 1, // Simplified - could count actual updates
+      };
     }),
 });

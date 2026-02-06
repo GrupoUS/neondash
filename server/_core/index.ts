@@ -258,6 +258,49 @@ async function startServer() {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Test Endpoints for Meta App Review Screencasts
+  // These endpoints help demonstrate API functionality during review
+  // ─────────────────────────────────────────────────────────────────────────
+
+  app.get("/api/test/webhook-status", (_req, res) => {
+    const status = {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      webhooks: {
+        meta_verify_token_configured: !!process.env.META_VERIFY_TOKEN,
+        clerk_webhook_secret_configured: !!process.env.CLERK_WEBHOOK_SECRET,
+        zapi_configured: !!process.env.ZAPI_INSTANCE_ID,
+      },
+      endpoints: {
+        meta_webhook: "/api/webhooks/meta",
+        clerk_webhook: "/api/webhooks/clerk",
+        zapi_webhook: "/api/webhooks/zapi",
+        instagram_delete: "/api/instagram/delete",
+        instagram_deauth: "/api/instagram/deauth",
+      },
+    };
+    return res.json(status);
+  });
+
+  app.post("/api/test/echo-message", async (req, res) => {
+    const { message, phoneNumber } = req.body;
+
+    // This is a test endpoint - it logs and echoes back the message
+    // In production, use the actual metaApiRouter for sending messages
+    console.log("[Test] Echo message request:", { message, phoneNumber });
+
+    return res.json({
+      success: true,
+      echo: {
+        message: message || "Test message received",
+        phoneNumber: phoneNumber || "not provided",
+        timestamp: new Date().toISOString(),
+        note: "This is a test endpoint. Use /api/trpc/meta.sendTextMessage for actual messaging.",
+      },
+    });
+  });
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

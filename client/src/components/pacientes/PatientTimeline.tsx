@@ -172,7 +172,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
           description: item.descricao,
           date: item.data,
           metadata:
-            item.metadata && typeof item.metadata === "object"
+            "metadata" in item && item.metadata && typeof item.metadata === "object"
               ? (item.metadata as Record<string, unknown>)
               : undefined,
         })

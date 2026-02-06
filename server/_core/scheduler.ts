@@ -10,6 +10,7 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { instagramSyncLog } from "../../drizzle/schema";
 import { getDb } from "../db";
+import { facebookAdsService } from "../services/facebookAdsService";
 import { syncAllMentorados } from "../services/instagramService";
 import { notificationService } from "../services/notificationService";
 import { ENV } from "./env";
@@ -287,6 +288,25 @@ async function instagramDailySyncTask(logger: Logger): Promise<void> {
   });
 }
 
+/**
+ * Facebook Ads daily sync task
+ * Runs facebookAdsService.syncAllMentorados and logs results
+ */
+async function facebookAdsDailySyncTask(logger: Logger): Promise<void> {
+  logger.info("facebook_ads_daily_sync_start", {
+    timestamp: new Date().toISOString(),
+  });
+
+  const summary = await facebookAdsService.syncAllMentorados();
+
+  logger.info("facebook_ads_daily_sync_complete", {
+    total: summary.totalMentorados,
+    successful: summary.successful,
+    failed: summary.failed,
+    errors: summary.errors.slice(0, 5), // Log first 5 errors only
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════════════════
@@ -331,6 +351,34 @@ export async function initSchedulers(): Promise<void> {
       6, // Hour (6 AM)
       0, // Minute
       () => instagramDailySyncTask(logger),
+      logger
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FACEBOOK ADS SYNC (requires Facebook Ads env vars)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const facebookAdsEnvVars = ["facebookAdsAppId", "facebookAdsAppSecret"] as const;
+  const missingFacebookAdsVars: string[] = [];
+
+  for (const envVar of facebookAdsEnvVars) {
+    if (!ENV[envVar]) {
+      missingFacebookAdsVars.push(envVar);
+    }
+  }
+
+  if (missingFacebookAdsVars.length > 0) {
+    logger.warn("facebook_ads_sync_disabled", {
+      reason: "Missing Facebook Ads environment variables",
+      missingVars: missingFacebookAdsVars,
+    });
+  } else {
+    // Schedule daily Facebook Ads sync at 7:00 AM (after Instagram sync)
+    scheduleDaily(
+      "facebook_ads_sync",
+      7, // Hour (7 AM)
+      0, // Minute
+      () => facebookAdsDailySyncTask(logger),
       logger
     );
   }
@@ -390,6 +438,7 @@ export async function initSchedulers(): Promise<void> {
   logger.info("scheduler_init_complete", {
     scheduledTasks: [
       ...(missingInstagramVars.length === 0 ? ["instagram_sync @ 06:00 daily"] : []),
+      ...(missingFacebookAdsVars.length === 0 ? ["facebook_ads_sync @ 07:00 daily"] : []),
       "metrics_reminder_day1 @ 08:00 monthly",
       "metrics_reminder_day3 @ 09:00 monthly",
       "metrics_reminder_day6 @ 10:00 monthly",

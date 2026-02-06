@@ -18,7 +18,7 @@ import {
   Sparkles,
   Video,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { ConversationItem, type ConversationItemData } from "@/components/chat/ConversationItem";
 import { ConversationSkeleton } from "@/components/chat/ConversationSkeleton";
@@ -159,10 +159,6 @@ function dayKey(value: Date | string): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-function isNearBottom(element: HTMLElement, threshold = 120): boolean {
-  return element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
-}
-
 const TYPING_TIMEOUT_MS = 4500;
 
 export function ChatPage() {
@@ -174,7 +170,7 @@ export function ChatPage() {
   const [newContactPhone, setNewContactPhone] = useState("");
   const [newContactName, setNewContactName] = useState("");
   const [videoComposerOpen, setVideoComposerOpen] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [_showSidebar, setShowSidebar] = useState(true);
 
   // Parse query params for initial phone/lead selection
   const queryParams = useMemo(() => new URLSearchParams(search), [search]);
@@ -260,11 +256,7 @@ export function ChatPage() {
   >({});
 
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-
-  // Refs for scroll handling
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
+  const [showScrollToBottom, _setShowScrollToBottom] = useState(false);
 
   const {
     onNewMessage,
@@ -561,30 +553,10 @@ export function ChatPage() {
     selectedPhone,
   ]);
 
-  const handleScroll = useCallback(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    const nearBottom = isNearBottom(viewport);
-    setShouldAutoScroll(nearBottom);
-    setShowScrollToBottom(!nearBottom);
+  const scrollToBottom = useCallback((_behavior: ScrollBehavior = "smooth") => {
+    // VirtualizedMessageList handles scrolling internally via autoScrollToBottom prop
+    setShouldAutoScroll(true);
   }, []);
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    bottomAnchorRef.current?.scrollIntoView({ behavior, block: "end" });
-  }, []);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) return;
-
-    viewport.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-
-    return () => {
-      viewport.removeEventListener("scroll", handleScroll);
-    };
-  }, [handleScroll]);
 
   const messageCount = mergedMessages.length;
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger only on message count change

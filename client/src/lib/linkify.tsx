@@ -26,7 +26,8 @@ export function linkify(text: string): LinkifySegment[] {
 
   // Robust regex pattern for URL detection
   // Matches: http://, https://, www., and common TLDs
-  const urlRegex = /(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+(?:\/[^\s]*)?/g;
+  const urlRegex =
+    /(?:(?:https?|ftp):\/\/)?(?:www\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z]{2,})+(?:\/[^\s]*)?/g;
 
   const segments: LinkifySegment[] = [];
   let lastIndex = 0;

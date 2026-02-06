@@ -82,10 +82,12 @@ function MessageContent({ content, isOutbound }: { content: string; isOutbound: 
   return (
     <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
       {segments.map((segment, index) => {
+        // Create a unique key based on position and content, not just index
+        const segmentKey = `${segment.type}-${String(index)}-${segment.content.slice(0, 16)}`;
         if (segment.type === "url") {
           return (
             <a
-              key={index}
+              key={segmentKey}
               href={segment.content}
               target="_blank"
               rel="noopener noreferrer"
@@ -101,7 +103,7 @@ function MessageContent({ content, isOutbound }: { content: string; isOutbound: 
             </a>
           );
         }
-        return <span key={index}>{segment.content}</span>;
+        return <span key={segmentKey}>{segment.content}</span>;
       })}
     </p>
   );

@@ -4,13 +4,16 @@ import {
   BarChart3,
   BriefcaseBusiness,
   CalendarRange,
+  CheckCircle2,
   HeartPulse,
+  Loader2,
   MessageCircle,
   Moon,
   Settings2,
   Sun,
   TrendingUp,
   UsersRound,
+  WifiOff,
 } from "lucide-react";
 
 import type React from "react";
@@ -30,6 +33,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { theme, toggleTheme } = useTheme();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+
+  const { data: zapiStatus, isLoading: isLoadingZapiStatus } = trpc.zapi.getStatus.useQuery(
+    undefined,
+    { enabled: !!user }
+  );
+  const { data: metaStatus, isLoading: isLoadingMetaStatus } = trpc.metaApi.getStatus.useQuery(
+    undefined,
+    { enabled: !!user }
+  );
+  const { data: baileysStatus, isLoading: isLoadingBaileysStatus } =
+    trpc.baileys.getStatus.useQuery(undefined, { enabled: !!user });
+
+  const activeWhatsAppProvider = metaStatus?.connected
+    ? "meta"
+    : baileysStatus?.connected
+      ? "baileys"
+      : zapiStatus?.connected
+        ? "zapi"
+        : null;
+
+  const whatsappStatus = activeWhatsAppProvider ? "connected" : "disconnected";
+  const isLoadingWhatsAppStatus =
+    isLoadingZapiStatus || isLoadingMetaStatus || isLoadingBaileysStatus;
+
+  const providerLabel =
+    activeWhatsAppProvider === "meta"
+      ? "Meta"
+      : activeWhatsAppProvider === "baileys"
+        ? "Baileys"
+        : activeWhatsAppProvider === "zapi"
+          ? "Z-API"
+          : "Sem conexão";
 
   // ═══════════════════════════════════════════════════════════════════════════
   // ONBOARDING GUARD
@@ -117,6 +152,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 />
               ))}
             </div>
+            <Link href="/configuracoes" className="block mt-4">
+              <div className="flex items-center gap-2 rounded-md border border-sidebar-border/70 bg-sidebar-accent/40 px-2 py-2 hover:bg-sidebar-accent/60 transition-colors">
+                {isLoadingWhatsAppStatus ? (
+                  <Loader2 className="h-4 w-4 text-sidebar-foreground/80 animate-spin" />
+                ) : whatsappStatus === "connected" ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                ) : (
+                  <WifiOff className="h-4 w-4 text-amber-400" />
+                )}
+
+                {open && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0">
+                    <p className="text-xs text-sidebar-foreground font-medium leading-tight">
+                      WhatsApp
+                    </p>
+                    <p className="text-[11px] text-sidebar-foreground/70 truncate leading-tight">
+                      {isLoadingWhatsAppStatus
+                        ? "Verificando…"
+                        : whatsappStatus === "connected"
+                          ? `Ativo via ${providerLabel}`
+                          : "Configurar conexão"}
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            </Link>
           </div>
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary transition-colors">

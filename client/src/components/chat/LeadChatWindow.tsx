@@ -22,10 +22,32 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { ChatMessageBubble } from "./ChatMessageBubble";
 
+type WhatsAppProvider = "meta" | "baileys" | "zapi";
+
+const PROVIDER_LABEL: Record<WhatsAppProvider, string> = {
+  meta: "Meta Cloud API",
+  baileys: "Baileys",
+  zapi: "Z-API",
+};
+
 interface LeadChatWindowProps {
   leadId: number;
   phone?: string;
   leadName?: string;
+}
+
+/**
+ * Determine the active provider based on connection status
+ */
+function getActiveProvider(
+  meta: boolean | undefined,
+  baileys: boolean | undefined,
+  zapi: boolean | undefined
+): WhatsAppProvider | null {
+  if (meta) return "meta";
+  if (baileys) return "baileys";
+  if (zapi) return "zapi";
+  return null;
 }
 
 export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps) {
@@ -39,14 +61,12 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
   const { data: metaStatus, isLoading: isLoadingMeta } = trpc.metaApi.getStatus.useQuery();
   const { data: baileysStatus, isLoading: isLoadingBaileys } = trpc.baileys.getStatus.useQuery();
 
-  // Determine active provider: Meta > Z-API > Baileys
-  const provider: "meta" | "zapi" | "baileys" | null = metaStatus?.connected
-    ? "meta"
-    : zapiStatus?.connected
-      ? "zapi"
-      : baileysStatus?.connected
-        ? "baileys"
-        : null;
+  // Determine active provider: Meta > Baileys > Z-API
+  const provider = getActiveProvider(
+    metaStatus?.connected,
+    baileysStatus?.connected,
+    zapiStatus?.connected
+  );
 
   const isLoadingStatus = isLoadingZapi || isLoadingMeta || isLoadingBaileys;
 
@@ -89,9 +109,26 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
   const refetchMessages =
     provider === "meta"
       ? refetchMetaMessages
-      : provider === "zapi"
-        ? refetchZapiMessages
-        : refetchBaileysMessages;
+      : provider === "baileys"
+        ? refetchBaileysMessages
+        : refetchZapiMessages;
+
+  const invalidateProviderMessages = useCallback(
+    (targetProvider: WhatsAppProvider) => {
+      if (targetProvider === "meta") {
+        utils.metaApi.getMessages.invalidate({ leadId });
+        return;
+      }
+
+      if (targetProvider === "baileys") {
+        utils.baileys.getMessages.invalidate({ leadId });
+        return;
+      }
+
+      utils.zapi.getMessages.invalidate({ leadId });
+    },
+    [leadId, utils.metaApi.getMessages, utils.baileys.getMessages, utils.zapi.getMessages]
+  );
 
   // Handle incoming SSE message
   const handleSSEMessage = useCallback(
@@ -100,39 +137,49 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
         const data = JSON.parse(event.data);
         // Only update if message is for the current lead
         if (data.leadId === leadId) {
-          // Invalidate the active provider's messages
-          if (provider === "meta") {
-            utils.metaApi.getMessages.invalidate({ leadId });
-          } else if (provider === "zapi") {
-            utils.zapi.getMessages.invalidate({ leadId });
-          } else if (provider === "baileys") {
-            utils.baileys.getMessages.invalidate({ leadId });
+          const eventProvider =
+            data.provider === "meta" || data.provider === "baileys" || data.provider === "zapi"
+              ? (data.provider as WhatsAppProvider)
+              : null;
+
+          if (eventProvider) {
+            invalidateProviderMessages(eventProvider);
+          } else if (provider) {
+            invalidateProviderMessages(provider);
           }
         }
       } catch {
         // Malformed JSON - ignore
       }
     },
-    [leadId, provider, utils.metaApi.getMessages, utils.zapi.getMessages, utils.baileys.getMessages]
+    [leadId, provider, invalidateProviderMessages]
   );
 
   // Handle SSE status update
-  const handleSSEStatusUpdate = useCallback(() => {
-    // Invalidate to get updated status icons
-    if (provider === "meta") {
-      utils.metaApi.getMessages.invalidate({ leadId });
-    } else if (provider === "zapi") {
-      utils.zapi.getMessages.invalidate({ leadId });
-    } else if (provider === "baileys") {
-      utils.baileys.getMessages.invalidate({ leadId });
-    }
-  }, [
-    leadId,
-    provider,
-    utils.metaApi.getMessages,
-    utils.zapi.getMessages,
-    utils.baileys.getMessages,
-  ]);
+  const handleSSEStatusUpdate = useCallback(
+    (event: MessageEvent) => {
+      // Invalidate to get updated status icons
+      try {
+        const data = JSON.parse(event.data);
+        const eventProvider =
+          data.provider === "meta" || data.provider === "baileys" || data.provider === "zapi"
+            ? (data.provider as WhatsAppProvider)
+            : null;
+
+        if (eventProvider) {
+          invalidateProviderMessages(eventProvider);
+          return;
+        }
+      } catch {
+        // Ignore malformed payload and fallback below
+      }
+
+      if (provider) {
+        invalidateProviderMessages(provider);
+      }
+    },
+    [provider, invalidateProviderMessages]
+  );
 
   // Setup SSE connection
   useEffect(() => {
@@ -253,10 +300,15 @@ export function LeadChatWindow({ leadId, phone, leadName }: LeadChatWindowProps)
             <h4 className="font-semibold text-sm text-slate-100">{leadName || "Lead"}</h4>
             <div className="flex items-center gap-1.5">
               <p className="text-xs text-slate-400 font-medium">{phone}</p>
+              {provider && (
+                <span className="text-[10px] uppercase tracking-wide text-slate-500 bg-slate-700/60 px-1.5 py-0.5 rounded">
+                  {PROVIDER_LABEL[provider]}
+                </span>
+              )}
               {sseConnected ? (
-                <Wifi className="w-3 h-3 text-emerald-400" />
+                <Wifi className="w-3 h-3 text-emerald-400" aria-label="SSE conectado" />
               ) : (
-                <WifiOff className="w-3 h-3 text-amber-400" />
+                <WifiOff className="w-3 h-3 text-amber-400" aria-label="SSE desconectado" />
               )}
             </div>
           </div>

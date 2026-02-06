@@ -47,6 +47,9 @@ export function BaileysConnectionCard() {
     onSuccess: async () => {
       await refetchStatus();
     },
+    onError: () => {
+      setQrImageUrl(null);
+    },
   });
 
   const isConnectingBackend =

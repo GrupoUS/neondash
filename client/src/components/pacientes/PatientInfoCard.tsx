@@ -60,7 +60,7 @@ interface PatientInfoCardProps {
     avatarUrl: string | null;
     status: "ativo" | "inativo";
     observacoes: string | null;
-    createdAt: Date | null;
+    updatedAt: Date | null;
   };
   onUpdate?: () => void;
 }
@@ -187,11 +187,11 @@ export function PatientInfoCard({ patient, onUpdate }: PatientInfoCardProps) {
                 {new Date(patient.dataNascimento).toLocaleDateString("pt-BR")}
               </div>
             )}
-            {patient.createdAt && (
+            {patient.updatedAt && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="h-4 w-4" />
-                Cliente desde{" "}
-                {new Date(patient.createdAt).toLocaleDateString("pt-BR", {
+                Atualizado em{" "}
+                {new Date(patient.updatedAt).toLocaleDateString("pt-BR", {
                   month: "short",
                   year: "numeric",
                 })}

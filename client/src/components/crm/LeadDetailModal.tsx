@@ -586,7 +586,7 @@ export function LeadDetailModal({
                   </div>
 
                   {/* ScrollArea for Tab Content */}
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className={cn("flex-1", activeTab === "chat" && "overflow-hidden")}>
                     <TabsContent value="detalhes" className="p-6 m-0 focus-visible:outline-none">
                       <motion.div
                         className="space-y-6"
@@ -994,11 +994,13 @@ export function LeadDetailModal({
                       value="chat"
                       className="p-0 m-0 h-[calc(100vh-280px)] focus-visible:outline-none"
                     >
-                      <LeadChatWindow
-                        leadId={leadId!}
-                        phone={data?.lead?.telefone || undefined}
-                        leadName={data?.lead?.nome}
-                      />
+                      <div className="h-full w-full rounded-b-xl overflow-hidden border-t border-border/30 bg-slate-900">
+                        <LeadChatWindow
+                          leadId={leadId!}
+                          phone={data?.lead?.telefone || undefined}
+                          leadName={data?.lead?.nome}
+                        />
+                      </div>
                     </TabsContent>
                   </ScrollArea>
                 </Tabs>

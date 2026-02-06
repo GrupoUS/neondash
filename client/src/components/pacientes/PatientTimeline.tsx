@@ -168,7 +168,7 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
         (item): TimelineEvent => ({
           id: item.id,
           type: item.tipo as TimelineEvent["type"],
-          title: item.titulo,
+          title: item.titulo ?? "Sem título",
           description: item.descricao,
           date: item.data ?? new Date(),
           metadata:
@@ -205,7 +205,8 @@ export function PatientTimeline({ patientId }: PatientTimelineProps) {
     return Math.round(normalized * 100);
   };
 
-  const formatDateForInput = (value: Date | string) => {
+  const formatDateForInput = (value: Date | string | null) => {
+    if (!value) return new Date().toISOString().slice(0, 10);
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return new Date().toISOString().slice(0, 10);
     return parsed.toISOString().slice(0, 10);

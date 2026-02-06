@@ -431,11 +431,20 @@ function PatientDetail({ id }: { id: number }) {
                   dataNascimento: paciente.dataNascimento,
                   telefone: paciente.telefone,
                   email: paciente.email,
-                  endereco: paciente.endereco,
+                  endereco:
+                    [
+                      paciente.logradouro,
+                      paciente.numero,
+                      paciente.bairro,
+                      paciente.cidade,
+                      paciente.estado,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || null,
                   avatarUrl: paciente.fotoUrl,
                   status: paciente.status,
                   observacoes: paciente.observacoes,
-                  createdAt: paciente.createdAt,
+                  updatedAt: paciente.updatedAt,
                 }}
                 onUpdate={() => utils.pacientes.getById.invalidate({ id: paciente.id })}
               />
@@ -451,10 +460,13 @@ function PatientDetail({ id }: { id: number }) {
                   ultimoProcedimento: paciente.stats.ultimoProcedimento ?? null,
                 }}
                 procedureHistory={paciente.procedimentos
-                  .filter((p) => p.dataRealizacao)
+                  .filter(
+                    (p): p is typeof p & { dataRealizacao: NonNullable<typeof p.dataRealizacao> } =>
+                      Boolean(p.dataRealizacao)
+                  )
                   .slice(0, 6)
                   .map((p) => ({
-                    month: new Date(p.dataRealizacao!).toISOString().slice(0, 7),
+                    month: new Date(p.dataRealizacao).toISOString().slice(0, 7),
                     count: 1,
                     valor: p.valorReal ?? 0,
                   }))}

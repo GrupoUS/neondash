@@ -587,7 +587,6 @@ export function AtividadesContent({ mentoradoId }: AtividadesContentProps) {
                                                     <Sparkles className="w-4 h-4 text-primary" />
                                                     Guia de Implementação
                                                   </h5>
-                                                  {/* biome-ignore lint/security/noDangerouslySetInnerHtml: Content is from trusted internal atividades config */}
                                                   <div
                                                     className="prose prose-sm prose-slate dark:prose-invert max-w-none"
                                                     // biome-ignore lint/security/noDangerouslySetInnerHtml: Content is from trusted internal atividades config

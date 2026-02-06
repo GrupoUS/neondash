@@ -1,4 +1,4 @@
-import { Check, CheckCircle2, Instagram, Loader2, Sparkles } from "lucide-react";
+import { Calculator, Check, CheckCircle2, Instagram, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -34,6 +34,59 @@ interface SubmitMetricsFormProps {
   defaultMes?: number;
   /** When true, disables period selectors (for editing past metrics) */
   lockPeriod?: boolean;
+}
+
+/**
+ * Button to import faturamento/lucro from Financeiro transactions
+ */
+function ImportFromFinanceiroButton({
+  ano,
+  mes,
+  onImport,
+}: {
+  ano: number;
+  mes: number;
+  onImport: (faturamento: number, lucro: number) => void;
+}) {
+  const { isLoading, refetch } = trpc.financeiro.transacoes.resumo.useQuery(
+    { ano, mes },
+    { enabled: false } // Don't auto-fetch, wait for user click
+  );
+
+  const handleClick = async () => {
+    const result = await refetch();
+    if (result.data) {
+      // Convert from centavos to reais
+      const faturamento = result.data.totalReceitas / 100;
+      const lucro = result.data.saldo / 100; // saldo = receitas - despesas = lucro
+      onImport(faturamento, lucro);
+      toast.info("Valores importados do Financeiro", {
+        description: `Fat: R$ ${faturamento.toFixed(2)} | Lucro: R$ ${lucro.toFixed(2)}`,
+      });
+    } else {
+      toast.error("Nenhum dado encontrado", {
+        description: "Adicione transações no Financeiro primeiro.",
+      });
+    }
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={handleClick}
+      disabled={isLoading}
+      className="text-xs"
+    >
+      {isLoading ? (
+        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+      ) : (
+        <Calculator className="h-3 w-3 mr-1" />
+      )}
+      Importar do Financeiro
+    </Button>
+  );
 }
 
 /**
@@ -404,7 +457,17 @@ export function SubmitMetricsForm({
 
       {/* Financeiro */}
       <div className="space-y-4">
-        <h4 className="font-medium text-sm text-muted-foreground border-b pb-1">Financeiro</h4>
+        <div className="flex items-center justify-between border-b pb-1">
+          <h4 className="font-medium text-sm text-muted-foreground">Financeiro</h4>
+          <ImportFromFinanceiroButton
+            ano={ano}
+            mes={mes}
+            onImport={(faturamentoValue, lucroValue) => {
+              setFaturamento(faturamentoValue.toString());
+              setLucro(lucroValue.toString());
+            }}
+          />
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <AutoSaveInput
             id="faturamento"

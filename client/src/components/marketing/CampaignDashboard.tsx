@@ -71,24 +71,30 @@ interface Campaign {
   id: number;
   name: string;
   type: "whatsapp" | "instagram";
-  status: WhatsAppCampaignStatus;
-  messagesSent?: number;
-  messagesDelivered?: number;
-  targetContactsCount?: number;
-  scheduledFor?: Date | null;
+  status: MarketingCampaignStatus;
+  totalPosts?: number;
+  publishedPosts?: number;
+  totalReach?: number;
+  startDate?: Date | null;
   createdAt: Date;
 }
 
-type WhatsAppCampaignStatus = "draft" | "scheduled" | "sending" | "sent" | "paused" | "failed";
+type MarketingCampaignStatus =
+  | "draft"
+  | "scheduled"
+  | "active"
+  | "completed"
+  | "paused"
+  | "cancelled";
 
-function normalizeCampaignStatus(status: string): WhatsAppCampaignStatus {
+function normalizeCampaignStatus(status: string): MarketingCampaignStatus {
   switch (status) {
     case "draft":
     case "scheduled":
-    case "sending":
-    case "sent":
+    case "active":
+    case "completed":
     case "paused":
-    case "failed":
+    case "cancelled":
       return status;
     default:
       return "draft";
@@ -176,7 +182,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   const shouldReduceMotion = useReducedMotion();
 
   const statusConfig: Record<
-    WhatsAppCampaignStatus,
+    MarketingCampaignStatus,
     { label: string; color: string; icon: React.ElementType }
   > = {
     draft: {
@@ -189,13 +195,13 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
       color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
       icon: Calendar,
     },
-    sending: {
-      label: "Enviando",
+    active: {
+      label: "Ativa",
       color: "bg-sky-500/10 text-sky-600 border-sky-500/20",
-      icon: Loader2,
+      icon: Zap,
     },
-    sent: {
-      label: "Enviada",
+    completed: {
+      label: "Finalizada",
       color: "bg-green-500/10 text-green-600 border-green-500/20",
       icon: CheckCircle2,
     },
@@ -204,8 +210,8 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
       color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
       icon: Pause,
     },
-    failed: {
-      label: "Falha",
+    cancelled: {
+      label: "Cancelada",
       color: "bg-red-500/10 text-red-600 border-red-500/20",
       icon: AlertTriangle,
     },
@@ -214,9 +220,9 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   const config = statusConfig[campaign.status] ?? statusConfig.draft;
   const StatusIcon = config.icon;
 
-  const deliveryRate =
-    campaign.messagesSent && campaign.messagesDelivered
-      ? Math.round((campaign.messagesDelivered / campaign.messagesSent) * 100)
+  const completionRate =
+    campaign.totalPosts && campaign.publishedPosts
+      ? Math.round((campaign.publishedPosts / campaign.totalPosts) * 100)
       : 0;
 
   return (
@@ -255,15 +261,15 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
                   <StatusIcon
                     className={cn(
                       "h-3 w-3 mr-1",
-                      campaign.status === "sending" && !shouldReduceMotion && "animate-spin"
+                      campaign.status === "active" && !shouldReduceMotion && "animate-pulse"
                     )}
                   />
                   {config.label}
                 </Badge>
-                {campaign.scheduledFor && (
+                {campaign.startDate && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    {new Date(campaign.scheduledFor).toLocaleDateString("pt-BR")}
+                    {new Date(campaign.startDate).toLocaleDateString("pt-BR")}
                   </span>
                 )}
               </div>
@@ -291,15 +297,15 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
         </div>
 
         {/* Stats (for active/completed campaigns) */}
-        {campaign.messagesSent !== undefined && campaign.messagesSent > 0 && (
+        {campaign.totalPosts !== undefined && campaign.totalPosts > 0 && (
           <div className="mt-4 pt-4 border-t border-border/50">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {campaign.messagesDelivered} de {campaign.messagesSent} entregues
+                {campaign.publishedPosts ?? 0} de {campaign.totalPosts} publicados
               </span>
-              <span className="font-medium text-foreground tabular-nums">{deliveryRate}%</span>
+              <span className="font-medium text-foreground tabular-nums">{completionRate}%</span>
             </div>
-            <Progress value={deliveryRate} className="mt-2 h-1.5" />
+            <Progress value={completionRate} className="mt-2 h-1.5" />
           </div>
         )}
       </NeonCard>
@@ -358,10 +364,10 @@ export function CampaignDashboard() {
   // Mock stats (TODO: create aggregate endpoint)
   const stats: CampaignStats = {
     activeCampaigns:
-      whatsappCampaigns?.filter((c) => c.status === "sending" || c.status === "scheduled").length ??
+      whatsappCampaigns?.filter((c) => c.status === "active" || c.status === "scheduled").length ??
       0,
-    messagesSentToday: whatsappCampaigns?.reduce((acc, c) => acc + (c.messagesSent ?? 0), 0) ?? 0,
-    scheduledPosts: whatsappCampaigns?.filter((c) => c.scheduledFor).length ?? 0,
+    messagesSentToday: whatsappCampaigns?.reduce((acc, c) => acc + (c.publishedPosts ?? 0), 0) ?? 0,
+    scheduledPosts: whatsappCampaigns?.filter((c) => c.startDate).length ?? 0,
     deliveryRate: 94.5,
   };
 
@@ -372,10 +378,10 @@ export function CampaignDashboard() {
       name: c.name,
       type: "whatsapp" as const,
       status: normalizeCampaignStatus(c.status),
-      messagesSent: c.messagesSent ?? 0,
-      messagesDelivered: c.messagesDelivered ?? 0,
-      targetContactsCount: c.targetContactsCount ?? 0,
-      scheduledFor: c.scheduledFor ? new Date(c.scheduledFor) : null,
+      totalPosts: c.totalPosts ?? 0,
+      publishedPosts: c.publishedPosts ?? 0,
+      totalReach: c.totalReach ?? 0,
+      startDate: c.startDate ? new Date(c.startDate) : null,
       createdAt: new Date(c.createdAt),
     })) ?? [];
 

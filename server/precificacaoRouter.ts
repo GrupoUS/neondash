@@ -397,6 +397,27 @@ export const precificacaoRouter = router({
         const imposto = Math.round((proc.precoVenda * (proc.percentualImposto ?? 700)) / 10000);
         const lucroFinal = lucroParcial - imposto;
 
+        // NEW: Calculate additional KPIs for aesthetic clinic owners
+        const precoVenda = proc.precoVenda;
+
+        // Margem Líquida % = (Lucro Final / Preço Venda) × 100
+        const margemLiquidaPercent =
+          precoVenda > 0 ? Math.round((lucroFinal / precoVenda) * 10000) / 100 : 0;
+
+        // Margem Bruta % = (Lucro Parcial / Preço Venda) × 100
+        const margemBrutaPercent =
+          precoVenda > 0 ? Math.round((lucroParcial / precoVenda) * 10000) / 100 : 0;
+
+        // Markup = Preço Venda / Custo Total
+        const markup = custoTotal > 0 ? Math.round((precoVenda / custoTotal) * 100) / 100 : 0;
+
+        // Eficiência de Custos = (Custo Insumos / Custo Total) × 100
+        const eficienciaCustos =
+          custoTotal > 0 ? Math.round((custoInsumos / custoTotal) * 10000) / 100 : 0;
+
+        // ROI do Serviço = (Lucro Final / Custo Total) × 100
+        const roiServico = custoTotal > 0 ? Math.round((lucroFinal / custoTotal) * 10000) / 100 : 0;
+
         return {
           custoInsumos,
           custoOperacional,
@@ -406,6 +427,13 @@ export const precificacaoRouter = router({
           lucroParcial,
           imposto,
           lucroFinal,
+          // NEW KPIs
+          precoVenda,
+          margemLiquidaPercent,
+          margemBrutaPercent,
+          markup,
+          eficienciaCustos,
+          roiServico,
         };
       }),
   }),

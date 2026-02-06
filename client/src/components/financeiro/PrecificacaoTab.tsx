@@ -420,42 +420,100 @@ export function PrecificacaoTab() {
 
               {/* Cálculo de custos */}
               {selectedProcedimentoId === p.id && custoCalc && (
-                <div className="border-t pt-4 mt-4 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Custo Insumos:</span>
-                    <span>{formatCurrency(custoCalc.custoInsumos)}</span>
+                <div className="border-t pt-4 mt-4 space-y-4">
+                  {/* KPI Summary Cards */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-card/50 rounded-lg p-3 text-center">
+                      <span className="text-xs text-muted-foreground block">Margem Líquida</span>
+                      <span
+                        className={`text-lg font-bold ${
+                          custoCalc.margemLiquidaPercent >= 40
+                            ? "text-emerald-500"
+                            : custoCalc.margemLiquidaPercent >= 20
+                              ? "text-amber-500"
+                              : "text-red-500"
+                        }`}
+                      >
+                        {custoCalc.margemLiquidaPercent.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="bg-card/50 rounded-lg p-3 text-center">
+                      <span className="text-xs text-muted-foreground block">Markup</span>
+                      <span className="text-lg font-bold text-primary">
+                        {custoCalc.markup.toFixed(2)}x
+                      </span>
+                    </div>
+                    <div className="bg-card/50 rounded-lg p-3 text-center">
+                      <span className="text-xs text-muted-foreground block">ROI</span>
+                      <span
+                        className={`text-lg font-bold ${
+                          custoCalc.roiServico >= 50
+                            ? "text-emerald-500"
+                            : custoCalc.roiServico >= 20
+                              ? "text-amber-500"
+                              : "text-red-500"
+                        }`}
+                      >
+                        {custoCalc.roiServico.toFixed(1)}%
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Custo Operacional:</span>
-                    <span>{formatCurrency(custoCalc.custoOperacional)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Custo Investimento:</span>
-                    <span>{formatCurrency(custoCalc.custoInvestimento)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Custo Parceiro:</span>
-                    <span>{formatCurrency(custoCalc.custoParceiro)}</span>
-                  </div>
-                  <div className="flex justify-between font-medium border-t pt-2">
-                    <span>Custo Total:</span>
-                    <span className="text-red-500">{formatCurrency(custoCalc.custoTotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Lucro Parcial:</span>
-                    <span>{formatCurrency(custoCalc.lucroParcial)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Imposto:</span>
-                    <span className="text-red-500">-{formatCurrency(custoCalc.imposto)}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>Lucro Final:</span>
-                    <span
-                      className={custoCalc.lucroFinal >= 0 ? "text-emerald-500" : "text-red-500"}
-                    >
-                      {formatCurrency(custoCalc.lucroFinal)}
-                    </span>
+
+                  {/* Detailed Breakdown */}
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Custo Insumos:</span>
+                      <span>{formatCurrency(custoCalc.custoInsumos)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Custo Operacional:</span>
+                      <span>{formatCurrency(custoCalc.custoOperacional)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Custo Investimento:</span>
+                      <span>{formatCurrency(custoCalc.custoInvestimento)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Custo Parceiro:</span>
+                      <span>{formatCurrency(custoCalc.custoParceiro)}</span>
+                    </div>
+                    <div className="flex justify-between font-medium border-t pt-2">
+                      <span>Custo Total:</span>
+                      <span className="text-red-500">{formatCurrency(custoCalc.custoTotal)}</span>
+                    </div>
+
+                    {/* Efficiency Indicator */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-xs">
+                        Eficiência (Insumos/Total):
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {custoCalc.eficienciaCustos.toFixed(1)}%
+                      </Badge>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Lucro Parcial{" "}
+                        <span className="text-xs">
+                          ({custoCalc.margemBrutaPercent.toFixed(1)}%)
+                        </span>
+                        :
+                      </span>
+                      <span>{formatCurrency(custoCalc.lucroParcial)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Imposto:</span>
+                      <span className="text-red-500">-{formatCurrency(custoCalc.imposto)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg border-t pt-2">
+                      <span>Lucro Final:</span>
+                      <span
+                        className={custoCalc.lucroFinal >= 0 ? "text-emerald-500" : "text-red-500"}
+                      >
+                        {formatCurrency(custoCalc.lucroFinal)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}

@@ -767,7 +767,7 @@ export const metaApiRouter = router({
 
       // Filter by search term if provided (client-side for simplicity)
       let filteredContacts = contacts;
-      if (input.search && input.search.trim()) {
+      if (input.search?.trim()) {
         const searchLower = input.search.toLowerCase();
         filteredContacts = contacts.filter(
           (c) => c.name?.toLowerCase().includes(searchLower) || c.phone.includes(input.search ?? "")

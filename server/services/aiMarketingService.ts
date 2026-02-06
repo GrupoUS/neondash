@@ -9,9 +9,9 @@
  * All generation is logged to aiContentGenerationLog for cost tracking.
  */
 
+import { GoogleGenAI } from "@google/genai";
 import { generateText } from "ai";
 import { eq } from "drizzle-orm";
-import OpenAI from "openai";
 import { systemSettings } from "../../drizzle/schema";
 import {
   aiContentGenerationLog,
@@ -60,19 +60,19 @@ interface CampaignContext {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// OPENAI CLIENT
+// GEMINI CLIENT FOR IMAGE GENERATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-function getOpenAIClient(): OpenAI | null {
-  const apiKey = process.env.OPENAI_API_KEY;
+function getGeminiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return null;
   }
-  return new OpenAI({ apiKey });
+  return new GoogleGenAI({ apiKey });
 }
 
-export function isOpenAIConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY);
+export function isGeminiConfigured(): boolean {
+  return Boolean(process.env.GEMINI_API_KEY);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -198,13 +198,10 @@ RESPONDA APENAS com a legenda pronta, sem explicações adicionais.`;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Generate an image using DALL-E 3.
+ * Generate an image using Google Gemini Imagen.
  *
- * Costs:
- * - Standard 1024x1024: $0.04
- * - Standard 1024x1792: $0.08
- * - HD 1024x1024: $0.08
- * - HD 1024x1792: $0.12
+ * Uses imagen-4.0-generate-001 model with GEMINI_API_KEY.
+ * Free tier: limited generations/day.
  */
 export async function generateImage(
   prompt: string,
@@ -215,54 +212,54 @@ export async function generateImage(
     postId?: number;
   } = {}
 ): Promise<ImageGenerationResult> {
-  const openai = getOpenAIClient();
-  if (!openai) {
-    return { success: false, error: "OpenAI não configurada. Configure OPENAI_API_KEY." };
+  const gemini = getGeminiClient();
+  if (!gemini) {
+    return { success: false, error: "Gemini não configurada. Configure GEMINI_API_KEY." };
   }
 
-  const { size = "1024x1024", quality = "standard", mentoradoId, postId } = options;
+  const { mentoradoId, postId } = options;
 
-  // Calculate cost in cents
-  const isWide = size === "1024x1792" || size === "1792x1024";
-  const isHd = quality === "hd";
-  let costCents: number;
-  if (isHd) {
-    costCents = isWide ? 12 : 8;
-  } else {
-    costCents = isWide ? 8 : 4;
+  // Map size to aspect ratio
+  let aspectRatio: "1:1" | "16:9" | "9:16" = "1:1";
+  if (options.size === "1024x1792") {
+    aspectRatio = "9:16";
+  } else if (options.size === "1792x1024") {
+    aspectRatio = "16:9";
   }
 
   try {
-    const response = await openai.images.generate({
-      model: "dall-e-3",
+    const response = await gemini.models.generateImages({
+      model: "imagen-4.0-generate-001",
       prompt: `Professional aesthetic clinic marketing image: ${prompt}. 
 Style: Modern, clean, premium healthcare aesthetic. 
 Lighting: Soft, professional studio lighting.
 Colors: Neutral tones with subtle accents.
-DO NOT include any visible text or watermarks.`,
-      n: 1,
-      size,
-      quality,
+DO NOT include any visible text, watermarks, or logos.`,
+      config: {
+        numberOfImages: 1,
+        includeRaiReason: true,
+        aspectRatio,
+      },
     });
 
-    const imageData = response.data?.[0];
-    const imageUrl = imageData?.url;
-    const revisedPrompt = imageData?.revised_prompt;
-
-    if (!imageUrl) {
+    const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+    if (!imageBytes) {
       return { success: false, error: "Nenhuma imagem gerada" };
     }
 
-    // Log usage
+    // Convert base64 to data URL
+    const imageUrl = `data:image/png;base64,${imageBytes}`;
+
+    // Log usage (Gemini Imagen is free for now, but log for tracking)
     if (mentoradoId) {
       await logGeneration({
         mentoradoId,
         generationType: "image",
         promptUsed: prompt,
-        resultSummary: `DALL-E 3 ${quality} ${size}`,
-        modelUsed: "dall-e-3",
+        resultSummary: `Gemini Imagen ${aspectRatio}`,
+        modelUsed: "imagen-4.0-generate-001",
         imagesGenerated: 1,
-        estimatedCostCents: costCents,
+        estimatedCostCents: 0, // Gemini Imagen free tier
         postId,
       });
     }
@@ -270,8 +267,7 @@ DO NOT include any visible text or watermarks.`,
     return {
       success: true,
       imageUrl,
-      revisedPrompt,
-      costCents,
+      costCents: 0,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";

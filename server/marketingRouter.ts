@@ -28,7 +28,7 @@ import {
   generateCaption,
   generateImage,
   getMonthlyUsageStats,
-  isOpenAIConfigured,
+  isGeminiConfigured,
 } from "./services/aiMarketingService";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -370,7 +370,7 @@ export const marketingRouter = router({
   getAIStatus: protectedProcedure.query(async () => {
     return {
       textGeneration: true, // Gemini is configured
-      imageGeneration: isOpenAIConfigured(),
+      imageGeneration: isGeminiConfigured(),
     };
   }),
 

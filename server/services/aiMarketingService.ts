@@ -194,16 +194,45 @@ RESPONDA APENAS com a legenda pronta, sem explicações adicionais.`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// IMAGE GENERATION (Imagen 4 Ultra)
+// IMAGE GENERATION (Nano Banana Pro — gemini-3-pro-image-preview)
 // ═══════════════════════════════════════════════════════════════════════════
 
-const IMAGEN_MODEL = "imagen-4.0-ultra-generate-001";
+const IMAGE_MODEL = "gemini-3-pro-image-preview";
 
 /**
- * Generate images using Google Imagen 4 Ultra.
+ * Generate a single image via Nano Banana Pro (generateContent).
+ * Returns base64 data URL or null on failure.
+ */
+async function generateSingleImage(
+  gemini: ReturnType<typeof getGeminiClient>,
+  prompt: string,
+  aspectRatio: string
+): Promise<string | null> {
+  const response = await gemini!.models.generateContent({
+    model: IMAGE_MODEL,
+    contents: prompt,
+    config: {
+      responseModalities: ["IMAGE"],
+      imageConfig: { aspectRatio },
+    },
+  });
+
+  // Extract image from response parts
+  const parts = response.candidates?.[0]?.content?.parts ?? [];
+  for (const part of parts) {
+    if (part.inlineData?.data) {
+      const mimeType = part.inlineData.mimeType ?? "image/png";
+      return `data:${mimeType};base64,${part.inlineData.data}`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Generate images using Nano Banana Pro (gemini-3-pro-image-preview).
  *
- * Supports 1–4 images per call for carousel generation.
- * Uses imagen-4.0-ultra-generate-001 (most advanced Imagen model).
+ * Uses generateContent API — superior for images with text overlays.
+ * For carousel (2–4 images), makes parallel API calls.
  */
 export async function generateImage(
   prompt: string,
@@ -224,36 +253,32 @@ export async function generateImage(
   const imageCount = Math.min(Math.max(options.numberOfImages ?? 1, 1), 4);
 
   // Map size to aspect ratio
-  let aspectRatio: "1:1" | "16:9" | "9:16" = "1:1";
+  let aspectRatio = "1:1";
   if (options.size === "1024x1792") {
     aspectRatio = "9:16";
   } else if (options.size === "1792x1024") {
     aspectRatio = "16:9";
   }
 
-  try {
-    const response = await gemini.models.generateImages({
-      model: IMAGEN_MODEL,
-      prompt: `Professional aesthetic clinic marketing image: ${prompt}.
+  const fullPrompt = `Professional aesthetic clinic marketing image: ${prompt}.
 Style: Modern, clean, premium healthcare aesthetic.
 Lighting: Soft, professional studio lighting.
-Colors: Neutral tones with subtle accents.
-DO NOT include any visible text, watermarks, or logos.`,
-      config: {
-        numberOfImages: imageCount,
-        includeRaiReason: true,
-        aspectRatio,
-      },
-    });
+Colors: Neutral tones with subtle accents.`;
 
-    // Collect all generated images as base64 data URLs
-    const imageUrls: string[] = [];
-    for (const generated of response.generatedImages ?? []) {
-      const bytes = generated?.image?.imageBytes;
-      if (bytes) {
-        imageUrls.push(`data:image/png;base64,${bytes}`);
-      }
-    }
+  try {
+    // Generate images in parallel for carousel, or a single call
+    const promises = Array.from({ length: imageCount }, (_, i) =>
+      generateSingleImage(
+        gemini,
+        imageCount > 1
+          ? `${fullPrompt}\nVariation ${i + 1} of ${imageCount}: unique composition and angle.`
+          : fullPrompt,
+        aspectRatio
+      )
+    );
+
+    const results = await Promise.all(promises);
+    const imageUrls = results.filter((url): url is string => url !== null);
 
     if (imageUrls.length === 0) {
       return { success: false, error: "Nenhuma imagem gerada" };
@@ -265,8 +290,8 @@ DO NOT include any visible text, watermarks, or logos.`,
         mentoradoId,
         generationType: "image",
         promptUsed: prompt,
-        resultSummary: `Imagen Ultra ${aspectRatio} x${imageUrls.length}`,
-        modelUsed: IMAGEN_MODEL,
+        resultSummary: `Nano Banana Pro ${aspectRatio} x${imageUrls.length}`,
+        modelUsed: IMAGE_MODEL,
         imagesGenerated: imageUrls.length,
         estimatedCostCents: 0,
         postId,

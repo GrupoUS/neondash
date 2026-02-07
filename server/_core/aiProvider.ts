@@ -6,10 +6,11 @@
  */
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { GoogleGenAI } from "@google/genai";
 import { ENV } from "./env";
 
 /**
- * Google Gemini AI provider instance.
+ * Google Gemini AI provider instance (Vercel AI SDK).
  * Uses GEMINI_API_KEY from environment.
  */
 export const google = createGoogleGenerativeAI({
@@ -33,4 +34,13 @@ export const proModel = google("gemini-2.5-pro");
  */
 export function isAIConfigured(): boolean {
   return Boolean(ENV.geminiApiKey);
+}
+
+/**
+ * Raw Google GenAI client for direct API access (image generation, etc.).
+ * Returns null if GEMINI_API_KEY is not set.
+ */
+export function getGeminiClient(): GoogleGenAI | null {
+  if (!ENV.geminiApiKey) return null;
+  return new GoogleGenAI({ apiKey: ENV.geminiApiKey });
 }

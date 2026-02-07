@@ -129,8 +129,8 @@ const updateProcedimentoSchema = createProcedimentoSchema.partial().extend({
 const createFotoSchema = z.object({
   pacienteId: z.number(),
   procedimentoRealizadoId: z.number().optional().nullable(),
-  url: z.string().url(),
-  thumbnailUrl: z.string().url().optional().nullable(),
+  url: z.string().min(1),
+  thumbnailUrl: z.string().optional().nullable(),
   tipo: z.enum(["antes", "depois", "evolucao", "simulacao"]),
   angulo: z.enum(["frontal", "perfil_esquerdo", "perfil_direito", "obliquo"]).optional().nullable(),
   dataCaptura: z.string().optional(),
@@ -140,12 +140,39 @@ const createFotoSchema = z.object({
   grupoId: z.string().optional().nullable(),
 });
 
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10MB
+
+const uploadFotoSchema = z.object({
+  pacienteId: z.number(),
+  fileData: z.string().min(1, "Arquivo é obrigatório"),
+  thumbnailData: z.string().optional(),
+  fileName: z.string().min(1),
+  contentType: z.string().min(1),
+  tipo: z.enum(["antes", "depois", "evolucao", "simulacao"]),
+  angulo: z.enum(["frontal", "perfil_esquerdo", "perfil_direito", "obliquo"]).optional().nullable(),
+  descricao: z.string().optional().nullable(),
+  areaFotografada: z.string().optional().nullable(),
+  parComId: z.number().optional().nullable(),
+  grupoId: z.string().optional().nullable(),
+});
+
+const uploadDocumentoSchema = z.object({
+  pacienteId: z.number(),
+  fileData: z.string().min(1, "Arquivo é obrigatório"),
+  fileName: z.string().min(1),
+  contentType: z.string().min(1),
+  tipo: z.enum(["consentimento", "exame", "prescricao", "outro"]),
+  nome: z.string().min(1, "Nome do documento é obrigatório"),
+  observacoes: z.string().optional().nullable(),
+});
+
 const createDocumentoSchema = z.object({
   pacienteId: z.number(),
   procedimentoRealizadoId: z.number().optional().nullable(),
   tipo: z.enum(["consentimento", "exame", "prescricao", "outro"]),
   nome: z.string().min(1, "Nome do documento é obrigatório"),
-  url: z.string().url(),
+  url: z.string().min(1),
   mimeType: z.string().optional().nullable(),
   tamanhoBytes: z.number().optional().nullable(),
   dataAssinatura: z.string().optional().nullable(),
@@ -783,6 +810,42 @@ export const pacientesRouter = router({
       return created;
     }),
 
+    upload: mentoradoProcedure.input(uploadFotoSchema).mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+      // Validate base64 size
+      const rawSize = Math.ceil((input.fileData.length * 3) / 4);
+      if (rawSize > MAX_PHOTO_SIZE) {
+        throw new TRPCError({
+          code: "PAYLOAD_TOO_LARGE",
+          message: `Arquivo excede o limite de ${MAX_PHOTO_SIZE / 1024 / 1024}MB`,
+        });
+      }
+
+      const dataUrl = `data:${input.contentType};base64,${input.fileData}`;
+      const thumbnailUrl = input.thumbnailData
+        ? `data:${input.contentType};base64,${input.thumbnailData}`
+        : null;
+
+      const [created] = await db
+        .insert(pacientesFotos)
+        .values({
+          pacienteId: input.pacienteId,
+          url: dataUrl,
+          thumbnailUrl,
+          tipo: input.tipo,
+          angulo: input.angulo ?? null,
+          dataCaptura: new Date(),
+          descricao: input.descricao ?? null,
+          areaFotografada: input.areaFotografada ?? null,
+          parComId: input.parComId ?? null,
+          grupoId: input.grupoId ?? null,
+        })
+        .returning();
+      return created;
+    }),
+
     delete: mentoradoProcedure
       .input(z.object({ id: z.number(), pacienteId: z.number() }))
       .mutation(async ({ ctx, input }) => {
@@ -909,6 +972,36 @@ export const pacientesRouter = router({
       }
 
       return updated;
+    }),
+
+    upload: mentoradoProcedure.input(uploadDocumentoSchema).mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+      // Validate base64 size
+      const rawSize = Math.ceil((input.fileData.length * 3) / 4);
+      if (rawSize > MAX_DOC_SIZE) {
+        throw new TRPCError({
+          code: "PAYLOAD_TOO_LARGE",
+          message: `Arquivo excede o limite de ${MAX_DOC_SIZE / 1024 / 1024}MB`,
+        });
+      }
+
+      const dataUrl = `data:${input.contentType};base64,${input.fileData}`;
+
+      const [created] = await db
+        .insert(pacientesDocumentos)
+        .values({
+          pacienteId: input.pacienteId,
+          tipo: input.tipo,
+          nome: input.nome,
+          url: dataUrl,
+          mimeType: input.contentType,
+          tamanhoBytes: rawSize,
+          observacoes: input.observacoes ?? null,
+        })
+        .returning();
+      return created;
     }),
 
     delete: mentoradoProcedure

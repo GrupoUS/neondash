@@ -1,8 +1,10 @@
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   rectIntersection,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -25,8 +27,7 @@ import { KanbanColumn } from "./KanbanColumn";
 import { LeadCard } from "./LeadCard";
 import { LeadDetailModal } from "./LeadDetailModal";
 
-// Definindo as colunas do Kanban com IDs alinhados ao banco (enum status_lead)
-// Definindo as colunas do Kanban com IDs alinhados ao banco (enum status_lead)
+// Colunas do Kanban alinhadas ao enum status_lead
 export const DEFAULT_COLUMNS = [
   {
     id: "novo",
@@ -124,31 +125,41 @@ export function PipelineKanban({
     },
   });
 
+  // Multi-sensor: pointer + touch + keyboard for accessibility
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
-    })
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor)
   );
 
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
+  const handleDragStart = (event: unknown) => {
+    setActiveId((event as { active: { id: string } }).active.id);
   };
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: unknown) => {
     if (isReadOnly) return;
 
-    const { active, over } = event;
+    const { active, over } = event as {
+      active: { id: string };
+      over: { id: string } | null;
+    };
 
-    if (!over) return;
+    if (!over) {
+      setActiveId(null);
+      return;
+    }
 
-    const activeId = active.id;
-    const overId = over.id;
-
-    const leadId = parseInt(activeId.toString().replace("lead-", ""), 10);
-    // Se soltou sobre uma coluna
-    const newStatus = columns.find((col) => col.id === overId)?.id;
+    const leadId = parseInt(active.id.toString().replace("lead-", ""), 10);
+    const newStatus = columns.find((col) => col.id === over.id)?.id;
 
     if (newStatus) {
       updateStatusMutation.mutate({
@@ -157,6 +168,10 @@ export function PipelineKanban({
       });
     }
 
+    setActiveId(null);
+  };
+
+  const handleDragCancel = () => {
     setActiveId(null);
   };
 
@@ -197,9 +212,11 @@ export function PipelineKanban({
       toast.error("Lead não possui número de telefone");
       return;
     }
-    // Navigate to chat page with phone parameter
     navigate(`/chat?phone=${encodeURIComponent(lead.telefone)}&leadId=${lead.id}`);
   };
+
+  // Find the active lead for the drag overlay
+  const activeLead = activeId ? leadsData?.leads?.find((l) => `lead-${l.id}` === activeId) : null;
 
   if (isLoading) {
     return (
@@ -221,10 +238,11 @@ export function PipelineKanban({
         collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
         autoScroll={!isReadOnly}
       >
         <div className="flex-1 overflow-x-auto pb-4 custom-scrollbar">
-          <div className="flex gap-6 min-w-[1200px] h-full px-2">
+          <div className="flex gap-5 min-w-[1200px] h-full px-2">
             {columns.map((column) => (
               <KanbanColumn
                 key={column.id}
@@ -246,19 +264,16 @@ export function PipelineKanban({
           </div>
         </div>
 
+        {/* Drag Overlay — floating card that follows cursor */}
         <DragOverlay
           dropAnimation={{
-            duration: 200,
-            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+            duration: 250,
+            easing: "cubic-bezier(0.25, 1, 0.5, 1)",
           }}
         >
-          {activeId && !isReadOnly ? (
-            <div className="rotate-2 scale-105 cursor-grabbing opacity-90 shadow-[0_0_30px_-5px_rgba(var(--primary),0.6)] rounded-xl">
-              <LeadCard
-                lead={leadsData?.leads?.find((l) => `lead-${l.id}` === activeId)!}
-                onClick={() => {}}
-                isDragging
-              />
+          {activeLead && !isReadOnly ? (
+            <div className="scale-[1.03] cursor-grabbing shadow-[0_12px_40px_-8px_rgba(0,0,0,0.4),0_0_20px_-4px_rgba(var(--primary),0.3)] rounded-xl pointer-events-none">
+              <LeadCard lead={activeLead} onClick={() => {}} />
             </div>
           ) : null}
         </DragOverlay>

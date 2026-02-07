@@ -63,7 +63,7 @@ export function KanbanColumn({
   const _badgeColor = accentColor.replace("bg-", "text-"); // rudimentary, better to pass separate props or map
 
   return (
-    <div className="flex flex-col h-full min-w-[320px] w-[320px]">
+    <div className="flex flex-col h-full min-w-[280px] w-[280px]">
       {/* Header - Glass & Minimal */}
       <div
         className={cn(
@@ -102,7 +102,7 @@ export function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex-1 rounded-xl transition-all duration-300 gap-3 flex flex-col p-1",
+          "flex-1 rounded-xl transition-all duration-300 ease-out gap-3 flex flex-col p-1",
           activeId && !activeId.includes(id)
             ? "bg-primary/5 border-2 border-dashed border-primary/20"
             : "border-2 border-transparent"

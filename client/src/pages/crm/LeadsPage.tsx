@@ -43,7 +43,7 @@ export function LeadsPage() {
 
   // 4. Determine which mentoradoId to use:
   // - For admin viewing another mentorado: use adminSelectedMentoradoId
-  // - For regular user: use their own mentoradoId from myMentorado
+  // - For regular user: use their own mentoradoId from mentorados.me
   const viewMentoradoId = isAdmin
     ? adminSelectedMentoradoId
       ? parseInt(adminSelectedMentoradoId, 10)
@@ -90,7 +90,7 @@ export function LeadsPage() {
   const { data: storedColumns } = trpc.crmColumns.list.useQuery(
     viewMentoradoId ? { mentoradoId: viewMentoradoId } : undefined,
     {
-      enabled: !!viewMentoradoId,
+      enabled: !isAdmin || !!viewMentoradoId,
     }
   );
 

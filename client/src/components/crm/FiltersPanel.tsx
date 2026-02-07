@@ -223,19 +223,30 @@ export function FiltersPanel({
 
   // Desktop sidebar version
   return (
-    <div
-      className={`
-      fixed inset-y-0 right-0 z-50 w-[300px] bg-background border-l shadow-lg transform transition-transform duration-300 ease-in-out p-6 overflow-y-auto
-      ${isOpen ? "translate-x-0" : "translate-x-full"}
-    `}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold">Filtros</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+    <>
+      {/* Backdrop overlay to prevent interaction and flickering */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/20 transition-opacity duration-300 ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        className={`
+        fixed inset-y-0 right-0 z-50 w-[300px] bg-background border-l shadow-lg p-6 overflow-y-auto
+        transition-transform duration-300 ease-in-out
+        ${isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"}
+      `}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold">Filtros</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        {Content}
       </div>
-      {Content}
-    </div>
+    </>
   );
 }

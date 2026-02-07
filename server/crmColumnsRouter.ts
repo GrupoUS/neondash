@@ -13,14 +13,22 @@ export const crmColumnsRouter = router({
 
       // Determine target mentorado (admin override or own)
       let targetMentoradoId = ctx.mentorado?.id;
+
       if (input?.mentoradoId) {
-        if (ctx.user.role !== "admin") {
+        if (ctx.mentorado?.id === input.mentoradoId) {
+          targetMentoradoId = input.mentoradoId;
+        } else if (ctx.user.role === "admin") {
+          targetMentoradoId = input.mentoradoId;
+        } else {
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
         }
-        targetMentoradoId = input.mentoradoId;
       }
+
       if (!targetMentoradoId) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Perfil de mentorado necessário" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Perfil de mentorado necessário",
+        });
       }
 
       const columns = await db
@@ -52,14 +60,22 @@ export const crmColumnsRouter = router({
 
       // Determine target mentorado (admin override or own)
       let targetMentoradoId = ctx.mentorado?.id;
+
       if (input.mentoradoId) {
-        if (ctx.user.role !== "admin") {
+        if (ctx.mentorado?.id === input.mentoradoId) {
+          targetMentoradoId = input.mentoradoId;
+        } else if (ctx.user.role === "admin") {
+          targetMentoradoId = input.mentoradoId;
+        } else {
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
         }
-        targetMentoradoId = input.mentoradoId;
       }
+
       if (!targetMentoradoId) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Perfil de mentorado necessário" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Perfil de mentorado necessário",
+        });
       }
 
       // Transaction to upsert all

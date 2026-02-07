@@ -3,6 +3,7 @@ import { ptBR } from "date-fns/locale";
 import { MoreHorizontal, RefreshCw, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ export function LeadsTable({
   mentoradoId,
   isReadOnly = false,
 }: LeadsTableProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const { data, isLoading } = trpc.leads.list.useQuery(
     {
       ...filters,
@@ -51,7 +54,7 @@ export function LeadsTable({
       mentoradoId,
     },
     {
-      enabled: !!mentoradoId,
+      enabled: !isAdmin || !!mentoradoId,
     }
   );
 

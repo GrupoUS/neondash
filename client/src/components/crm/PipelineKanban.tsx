@@ -10,6 +10,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { EventFormDialog } from "@/components/agenda/EventFormDialog";
 import {
   Select,
@@ -85,6 +86,8 @@ export function PipelineKanban({
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   const utils = trpc.useUtils();
   const { data: leadsData, isLoading } = trpc.leads.list.useQuery(
@@ -92,7 +95,7 @@ export function PipelineKanban({
       mentoradoId: mentoradoId,
     },
     {
-      enabled: !!mentoradoId,
+      enabled: !isAdmin || !!mentoradoId,
     }
   );
 

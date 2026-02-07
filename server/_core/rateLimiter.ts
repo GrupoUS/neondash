@@ -12,8 +12,8 @@ import rateLimit from "express-rate-limit";
 // ═══════════════════════════════════════════════════════════════════════════
 
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_REQUESTS_USER = 100; // 100 requests per 15 min
-const MAX_REQUESTS_AUTH = 5; // 5 auth attempts per 15 min
+const MAX_REQUESTS_USER = 500; // 500 requests per 15 min (SPAs need headroom for batch queries)
+const MAX_REQUESTS_AUTH = 10; // 10 auth attempts per 15 min
 
 // ═══════════════════════════════════════════════════════════════════════════
 // UTILITIES

@@ -24,13 +24,23 @@ export const leadsRouter = router({
     .query(async ({ ctx, input }) => {
       const db = getDb();
 
+      // Determine target mentorado (admin override or own)
       let targetMentoradoId = ctx.mentorado?.id;
 
+      // If a specific mentoradoId is requested
       if (input.mentoradoId) {
-        if (ctx.user.role !== "admin") {
+        // If it's the user's own ID, allow it (redundant but safe)
+        if (ctx.mentorado?.id === input.mentoradoId) {
+          targetMentoradoId = input.mentoradoId;
+        }
+        // If it's different, only allow admins
+        else if (ctx.user.role === "admin") {
+          targetMentoradoId = input.mentoradoId;
+        }
+        // Otherwise forbidden
+        else {
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
         }
-        targetMentoradoId = input.mentoradoId;
       }
 
       if (!targetMentoradoId) {
@@ -170,7 +180,8 @@ export const leadsRouter = router({
       // Determine target mentorado (admin override or own)
       let targetMentoradoId = ctx.mentorado?.id;
       if (input.mentoradoId) {
-        if (ctx.user.role !== "admin") {
+        const isSelf = ctx.mentorado?.id === input.mentoradoId;
+        if (!isSelf && ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
         }
         targetMentoradoId = input.mentoradoId;
@@ -472,27 +483,31 @@ export const leadsRouter = router({
     .query(async ({ ctx, input }) => {
       const db = getDb();
 
+      // Determine target mentorado (admin override or own)
       let targetMentoradoId = ctx.mentorado?.id;
-      if (input.mentoradoId) {
-        if (ctx.user?.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        targetMentoradoId = input.mentoradoId;
-      }
-      if (!targetMentoradoId && input.mentoradoId === undefined && ctx.user?.role === "admin") {
-        // If admin and didn't select, maybe allow all? No, logical error.
-        // Actually if input.mentoradoId is null (passed explicitly) or undefined, and ctx.mentorado is null (admin without profile)
-        // we might need to handle it.
-        // Current logic: defaults to ctx.mentorado.id.
-        // If input.mentoradoId is provided (truthy), use it.
-        // If input.mentoradoId is 0 or null, it's falsey.
-      }
 
-      // Fix: correct logic for optional/nullish
+      // If a specific mentoradoId is requested
       if (input.mentoradoId != null) {
-        if (ctx.user?.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        targetMentoradoId = input.mentoradoId;
+        // If it's the user's own ID, allow it
+        if (ctx.mentorado?.id === input.mentoradoId) {
+          targetMentoradoId = input.mentoradoId;
+        }
+        // If it's different, only allow admins
+        else if (ctx.user.role === "admin") {
+          targetMentoradoId = input.mentoradoId;
+        }
+        // Otherwise forbidden
+        else {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
       }
 
-      if (!targetMentoradoId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      if (!targetMentoradoId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Perfil de mentorado necessário",
+        });
+      }
 
       // Calculate date filter based on periodo
       let dateFilter: Date | undefined;
@@ -516,39 +531,51 @@ export const leadsRouter = router({
         ? and(eq(leads.mentoradoId, targetMentoradoId), gte(leads.createdAt, dateFilter))
         : eq(leads.mentoradoId, targetMentoradoId);
 
-      const allLeads = await db.select().from(leads).where(whereClause);
+      const [statsResult, origemResult, tempoFechamentoResult] = await Promise.all([
+        // 1. General Stats
+        db
+          .select({
+            total: sql<number>`count(*)`,
+            ativos: sql<number>`count(*) filter (where ${leads.status} not in ('fechado', 'perdido'))`,
+            ganhos: sql<number>`count(*) filter (where ${leads.status} = 'fechado')`,
+            valorPipeline: sql<number>`sum(${leads.valorEstimado}) filter (where ${leads.status} not in ('fechado', 'perdido'))`,
+          })
+          .from(leads)
+          .where(whereClause),
 
-      const ativos = allLeads.filter(
-        (l) => l.status !== "fechado" && l.status !== "perdido"
-      ).length;
+        // 2. Leads por Origem
+        db
+          .select({
+            origem: leads.origem,
+            count: sql<number>`count(*)`,
+          })
+          .from(leads)
+          .where(whereClause)
+          .groupBy(leads.origem),
 
-      const ganhos = allLeads.filter((l) => l.status === "fechado").length;
-      const total = allLeads.length;
+        // 3. Average Closing Time (only for closed leads)
+        db
+          .select({
+            avgTime: sql<number>`avg(extract(epoch from (${leads.updatedAt} - ${leads.createdAt})))`,
+          })
+          .from(leads)
+          .where(and(whereClause, eq(leads.status, "fechado"))),
+      ]);
+
+      const stats = statsResult[0];
+      const total = Number(stats?.total || 0);
+      const ganhos = Number(stats?.ganhos || 0);
+      const ativos = Number(stats?.ativos || 0);
+      const valorPipelineCents = Number(stats?.valorPipeline || 0);
+
       const taxaConversao = total > 0 ? (ganhos / total) * 100 : 0;
 
-      // valorPipeline stored in cents, divide by 100 for display
-      const valorPipelineCents = allLeads
-        .filter((l) => l.status !== "perdido" && l.status !== "fechado")
-        .reduce((sum, l) => sum + (l.valorEstimado || 0), 0);
+      const avgTimeSeconds = Number(tempoFechamentoResult[0]?.avgTime || 0);
+      const tempoMedioFechamento = Math.round(avgTimeSeconds / (24 * 60 * 60));
 
-      // Calculate average time to close for 'fechado' leads
-      const closedLeads = allLeads.filter(
-        (l) => l.status === "fechado" && l.createdAt && l.updatedAt
-      );
-      let tempoMedioFechamento = 0;
-      if (closedLeads.length > 0) {
-        const totalDays = closedLeads.reduce((sum, l) => {
-          const created = new Date(l.createdAt).getTime();
-          const closed = new Date(l.updatedAt).getTime();
-          return sum + (closed - created) / (1000 * 60 * 60 * 24);
-        }, 0);
-        tempoMedioFechamento = Math.round(totalDays / closedLeads.length);
-      }
-
-      // Simple stats for now, can be optimized with aggregations
-      const leadsPorOrigem = allLeads.reduce(
+      const leadsPorOrigem = origemResult.reduce(
         (acc, curr) => {
-          acc[curr.origem] = (acc[curr.origem] || 0) + 1;
+          acc[curr.origem] = Number(curr.count);
           return acc;
         },
         {} as Record<string, number>

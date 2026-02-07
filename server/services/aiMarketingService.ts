@@ -19,7 +19,6 @@ import {
 } from "../../drizzle/schema-marketing";
 import { defaultModel, isAIConfigured } from "../_core/aiProvider";
 import { getDb } from "../db";
-import { storagePut } from "../storage";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -247,10 +246,8 @@ DO NOT include any visible text, watermarks, or logos.`,
       return { success: false, error: "Nenhuma imagem gerada" };
     }
 
-    // Upload image to storage and get public URL (required for Instagram API)
-    const imageBuffer = Buffer.from(imageBytes, "base64");
-    const imageKey = `marketing/images/${postId || Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
-    const { url: imageUrl } = await storagePut(imageKey, imageBuffer, "image/png");
+    // Return image as base64 data URL (no external storage needed)
+    const imageUrl = `data:image/png;base64,${imageBytes}`;
 
     // Log usage (Gemini Imagen is free for now, but log for tracking)
     if (mentoradoId) {

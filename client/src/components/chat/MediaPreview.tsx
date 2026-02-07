@@ -113,18 +113,22 @@ export function MediaPreview({ media, className, compact = false }: MediaPreview
   if (media.type === "image" && hasUrl) {
     return (
       <div className={cn("space-y-1.5", className)}>
-        <div className="overflow-hidden rounded-lg border border-border/60 bg-black/15">
+        <button
+          type="button"
+          className="block w-full overflow-hidden rounded-lg border border-border/60 bg-black/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          onClick={() => setLightboxOpen(true)}
+          aria-label={`Ampliar imagem: ${itemLabel}`}
+        >
           <img
             src={media.url ?? undefined}
             alt={itemLabel}
             loading="lazy"
             className={cn(
-              "w-full object-cover cursor-pointer hover:opacity-90 transition-opacity",
+              "w-full object-cover hover:opacity-90 transition-opacity",
               compact ? "max-h-36" : "max-h-64"
             )}
-            onClick={() => setLightboxOpen(true)}
           />
-        </div>
+        </button>
 
         <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
           <span className="truncate">{itemLabel}</span>

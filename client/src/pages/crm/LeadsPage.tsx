@@ -26,21 +26,32 @@ export function LeadsPage() {
   const searchParams = new URLSearchParams(search);
   const mentoradoIdParam = searchParams.get("mentoradoId");
 
-  // 1. Fetch all mentorados if admin
+  // 1. Fetch current user's mentorado (for non-admin users)
+  const { data: myMentorado } = trpc.mentorados.me.useQuery(undefined, {
+    enabled: !isAdmin,
+  });
+
+  // 2. Fetch all mentorados if admin
   const { data: allMentorados } = trpc.mentorados.list.useQuery(undefined, {
     enabled: isAdmin,
   });
 
-  // 2. Local state or URL param logic
+  // 3. Local state or URL param logic for admin viewing
   const [adminSelectedMentoradoId, setAdminSelectedMentoradoId] = useState<string | undefined>(
     mentoradoIdParam || undefined
   );
 
-  const viewMentoradoId = adminSelectedMentoradoId
-    ? parseInt(adminSelectedMentoradoId, 10)
-    : undefined;
+  // 4. Determine which mentoradoId to use:
+  // - For admin viewing another mentorado: use adminSelectedMentoradoId
+  // - For regular user: use their own mentoradoId from myMentorado
+  const viewMentoradoId = isAdmin
+    ? adminSelectedMentoradoId
+      ? parseInt(adminSelectedMentoradoId, 10)
+      : undefined
+    : myMentorado?.id;
 
-  const isReadOnly = !!viewMentoradoId;
+  // ReadOnly only when admin is viewing another mentorado
+  const isReadOnly = isAdmin && !!adminSelectedMentoradoId;
 
   const handleAdminSelect = (id: string) => {
     setAdminSelectedMentoradoId(id);

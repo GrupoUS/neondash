@@ -65,9 +65,15 @@ interface CreateLeadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  mentoradoId?: number; // Admin can create leads for any mentorado
 }
 
-export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialogProps) {
+export function CreateLeadDialog({
+  isOpen,
+  onClose,
+  onSuccess,
+  mentoradoId,
+}: CreateLeadDialogProps) {
   const trpcUtils = trpc.useUtils();
   const form = useForm<CreateLeadFormValues>({
     resolver: zodResolver(createLeadFormSchema),
@@ -135,6 +141,7 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
       : [];
 
     mutation.mutate({
+      mentoradoId, // Admin override
       nome: values.nome,
       email: values.email,
       telefone: values.telefone,
@@ -163,309 +170,318 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Novo Lead</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* 1. Dados Pessoais */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                Dados Pessoais
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome Completo*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do lead" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="email@exemplo.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="telefone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>WhatsApp / Telefone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="profissao"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Profissão</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Biomédica" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="dataNascimento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de Nascimento</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="genero"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gênero</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex max-h-[calc(90vh-86px)] flex-col"
+          >
+            <div className="flex-1 overflow-y-auto px-6 py-5 pr-4 [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/80 [&::-webkit-scrollbar-track]:bg-transparent">
+              <div className="space-y-6">
+                {/* 1. Dados Pessoais */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                    Dados Pessoais
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="nome"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nome Completo*</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome do lead" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email*</FormLabel>
+                          <FormControl>
+                            <Input placeholder="email@exemplo.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="telefone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>WhatsApp / Telefone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="(00) 00000-0000" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="profissao"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Profissão</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Biomédica" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="dataNascimento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Data de Nascimento</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="genero"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Gênero</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Feminino">Feminino</SelectItem>
+                              <SelectItem value="Masculino">Masculino</SelectItem>
+                              <SelectItem value="Outro">Outro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Anamnese Comercial */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                    Anamnese Comercial
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="tipoPele"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tipo de Pele</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Oleosa, Seca..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="alergias"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Alergias</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Possui alguma alergia?" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="historicoEstetico"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Histórico Estético</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
+                          <Input placeholder="Já fez procedimentos anteriores? Quais?" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Feminino">Feminino</SelectItem>
-                          <SelectItem value="Masculino">Masculino</SelectItem>
-                          <SelectItem value="Outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* 3. Interesse */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                    Interesse
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="procedimentosInteresse"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Procedimentos de Interesse</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Ex: Botox, Preenchimento (separe por vírgula)"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="disponibilidade"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Disponibilidade</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ex: Manhã, Terças..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="dorPrincipal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Queixa Principal (Dor)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="O que mais incomoda?" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="desejoPrincipal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Desejo/Sonho</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Resultado esperado?" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Outros (B2B / Qualificação) */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                    Qualificação / B2B
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="origem"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Origem do Lead*</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="instagram">Instagram</SelectItem>
+                              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                              <SelectItem value="google">Google</SelectItem>
+                              <SelectItem value="indicacao">Indicação</SelectItem>
+                              <SelectItem value="site">Site</SelectItem>
+                              <SelectItem value="outro">Outro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="indicadoPor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Indicado Por</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome de quem indicou" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="temperatura"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Temperatura</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="frio">Frio ❄️</SelectItem>
+                              <SelectItem value="morno">Morno 🌤️</SelectItem>
+                              <SelectItem value="quente">Quente 🔥</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="valorEstimado"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Valor Proposta (R$)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="0,00" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* 2. Anamnese Comercial */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                Anamnese Comercial
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="tipoPele"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Pele</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Oleosa, Seca..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="alergias"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Alergias</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Possui alguma alergia?" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="historicoEstetico"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Histórico Estético</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Já fez procedimentos anteriores? Quais?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* 3. Interesse */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">Interesse</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="procedimentosInteresse"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Procedimentos de Interesse</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Botox, Preenchimento (separe por vírgula)"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="disponibilidade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Disponibilidade</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Manhã, Terças..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="dorPrincipal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Queixa Principal (Dor)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="O que mais incomoda?" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="desejoPrincipal"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Desejo/Sonho</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Resultado esperado?" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* 4. Outros (B2B / Qualificação) */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                Qualificação / B2B
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="origem"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Origem do Lead*</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="instagram">Instagram</SelectItem>
-                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                          <SelectItem value="google">Google</SelectItem>
-                          <SelectItem value="indicacao">Indicação</SelectItem>
-                          <SelectItem value="site">Site</SelectItem>
-                          <SelectItem value="outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="indicadoPor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Indicado Por</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome de quem indicou" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="temperatura"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Temperatura</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="frio">Frio ❄️</SelectItem>
-                          <SelectItem value="morno">Morno 🌤️</SelectItem>
-                          <SelectItem value="quente">Quente 🔥</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="valorEstimado"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Valor Proposta (R$)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="0,00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="pt-4 sticky bottom-0 bg-background/95 backdrop-blur py-4 border-t mt-4">
+            <DialogFooter className="shrink-0 border-t bg-background/95 backdrop-blur px-6 py-4">
               <Button type="button" variant="secondary" onClick={onClose}>
                 Cancelar
               </Button>

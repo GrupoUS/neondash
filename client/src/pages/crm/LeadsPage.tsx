@@ -40,7 +40,7 @@ export function LeadsPage() {
     ? parseInt(adminSelectedMentoradoId, 10)
     : undefined;
 
-  const isReadOnly = !!viewMentoradoId;
+  const isAdminViewing = isAdmin && !!viewMentoradoId;
 
   const handleAdminSelect = (id: string) => {
     setAdminSelectedMentoradoId(id);
@@ -71,10 +71,10 @@ export function LeadsPage() {
     { staleTime: 30000 }
   );
 
-  // 3. Columns Logic
-  const { data: storedColumns } = trpc.crmColumns.list.useQuery(undefined, {
-    enabled: !isReadOnly, // Only load user's custom columns when not in readonly mode (for now)
-  });
+  // 3. Columns Logic - supports admin viewing other mentorado's columns
+  const { data: storedColumns } = trpc.crmColumns.list.useQuery(
+    viewMentoradoId ? { mentoradoId: viewMentoradoId } : undefined
+  );
 
   const activeColumns = useMemo(() => {
     if (!storedColumns || storedColumns.length === 0) return DEFAULT_COLUMNS;
@@ -162,7 +162,6 @@ export function LeadsPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setColumnEditDialogOpen(true)}
-                disabled={isReadOnly}
                 title="Editar Colunas"
               >
                 <Settings className="h-4 w-4" />
@@ -188,15 +187,15 @@ export function LeadsPage() {
             </div>
           </div>
 
-          {viewMentoradoId && (
-            <Alert className="mb-6 bg-amber-50 border-amber-200">
-              <ShieldAlert className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800">
-                Modo de Visualização Administrativa
+          {isAdminViewing && (
+            <Alert className="mb-6 bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+              <ShieldAlert className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="text-blue-800 dark:text-blue-300">
+                Modo Administrativo
               </AlertTitle>
-              <AlertDescription className="text-amber-700">
-                Você está visualizando o CRM de um mentorado (ID: {viewMentoradoId}). Ações de
-                edição estão desabilitadas.
+              <AlertDescription className="text-blue-700 dark:text-blue-400">
+                Você está gerenciando o CRM do mentorado selecionado. Todas as ações estão
+                habilitadas.
               </AlertDescription>
             </Alert>
           )}
@@ -248,14 +247,14 @@ export function LeadsPage() {
                   onPageChange={setPage}
                   onLeadClick={handleLeadClick}
                   mentoradoId={viewMentoradoId}
-                  isReadOnly={isReadOnly}
+                  isReadOnly={false}
                 />
               </div>
             ) : (
               <div className="p-4 flex-1 overflow-auto bg-muted/10">
                 <PipelineKanban
                   mentoradoId={viewMentoradoId}
-                  isReadOnly={isReadOnly}
+                  isReadOnly={false}
                   onCreateLead={() => setCreateDialogOpen(true)}
                   columns={activeColumns}
                 />
@@ -271,13 +270,17 @@ export function LeadsPage() {
           onClose={() => setFiltersOpen(false)}
         />
 
-        <CreateLeadDialog isOpen={createDialogOpen} onClose={() => setCreateDialogOpen(false)} />
+        <CreateLeadDialog
+          isOpen={createDialogOpen}
+          onClose={() => setCreateDialogOpen(false)}
+          mentoradoId={viewMentoradoId}
+        />
 
         <LeadDetailModal
           leadId={selectedLeadId}
           isOpen={!!selectedLeadId}
           onClose={() => setSelectedLeadId(null)}
-          isReadOnly={isReadOnly}
+          isReadOnly={false}
           onSchedule={handleScheduleLead}
         />
 
@@ -285,6 +288,7 @@ export function LeadsPage() {
           isOpen={columnEditDialogOpen}
           onClose={() => setColumnEditDialogOpen(false)}
           defaultColumns={DEFAULT_COLUMNS}
+          mentoradoId={viewMentoradoId}
         />
 
         {/* Schedule Appointment Dialog */}

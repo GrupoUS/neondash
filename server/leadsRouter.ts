@@ -131,9 +131,10 @@ export const leadsRouter = router({
     return { lead, interacoes: lead.interacoes };
   }),
 
-  create: mentoradoProcedure
+  create: protectedProcedure
     .input(
       z.object({
+        mentoradoId: z.number().optional(), // Admin can create for any mentorado
         nome: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
         email: z.string().email("Email inválido"),
         telefone: z.string().optional(),
@@ -163,10 +164,27 @@ export const leadsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
+      // Determine target mentorado
+      let targetMentoradoId = ctx.mentorado?.id;
+
+      if (input.mentoradoId) {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+        targetMentoradoId = input.mentoradoId;
+      }
+
+      if (!targetMentoradoId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Perfil de mentorado necessário",
+        });
+      }
+
       const [newLead] = await db
         .insert(leads)
         .values({
-          mentoradoId: ctx.mentorado.id,
+          mentoradoId: targetMentoradoId,
           nome: input.nome,
           email: input.email,
           telefone: input.telefone,
@@ -198,7 +216,7 @@ export const leadsRouter = router({
       return newLead;
     }),
 
-  update: mentoradoProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -241,8 +259,11 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. Strict Ownership
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Admin can edit any lead, mentorado can only edit their own
+      const isAdmin = ctx.user.role === "admin";
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+
+      if (!isAdmin && !isOwner) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -281,7 +302,7 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  updateStatus: mentoradoProcedure
+  updateStatus: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -309,8 +330,11 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. Strict Ownership
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Admin can update any lead, mentorado can only update their own
+      const isAdmin = ctx.user.role === "admin";
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+
+      if (!isAdmin && !isOwner) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -326,7 +350,7 @@ export const leadsRouter = router({
       // 4. Add auto interaction
       await db.insert(interacoes).values({
         leadId: lead.id,
-        mentoradoId: ctx.mentorado.id,
+        mentoradoId: lead.mentoradoId, // Use lead's owner
         tipo: "nota",
         notas: `Status alterado de "${lead.status}" para "${input.status}"`,
       });
@@ -334,7 +358,7 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  delete: mentoradoProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
@@ -349,9 +373,11 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. Strict Ownership (Admin exception removed as per request to have strict separation here)
-      // If admin needs delete, use admin router or separate procedure
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Admin can delete any lead, mentorado can only delete their own
+      const isAdmin = ctx.user.role === "admin";
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+
+      if (!isAdmin && !isOwner) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -360,7 +386,7 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  addInteraction: mentoradoProcedure
+  addInteraction: protectedProcedure
     .input(
       z.object({
         leadId: z.number(),
@@ -382,8 +408,11 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. ownership
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Admin can add interactions to any lead
+      const isAdmin = ctx.user.role === "admin";
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+
+      if (!isAdmin && !isOwner) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -391,7 +420,7 @@ export const leadsRouter = router({
         .insert(interacoes)
         .values({
           leadId: input.leadId,
-          mentoradoId: ctx.mentorado.id,
+          mentoradoId: lead.mentoradoId, // Use lead's owner for consistency
           tipo: input.tipo,
           notas: input.notas,
           duracao: input.duracao,

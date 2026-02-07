@@ -14,6 +14,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Send,
   Settings,
   Sparkles,
   Video,
@@ -69,61 +70,87 @@ export function ChatPageHeader({
   isSdrSidebarOpen,
 }: ChatPageHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-card/50">
-      <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <MessageCircle className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold">Chat WhatsApp</h1>
-          <p className="text-sm text-muted-foreground">{conversationCount} conversas ativas</p>
-        </div>
-      </div>
-
-      {/* AI SDR Toggle */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-card border border-border/50">
-          <div className="flex items-center gap-2">
-            <Bot
-              className={cn("w-4 h-4", isAiEnabled ? "text-teal-500" : "text-muted-foreground")}
-            />
-            <span className="text-sm font-medium">AI SDR</span>
-            {isAiEnabled && (
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
-              </span>
-            )}
+    <div className="relative">
+      <div className="flex items-center justify-between px-6 py-3.5 bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20">
+            <MessageCircle className="w-5 h-5 text-emerald-500" />
           </div>
-          <Switch checked={isAiEnabled} onCheckedChange={onToggleAi} disabled={isToggling} />
+          <div>
+            <h1 className="text-lg font-bold tracking-tight">Chat</h1>
+            <p className="text-xs text-muted-foreground font-medium">
+              {conversationCount} conversa{conversationCount !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/configuracoes">
-                <Settings className="w-4 h-4" />
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Configurações do AI SDR</TooltipContent>
-        </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={isSdrSidebarOpen ? "secondary" : "ghost"}
-              size="icon"
-              onClick={onToggleSdrSidebar}
-              aria-label="Toggle SDR Sidebar"
-            >
-              <PanelRight className={cn("w-5 h-5", isSdrSidebarOpen && "text-primary")} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {isSdrSidebarOpen ? "Fechar Painel SDR" : "Abrir Painel SDR"}
-          </TooltipContent>
-        </Tooltip>
+        {/* Right Controls */}
+        <div className="flex items-center gap-2">
+          {/* AI SDR Chip */}
+          <div
+            className={cn(
+              "flex items-center gap-2.5 px-3 py-1.5 rounded-full border transition-colors",
+              isAiEnabled
+                ? "bg-emerald-500/10 border-emerald-500/30"
+                : "bg-muted/50 border-border/50"
+            )}
+          >
+            <div className="flex items-center gap-1.5">
+              <Bot
+                className={cn(
+                  "w-3.5 h-3.5",
+                  isAiEnabled ? "text-emerald-500" : "text-muted-foreground"
+                )}
+              />
+              <span className="text-xs font-semibold tracking-wide uppercase">SDR</span>
+              {isAiEnabled && (
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                </span>
+              )}
+            </div>
+            <Switch
+              checked={isAiEnabled}
+              onCheckedChange={onToggleAi}
+              disabled={isToggling}
+              className="scale-90 data-[state=checked]:bg-emerald-500"
+            />
+          </div>
+
+          <Separator orientation="vertical" className="h-6 mx-1" />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                <Link href="/configuracoes">
+                  <Settings className="w-4 h-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Configurações</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isSdrSidebarOpen ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8"
+                onClick={onToggleSdrSidebar}
+                aria-label="Toggle SDR Sidebar"
+              >
+                <PanelRight className={cn("w-4 h-4", isSdrSidebarOpen && "text-emerald-500")} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isSdrSidebarOpen ? "Fechar Painel SDR" : "Abrir Painel SDR"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
+      {/* Gradient accent line */}
+      <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
     </div>
   );
 }
@@ -182,19 +209,23 @@ export function ConversationSidebar({
       {/* Search & Add */}
       <div className="p-4 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
           <Input
-            placeholder="Buscar contatos..."
+            placeholder="Buscar contatos…"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-9 bg-background/50"
+            className="pl-9 bg-muted/30 border-border/30 focus-visible:ring-emerald-500/30 placeholder:text-muted-foreground/50 h-9 text-sm"
           />
         </div>
         <Dialog open={addContactOpen} onOpenChange={onAddContactOpenChange}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="w-full gap-2">
-              <Plus className="w-4 h-4" />
-              Adicionar Contato
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 text-xs border-dashed border-border/50 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Novo Contato
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -256,9 +287,14 @@ export function ConversationSidebar({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-48 px-4 text-center">
-            <MessageCircle className="w-10 h-10 text-muted-foreground/50 mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {searchQuery ? "Nenhum contato encontrado" : "Nenhuma conversa ainda"}
+            <div className="p-3 rounded-full bg-muted/30 mb-3">
+              <Search className="w-6 h-6 text-muted-foreground/40" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground/70">
+              {searchQuery ? "Nenhum contato encontrado" : "Nenhuma conversa"}
+            </p>
+            <p className="text-xs text-muted-foreground/50 mt-1">
+              {searchQuery ? "Tente outro termo de busca" : "Adicione um contato para começar"}
             </p>
           </div>
         )}
@@ -310,50 +346,54 @@ export function ChatConversationHeader({
   onOpenEditContact,
 }: ChatConversationHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-700/50 bg-slate-800/50">
+    <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/30 bg-card/60 backdrop-blur-sm">
       <div className="flex items-center gap-3">
         {/* Back button for mobile */}
         <Button
           variant="ghost"
           size="icon"
           onClick={onBack}
-          className="sm:hidden text-slate-400 hover:text-slate-100"
+          className="sm:hidden h-8 w-8"
           aria-label="Voltar para lista de conversas"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4" />
         </Button>
-        <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-500/30">
-          <MessageCircle className="w-5 h-5 text-emerald-400" />
+        <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center ring-1 ring-emerald-500/25">
+          <span className="text-sm font-bold text-emerald-500">
+            {(contactName || selectedPhone || "?").charAt(0).toUpperCase()}
+          </span>
         </div>
         <div>
-          <h4 className="font-semibold text-sm text-slate-100">{contactName || selectedPhone}</h4>
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-slate-400 font-medium">{selectedPhone}</p>
+          <h4 className="font-semibold text-sm leading-tight">{contactName || selectedPhone}</h4>
+          <div className="flex items-center gap-1.5 mt-0.5">
             <span
-              className={cn("h-2 w-2 rounded-full", isOnline ? "bg-emerald-500" : "bg-slate-500")}
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                isOnline ? "bg-emerald-500" : "bg-muted-foreground/30"
+              )}
               aria-hidden="true"
-              title={isOnline ? "Contato online" : "Contato offline"}
             />
+            <p className="text-[11px] text-muted-foreground">
+              {isOnline ? "Online" : selectedPhone}
+            </p>
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         {isAiEnabled && (
-          <Badge variant="outline" className="bg-teal-500/10 text-teal-400 border-teal-500/30">
-            <Sparkles className="w-3 h-3 mr-1" />
-            AI Ativo
+          <Badge
+            variant="outline"
+            className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] font-semibold px-2 py-0.5 gap-1"
+          >
+            <Sparkles className="w-3 h-3" />
+            AI
           </Badge>
         )}
         {/* Edit Contact Button */}
         <Dialog open={editContactOpen} onOpenChange={onEditContactOpenChange}>
           <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenEditContact}
-              className="text-slate-400 hover:text-slate-100"
-            >
-              <Pencil className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onOpenEditContact}>
+              <Pencil className="w-3.5 h-3.5" />
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -400,11 +440,11 @@ export function ChatConversationHeader({
         <Button
           variant="ghost"
           size="icon"
+          className="h-8 w-8"
           onClick={onRefresh}
           disabled={messagesLoading}
-          className="text-slate-400 hover:text-slate-100"
         >
-          <RefreshCw className={cn("w-4 h-4", messagesLoading && "animate-spin")} />
+          <RefreshCw className={cn("w-3.5 h-3.5", messagesLoading && "animate-spin")} />
         </Button>
       </div>
     </div>
@@ -508,17 +548,17 @@ export function InputArea({
   onVideoSuccess,
 }: InputAreaProps) {
   return (
-    <div className="p-4 border-t border-slate-700/50 bg-slate-800/80">
-      <div className="flex gap-3 items-end max-w-3xl mx-auto">
+    <div className="p-3 border-t border-border/30 bg-card/60 backdrop-blur-sm">
+      <div className="flex gap-2 items-end max-w-3xl mx-auto">
         {/* Video Button */}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => onVideoComposerOpenChange(true)}
           disabled={!selectedPhone}
-          className="shrink-0 h-11 w-11 text-slate-400 hover:text-slate-100 hover:bg-slate-700/50"
+          className="shrink-0 h-10 w-10 hover:bg-muted/50"
         >
-          <Video className="w-5 h-5" />
+          <Video className="w-4 h-4" />
         </Button>
 
         <MessageInput
@@ -530,25 +570,21 @@ export function InputArea({
           onEmojiSelect={onEmojiSelect}
           onAudioAction={onAudioAction}
           disabled={isSending || !selectedPhone}
-          placeholder="Digite sua mensagem..."
-          className="flex-1 rounded-md border-slate-600/50 bg-slate-700/50"
+          placeholder="Digite sua mensagem…"
+          className="flex-1 rounded-lg border-border/30 bg-muted/30 focus-within:ring-1 focus-within:ring-emerald-500/30"
         />
 
         <Button
           onClick={onSend}
           disabled={!message.trim() || isSending}
           size="icon"
-          className="shrink-0 h-11 w-11 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+          className="shrink-0 h-10 w-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
         >
-          {isSending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <MessageCircle className="w-5 h-5" />
-          )}
+          {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
       </div>
       {sendError && (
-        <p className="text-xs text-red-400 mt-2 text-center">
+        <p className="text-xs text-destructive mt-2 text-center">
           Erro ao enviar mensagem. Tente novamente.
         </p>
       )}
@@ -571,15 +607,20 @@ export function InputArea({
 
 export function EmptyConversationState() {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-6">
-      <div className="p-6 rounded-full bg-slate-800/50 mb-4">
-        <MessageCircle className="w-12 h-12 text-slate-500" />
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex flex-col items-center justify-center h-full text-center px-6"
+    >
+      <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 ring-1 ring-emerald-500/10 mb-5">
+        <MessageCircle className="w-10 h-10 text-emerald-500/60" />
       </div>
-      <h3 className="text-lg font-semibold text-slate-200 mb-2">Selecione uma conversa</h3>
-      <p className="text-sm text-slate-400 max-w-sm">
-        Escolha um contato da lista ao lado ou adicione um novo para começar a conversar
+      <h3 className="text-base font-semibold mb-1.5">Selecione uma conversa</h3>
+      <p className="text-sm text-muted-foreground max-w-xs">
+        Escolha um contato ao lado ou adicione um novo para começar
       </p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -589,24 +630,28 @@ export function EmptyConversationState() {
 
 export function NotConnectedState() {
   return (
-    <div className="flex flex-col items-center justify-center h-[70vh] gap-6">
-      <div className="p-6 rounded-full bg-muted">
-        <MessageCircle className="w-12 h-12 text-muted-foreground" />
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex flex-col items-center justify-center h-[70vh] gap-5"
+    >
+      <div className="p-5 rounded-2xl bg-muted/50 ring-1 ring-border/50">
+        <MessageCircle className="w-10 h-10 text-muted-foreground/60" />
       </div>
-      <div className="text-center max-w-md">
-        <h2 className="text-xl font-bold mb-2">WhatsApp não conectado</h2>
-        <p className="text-muted-foreground">
-          Para usar o Chat, conecte seu WhatsApp nas configurações. Escaneie o QR Code para
-          sincronizar suas conversas.
+      <div className="text-center max-w-sm">
+        <h2 className="text-lg font-bold mb-1.5">WhatsApp não conectado</h2>
+        <p className="text-sm text-muted-foreground">
+          Conecte seu WhatsApp nas configurações para sincronizar conversas.
         </p>
       </div>
-      <Button asChild size="lg">
+      <Button asChild size="lg" className="mt-2">
         <Link href="/configuracoes">
-          <Settings className="w-5 h-5 mr-2" />
-          Ir para Configurações
+          <Settings className="w-4 h-4 mr-2" />
+          Configurações
         </Link>
       </Button>
-    </div>
+    </motion.div>
   );
 }
 
@@ -645,15 +690,16 @@ export function TypingIndicatorWrapper({
 export function MessagesEmptyState() {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
       className="flex flex-col items-center justify-center h-48 text-center"
     >
-      <div className="p-4 rounded-full bg-slate-800 mb-3">
-        <MessageCircle className="w-8 h-8 text-slate-500" />
+      <div className="p-3.5 rounded-xl bg-muted/30 ring-1 ring-border/20 mb-3">
+        <Send className="w-6 h-6 text-muted-foreground/40" />
       </div>
-      <p className="text-sm text-slate-400 font-medium">Nenhuma mensagem ainda</p>
-      <p className="text-xs text-slate-500 mt-1">Envie a primeira mensagem</p>
+      <p className="text-sm text-muted-foreground font-medium">Sem mensagens</p>
+      <p className="text-xs text-muted-foreground/60 mt-1">Envie a primeira mensagem</p>
     </motion.div>
   );
 }

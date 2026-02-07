@@ -8,6 +8,7 @@ import {
   History,
   MessageSquare,
   RefreshCw,
+  Thermometer,
   User,
   X,
   Zap,
@@ -68,6 +69,73 @@ const MOCK_LOGS: AgentLog[] = [
   },
 ];
 
+// ─── Lead Temperature Gauge ───────────────────────────────────────────────────
+
+const TEMPERATURE_CONFIG = {
+  cold: { label: "Frio", color: "bg-blue-500", textColor: "text-blue-500", width: "w-1/4" },
+  warm: { label: "Morno", color: "bg-amber-500", textColor: "text-amber-500", width: "w-2/4" },
+  hot: { label: "Quente", color: "bg-orange-500", textColor: "text-orange-500", width: "w-3/4" },
+  burning: {
+    label: "Pronto",
+    color: "bg-emerald-500",
+    textColor: "text-emerald-500",
+    width: "w-full",
+  },
+} as const;
+
+type Temperature = keyof typeof TEMPERATURE_CONFIG;
+
+function LeadTemperatureGauge({ temperature = "warm" }: { temperature?: Temperature }) {
+  const config = TEMPERATURE_CONFIG[temperature];
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Thermometer className={cn("w-3.5 h-3.5", config.textColor)} />
+          <span className="text-[11px] font-medium text-muted-foreground">Temperatura</span>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn("text-[10px] px-1.5 py-0 h-4 border-current", config.textColor)}
+        >
+          {config.label}
+        </Badge>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className={cn("h-full rounded-full", config.color, config.width)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Log Type Config ──────────────────────────────────────────────────────────
+
+const LOG_TYPE_STYLES = {
+  thought: {
+    dot: "bg-indigo-500",
+    badge: "border-indigo-500/30 text-indigo-400",
+    bg: "bg-indigo-500/10",
+  },
+  action: {
+    dot: "bg-emerald-500",
+    badge: "border-emerald-500/30 text-emerald-400",
+    bg: "bg-emerald-500/10",
+  },
+  info: {
+    dot: "bg-muted-foreground",
+    badge: "border-border text-muted-foreground",
+    bg: "bg-muted/30",
+  },
+  error: { dot: "bg-red-500", badge: "border-red-500/30 text-red-400", bg: "bg-red-500/10" },
+} as const;
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export function SdrSidebar({
   isOpen,
   onClose,
@@ -80,7 +148,6 @@ export function SdrSidebar({
   const [activeTab, setActiveTab] = useState("context");
   const [logs] = useState<AgentLog[]>(MOCK_LOGS);
 
-  // Animation variants
   const sidebarVariants = {
     closed: { x: "100%", opacity: 0 },
     open: { x: 0, opacity: 1 },
@@ -96,200 +163,234 @@ export function SdrSidebar({
           variants={sidebarVariants}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className={cn(
-            "absolute inset-y-0 right-0 z-40 w-full sm:w-[400px] bg-background border-l shadow-2xl flex flex-col",
+            "absolute inset-y-0 right-0 z-40 w-full sm:w-[380px] bg-background border-l border-border/50 shadow-2xl flex flex-col",
             className
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b bg-muted/30">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
-                <Bot className="w-5 h-5" />
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-card/60">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 ring-1 ring-emerald-500/20">
+                <Bot className="w-4 h-4 text-emerald-500" />
               </div>
               <div>
-                <h2 className="font-semibold text-sm">SDR Agent</h2>
-                <div className="flex items-center gap-1.5">
-                  <span className={cn("relative flex h-2 w-2")}>
+                <h2 className="font-semibold text-sm leading-tight">SDR Agent</h2>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="relative flex h-1.5 w-1.5">
+                    {isAiEnabled && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    )}
                     <span
                       className={cn(
-                        "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
-                        isAiEnabled ? "bg-emerald-400" : "bg-zinc-400"
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "relative inline-flex rounded-full h-2 w-2",
-                        isAiEnabled ? "bg-emerald-500" : "bg-zinc-500"
+                        "relative inline-flex rounded-full h-1.5 w-1.5",
+                        isAiEnabled ? "bg-emerald-500" : "bg-muted-foreground/40"
                       )}
                     />
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {isAiEnabled ? "Ativo e Monitorando" : "Pausado"}
+                  <span className="text-[11px] text-muted-foreground">
+                    {isAiEnabled ? "Ativo" : "Pausado"}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Switch
                 checked={isAiEnabled}
                 onCheckedChange={onToggleAi}
-                className="data-[state=checked]:bg-emerald-500"
+                className="scale-90 data-[state=checked]:bg-emerald-500"
               />
-              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-                <X className="w-4 h-4" />
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7">
+                <X className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
 
           {/* Content */}
           {!selectedPhone ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-              <div className="p-4 rounded-full bg-muted/50 mb-4">
-                <MessageSquare className="w-8 h-8 text-muted-foreground" />
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex-1 flex flex-col items-center justify-center p-6 text-center"
+            >
+              <div className="p-4 rounded-2xl bg-muted/30 ring-1 ring-border/20 mb-4">
+                <MessageSquare className="w-7 h-7 text-muted-foreground/40" />
               </div>
-              <p className="font-medium text-muted-foreground">Nenhuma conversa selecionada</p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
-                Selecione uma conversa para ver o contexto do lead e ações disponíveis.
+              <p className="text-sm font-medium text-muted-foreground">Nenhuma conversa</p>
+              <p className="text-xs text-muted-foreground/60 mt-1 max-w-[200px]">
+                Selecione uma conversa para ver o contexto do lead
               </p>
-            </div>
+            </motion.div>
           ) : (
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
               className="flex-1 flex flex-col overflow-hidden"
             >
-              <div className="px-4 pt-4">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="context">Contexto & Ações</TabsTrigger>
-                  <TabsTrigger value="activity">Atividade (Logs)</TabsTrigger>
+              <div className="px-4 pt-3">
+                <TabsList className="grid w-full grid-cols-2 h-8">
+                  <TabsTrigger value="context" className="text-xs">
+                    Contexto
+                  </TabsTrigger>
+                  <TabsTrigger value="activity" className="text-xs">
+                    <span className="flex items-center gap-1.5">
+                      Atividade
+                      {isAiEnabled && (
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                        </span>
+                      )}
+                    </span>
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
               <div className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full">
-                  <TabsContent value="context" className="p-4 space-y-6 m-0">
+                  <TabsContent value="context" className="p-4 space-y-4 m-0">
+                    {/* Lead Temperature */}
+                    <LeadTemperatureGauge temperature="warm" />
+
                     {/* Lead Info Card */}
-                    <Card className="border-emerald-500/20 shadow-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-emerald-500" />
+                    <Card className="border-border/30 shadow-none bg-card/50">
+                      <CardHeader className="pb-2 px-3 pt-3">
+                        <CardTitle className="text-xs font-medium flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-emerald-500" />
                             Contexto do Lead
                           </div>
-                          <Badge variant="outline" className="text-[10px] font-normal">
-                            Extraído da conversa
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] font-normal px-1.5 py-0 h-4 text-muted-foreground/60"
+                          >
+                            Auto-extraído
                           </Badge>
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="space-y-2.5 px-3 pb-3">
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Nome Identificado</Label>
-                          <div className="flex gap-2">
+                          <Label className="text-[11px] text-muted-foreground/70">Nome</Label>
+                          <div className="flex gap-1.5">
                             <Input
                               defaultValue={contactName || "Não identificado"}
-                              className="h-8 text-sm"
+                              className="h-7 text-xs bg-muted/20 border-border/20"
                             />
-                            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0">
                               <RefreshCw className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Interesse</Label>
-                            <Input defaultValue="Harmonização" className="h-8 text-sm" />
+                            <Label className="text-[11px] text-muted-foreground/70">
+                              Interesse
+                            </Label>
+                            <Input
+                              defaultValue="Não identificado"
+                              className="h-7 text-xs bg-muted/20 border-border/20"
+                              placeholder="Ex: Harmonização"
+                            />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Orçamento</Label>
-                            <Input defaultValue="R$ 5k - 10k" className="h-8 text-sm" />
+                            <Label className="text-[11px] text-muted-foreground/70">
+                              Orçamento
+                            </Label>
+                            <Input
+                              defaultValue="—"
+                              className="h-7 text-xs bg-muted/20 border-border/20"
+                              placeholder="Ex: R$ 5k"
+                            />
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Resumo da Dor</Label>
-                          <div className="text-xs p-2 bg-muted/50 rounded-md text-muted-foreground">
-                            Cliente incomodada com "bigode chinês" e flacidez leve. Já fez botox há
-                            6 meses.
+                          <Label className="text-[11px] text-muted-foreground/70">
+                            Resumo da Dor
+                          </Label>
+                          <div className="text-[11px] p-2 bg-muted/20 rounded-md text-muted-foreground/70 leading-relaxed border border-border/10">
+                            Aguardando análise da conversa…
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
                     {/* Quick Actions */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                        <Zap className="w-4 h-4" />
+                    <div className="space-y-2">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
+                        <Zap className="w-3 h-3" />
                         Ações Rápidas
                       </h3>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant="outline"
-                          className="h-auto py-3 flex flex-col items-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:border-emerald-500/50 transition-all"
+                          className="h-auto py-2.5 flex flex-col items-center gap-1.5 border-border/30 hover:bg-emerald-500/5 hover:border-emerald-500/30 transition-all active:scale-[0.98]"
                           onClick={() =>
                             toast.success("Pré-agendamento criado!", {
                               description: "Sugerindo horários para o lead...",
                             })
                           }
                         >
-                          <Calendar className="w-5 h-5 text-emerald-600" />
-                          <span className="text-xs">Agendar Avaliação</span>
+                          <Calendar className="w-4 h-4 text-emerald-500" />
+                          <span className="text-[11px]">Agendar</span>
                         </Button>
                         <Button
                           variant="outline"
-                          className="h-auto py-3 flex flex-col items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-500/50 transition-all"
+                          className="h-auto py-2.5 flex flex-col items-center gap-1.5 border-border/30 hover:bg-blue-500/5 hover:border-blue-500/30 transition-all active:scale-[0.98]"
                           onClick={() =>
                             toast.success("Lead sincronizado!", {
                               description: "Dados enviados para o CRM.",
                             })
                           }
                         >
-                          <RefreshCw className="w-5 h-5 text-blue-600" />
-                          <span className="text-xs">Sincronizar CRM</span>
+                          <RefreshCw className="w-4 h-4 text-blue-500" />
+                          <span className="text-[11px]">Sync CRM</span>
                         </Button>
                         <Button
                           variant="outline"
-                          className="h-auto py-3 flex flex-col items-center gap-2 hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-500/50 transition-all"
+                          className="h-auto py-2.5 flex flex-col items-center gap-1.5 border-border/30 hover:bg-purple-500/5 hover:border-purple-500/30 transition-all active:scale-[0.98]"
                           onClick={() =>
                             toast.success("Paciente criado!", {
                               description: "Redirecionando para ficha...",
                             })
                           }
                         >
-                          <User className="w-5 h-5 text-purple-600" />
-                          <span className="text-xs">Criar Paciente</span>
+                          <User className="w-4 h-4 text-purple-500" />
+                          <span className="text-[11px]">Paciente</span>
                         </Button>
                         <Button
                           variant="outline"
-                          className="h-auto py-3 flex flex-col items-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-500/50 transition-all"
+                          className="h-auto py-2.5 flex flex-col items-center gap-1.5 border-border/30 hover:bg-amber-500/5 hover:border-amber-500/30 transition-all active:scale-[0.98]"
                           onClick={() =>
                             toast.success("Resumo gerado!", {
                               description: "Adicionado às notas do contato.",
                             })
                           }
                         >
-                          <FileText className="w-5 h-5 text-amber-600" />
-                          <span className="text-xs">Gerar Resumo</span>
+                          <FileText className="w-4 h-4 text-amber-500" />
+                          <span className="text-[11px]">Resumo</span>
                         </Button>
                       </div>
                     </div>
 
-                    {/* Next Steps Recommendation */}
-                    <div className="p-3 rounded-lg border border-indigo-200 bg-indigo-50 dark:bg-indigo-950/20 dark:border-indigo-900/50">
-                      <div className="flex items-start gap-3">
-                        <Brain className="w-5 h-5 text-indigo-600 mt-0.5" />
-                        <div>
-                          <h4 className="text-xs font-semibold text-indigo-900 dark:text-indigo-300">
+                    {/* AI Suggestion */}
+                    <div className="p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 ring-1 ring-indigo-500/10">
+                      <div className="flex items-start gap-2.5">
+                        <div className="p-1.5 rounded-lg bg-indigo-500/10 mt-0.5">
+                          <Brain className="w-3.5 h-3.5 text-indigo-400" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-[11px] font-semibold text-indigo-300">
                             Sugestão da IA
                           </h4>
-                          <p className="text-xs text-indigo-700 dark:text-indigo-400 mt-1">
-                            O lead demonstrou alto interesse. Sugiro oferecer um slot de avaliação
-                            para <b>terça-feira às 14h</b>, pois é nosso horário mais tranquilo.
+                          <p className="text-[11px] text-indigo-300/70 mt-1 leading-relaxed">
+                            Lead com interesse moderado. Sugiro enviar follow-up com horários
+                            disponíveis para avaliação.
                           </p>
                           <Button
                             size="sm"
                             variant="link"
-                            className="px-0 h-auto text-indigo-600 text-xs mt-2"
+                            className="px-0 h-auto text-indigo-400 text-[11px] mt-1.5"
                           >
-                            Aplicar sugestão <ChevronRight className="w-3 h-3 ml-1" />
+                            Aplicar <ChevronRight className="w-3 h-3 ml-0.5" />
                           </Button>
                         </div>
                       </div>
@@ -297,63 +398,69 @@ export function SdrSidebar({
                   </TabsContent>
 
                   <TabsContent value="activity" className="p-0 m-0">
-                    <div className="p-4 space-y-4">
+                    <div className="p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium flex items-center gap-2">
-                          <History className="w-4 h-4" />
+                        <h3 className="text-xs font-medium flex items-center gap-1.5">
+                          <History className="w-3.5 h-3.5" />
                           Log de Pensamento
                         </h3>
-                        <Badge variant="secondary" className="text-[10px]">
-                          Real-time
-                        </Badge>
+                        {isAiEnabled && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] gap-1 px-1.5 py-0 h-4 border-emerald-500/30 text-emerald-500"
+                          >
+                            <span className="relative flex h-1 w-1">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-1 w-1 bg-emerald-500" />
+                            </span>
+                            Live
+                          </Badge>
+                        )}
                       </div>
 
-                      <div className="space-y-4 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-border">
-                        {logs.map((log) => (
-                          <div key={log.id} className="relative pl-6">
-                            <div
+                      <div className="space-y-2">
+                        {logs.map((log, index) => {
+                          const styles = LOG_TYPE_STYLES[log.type];
+                          const isLatest = index === logs.length - 1;
+                          return (
+                            <motion.div
+                              key={log.id}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.08 }}
                               className={cn(
-                                "absolute left-0 top-1 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center",
-                                log.type === "thought" && "bg-indigo-100 text-indigo-600",
-                                log.type === "action" && "bg-emerald-100 text-emerald-600",
-                                log.type === "info" && "bg-slate-100 text-slate-600",
-                                log.type === "error" && "bg-red-100 text-red-600"
+                                "flex items-start gap-2.5 p-2 rounded-lg transition-colors",
+                                isLatest && isAiEnabled ? styles.bg : "hover:bg-muted/20"
                               )}
                             >
                               <div
                                 className={cn(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  log.type === "thought" && "bg-indigo-500",
-                                  log.type === "action" && "bg-emerald-500",
-                                  log.type === "info" && "bg-slate-500",
-                                  log.type === "error" && "bg-red-500"
+                                  "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
+                                  styles.dot
                                 )}
                               />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono text-muted-foreground">
-                                  {log.timestamp}
-                                </span>
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "text-[10px] px-1 py-0 h-4 uppercase",
-                                    log.type === "thought" && "border-indigo-200 text-indigo-600",
-                                    log.type === "action" && "border-emerald-200 text-emerald-600",
-                                    log.type === "info" && "border-slate-200 text-slate-600",
-                                    log.type === "error" && "border-red-200 text-red-600"
-                                  )}
-                                >
-                                  {log.type}
-                                </Badge>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-mono text-muted-foreground/60">
+                                    {log.timestamp}
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[9px] px-1 py-0 h-3.5 uppercase",
+                                      styles.badge
+                                    )}
+                                  >
+                                    {log.type}
+                                  </Badge>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+                                  {log.content}
+                                </p>
                               </div>
-                              <p className="text-xs text-secondary-foreground leading-relaxed">
-                                {log.content}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                            </motion.div>
+                          );
+                        })}
                       </div>
                     </div>
                   </TabsContent>

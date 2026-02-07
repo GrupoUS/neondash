@@ -341,13 +341,11 @@ export function PhotoGallery({
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {photos.map((photo) => (
-                <div
+                <button
+                  type="button"
                   key={photo.id}
-                  className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer border border-border/40 hover:border-primary/30 transition-all duration-200 hover:shadow-md"
+                  className="group relative aspect-square rounded-lg overflow-hidden bg-muted cursor-pointer border border-border/40 hover:border-primary/30 transition-all duration-200 hover:shadow-md p-0 text-left"
                   onClick={() => setLightboxPhoto(photo)}
-                  onKeyDown={(e) => e.key === "Enter" && setLightboxPhoto(photo)}
-                  tabIndex={0}
-                  role="button"
                   aria-label={`Ver foto ${photo.descricao || photo.tipo}`}
                 >
                   <img
@@ -368,19 +366,17 @@ export function PhotoGallery({
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           ) : (
             <div className="space-y-2">
               {photos.map((photo) => (
-                <div
+                <button
+                  type="button"
                   key={photo.id}
-                  className="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="flex w-full items-center gap-4 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors bg-transparent text-left"
                   onClick={() => setLightboxPhoto(photo)}
-                  onKeyDown={(e) => e.key === "Enter" && setLightboxPhoto(photo)}
-                  tabIndex={0}
-                  role="button"
                   aria-label={`Ver foto ${photo.descricao || photo.tipo}`}
                 >
                   <img
@@ -420,7 +416,7 @@ export function PhotoGallery({
                       <Sparkles className="h-4 w-4" />
                     </Button>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -552,19 +548,17 @@ export function PhotoGallery({
 
             {/* Drag-and-drop zone */}
             {!filePreview ? (
-              <div
-                className={`relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 cursor-pointer transition-all duration-200 ${
+              <button
+                type="button"
+                className={`relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 w-full cursor-pointer transition-all duration-200 bg-transparent ${
                   isDragging
                     ? "border-primary bg-primary/5 scale-[1.02]"
                     : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
                 }`}
                 onClick={() => fileInputRef.current?.click()}
-                onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
-                role="button"
-                tabIndex={0}
                 aria-label="Zona de upload de imagem"
               >
                 <div className="p-3 rounded-full bg-primary/10">
@@ -578,7 +572,7 @@ export function PhotoGallery({
                     JPEG, PNG ou WebP • Máximo 5MB
                   </p>
                 </div>
-              </div>
+              </button>
             ) : (
               <div className="relative rounded-xl overflow-hidden border bg-muted/20">
                 <img

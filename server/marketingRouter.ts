@@ -72,6 +72,7 @@ const generateImageSchema = z.object({
   prompt: z.string().min(5),
   size: z.enum(["1024x1024", "1024x1792", "1792x1024"]).optional(),
   quality: z.enum(["standard", "hd"]).optional(),
+  numberOfImages: z.number().min(1).max(4).optional(),
   postId: z.number().optional(),
 });
 
@@ -432,6 +433,7 @@ export const marketingRouter = router({
     const result = await generateImage(input.prompt, {
       size: input.size,
       quality: input.quality,
+      numberOfImages: input.numberOfImages,
       mentoradoId: ctx.mentorado!.id,
       postId: input.postId,
     });
@@ -445,6 +447,7 @@ export const marketingRouter = router({
 
     return {
       imageUrl: result.imageUrl,
+      imageUrls: result.imageUrls ?? [result.imageUrl].filter(Boolean),
       revisedPrompt: result.revisedPrompt,
       costCents: result.costCents,
     };

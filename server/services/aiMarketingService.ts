@@ -35,6 +35,7 @@ export interface ContentGenerationResult {
 export interface ImageGenerationResult {
   success: boolean;
   imageUrl?: string;
+  imageUrls?: string[];
   revisedPrompt?: string;
   error?: string;
   costCents?: number;
@@ -193,20 +194,23 @@ RESPONDA APENAS com a legenda pronta, sem explicações adicionais.`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// IMAGE GENERATION (DALL-E 3)
+// IMAGE GENERATION (Imagen 4 Ultra)
 // ═══════════════════════════════════════════════════════════════════════════
 
+const IMAGEN_MODEL = "imagen-4.0-ultra-generate-001";
+
 /**
- * Generate an image using Google Gemini Imagen.
+ * Generate images using Google Imagen 4 Ultra.
  *
- * Uses imagen-4.0-generate-001 model with GEMINI_API_KEY.
- * Free tier: limited generations/day.
+ * Supports 1–4 images per call for carousel generation.
+ * Uses imagen-4.0-ultra-generate-001 (most advanced Imagen model).
  */
 export async function generateImage(
   prompt: string,
   options: {
     size?: "1024x1024" | "1024x1792" | "1792x1024";
     quality?: "standard" | "hd";
+    numberOfImages?: number;
     mentoradoId?: number;
     postId?: number;
   } = {}
@@ -217,6 +221,7 @@ export async function generateImage(
   }
 
   const { mentoradoId, postId } = options;
+  const imageCount = Math.min(Math.max(options.numberOfImages ?? 1, 1), 4);
 
   // Map size to aspect ratio
   let aspectRatio: "1:1" | "16:9" | "9:16" = "1:1";
@@ -228,44 +233,50 @@ export async function generateImage(
 
   try {
     const response = await gemini.models.generateImages({
-      model: "imagen-4.0-generate-001",
+      model: IMAGEN_MODEL,
       prompt: `Professional aesthetic clinic marketing image: ${prompt}.
 Style: Modern, clean, premium healthcare aesthetic.
 Lighting: Soft, professional studio lighting.
 Colors: Neutral tones with subtle accents.
 DO NOT include any visible text, watermarks, or logos.`,
       config: {
-        numberOfImages: 1,
+        numberOfImages: imageCount,
         includeRaiReason: true,
         aspectRatio,
       },
     });
 
-    const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-    if (!imageBytes) {
+    // Collect all generated images as base64 data URLs
+    const imageUrls: string[] = [];
+    for (const generated of response.generatedImages ?? []) {
+      const bytes = generated?.image?.imageBytes;
+      if (bytes) {
+        imageUrls.push(`data:image/png;base64,${bytes}`);
+      }
+    }
+
+    if (imageUrls.length === 0) {
       return { success: false, error: "Nenhuma imagem gerada" };
     }
 
-    // Return image as base64 data URL (no external storage needed)
-    const imageUrl = `data:image/png;base64,${imageBytes}`;
-
-    // Log usage (Gemini Imagen is free for now, but log for tracking)
+    // Log usage
     if (mentoradoId) {
       await logGeneration({
         mentoradoId,
         generationType: "image",
         promptUsed: prompt,
-        resultSummary: `Gemini Imagen ${aspectRatio}`,
-        modelUsed: "imagen-4.0-generate-001",
-        imagesGenerated: 1,
-        estimatedCostCents: 0, // Gemini Imagen free tier
+        resultSummary: `Imagen Ultra ${aspectRatio} x${imageUrls.length}`,
+        modelUsed: IMAGEN_MODEL,
+        imagesGenerated: imageUrls.length,
+        estimatedCostCents: 0,
         postId,
       });
     }
 
     return {
       success: true,
-      imageUrl,
+      imageUrl: imageUrls[0],
+      imageUrls,
       costCents: 0,
     };
   } catch (error) {

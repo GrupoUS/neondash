@@ -342,55 +342,54 @@ export const pacientesRouter = router({
     const db = getDb();
     const mentoradoId = ctx.mentorado.id;
 
-    return await db.transaction(async (tx) => {
-      const [newPaciente] = await tx
-        .insert(pacientes)
-        .values({
-          mentoradoId,
-          nomeCompleto: input.nomeCompleto,
-          nomePreferido: input.nomePreferido,
-          email: input.email,
-          telefone: input.telefone,
-          dataNascimento: input.dataNascimento,
-          genero: input.genero,
-          cpf: input.cpf,
-          rg: input.rg,
+    // Sequential inserts (neon-http driver does not support transactions)
+    const [newPaciente] = await db
+      .insert(pacientes)
+      .values({
+        mentoradoId,
+        nomeCompleto: input.nomeCompleto,
+        nomePreferido: input.nomePreferido,
+        email: input.email,
+        telefone: input.telefone,
+        dataNascimento: input.dataNascimento,
+        genero: input.genero,
+        cpf: input.cpf,
+        rg: input.rg,
 
-          // Address
-          endereco: input.endereco,
-          cep: input.cep,
-          logradouro: input.logradouro,
-          numero: input.numero,
-          complemento: input.complemento,
-          bairro: input.bairro,
-          cidade: input.cidade,
-          estado: input.estado,
+        // Address
+        endereco: input.endereco,
+        cep: input.cep,
+        logradouro: input.logradouro,
+        numero: input.numero,
+        complemento: input.complemento,
+        bairro: input.bairro,
+        cidade: input.cidade,
+        estado: input.estado,
 
-          // Insurance
-          convenio: input.convenio,
-          numeroCarteirinha: input.numeroCarteirinha,
+        // Insurance
+        convenio: input.convenio,
+        numeroCarteirinha: input.numeroCarteirinha,
 
-          fotoUrl: input.fotoUrl,
-          observacoes: input.observacoes,
-        })
-        .returning();
+        fotoUrl: input.fotoUrl,
+        observacoes: input.observacoes,
+      })
+      .returning();
 
-      // Insert documents if provided
-      if (input.documentos && input.documentos.length > 0) {
-        await tx.insert(pacientesDocumentos).values(
-          input.documentos.map((doc) => ({
-            pacienteId: newPaciente.id,
-            tipo: doc.tipo,
-            nome: doc.nome,
-            url: doc.url,
-            mimeType: doc.mimeType,
-            tamanhoBytes: doc.tamanhoBytes,
-          }))
-        );
-      }
+    // Insert documents if provided
+    if (input.documentos && input.documentos.length > 0) {
+      await db.insert(pacientesDocumentos).values(
+        input.documentos.map((doc) => ({
+          pacienteId: newPaciente.id,
+          tipo: doc.tipo,
+          nome: doc.nome,
+          url: doc.url,
+          mimeType: doc.mimeType,
+          tamanhoBytes: doc.tamanhoBytes,
+        }))
+      );
+    }
 
-      return newPaciente;
-    });
+    return newPaciente;
   }),
 
   // Upload Document Mutation
@@ -441,46 +440,44 @@ export const pacientesRouter = router({
 
     await verifyPatientOwnership(mentoradoId, input.id);
 
-    return await db.transaction(async (tx) => {
-      const { id, infoMedica, ...updateData } = input;
+    // Sequential queries (neon-http driver does not support transactions)
+    const { id, infoMedica, ...updateData } = input;
 
-      // Update patient core data
-      const [updated] = await tx
-        .update(pacientes)
-        .set({ ...updateData, updatedAt: new Date() })
-        .where(eq(pacientes.id, id))
-        .returning();
+    // Update patient core data
+    const [updated] = await db
+      .update(pacientes)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(pacientes.id, id))
+      .returning();
 
-      // Upsert medical info if provided
-      if (infoMedica) {
-        // Check if exists
-        const [existingInfo] = await tx
-          .select({ id: pacientesInfoMedica.id })
-          .from(pacientesInfoMedica)
-          .where(eq(pacientesInfoMedica.pacienteId, id))
-          .limit(1);
+    // Upsert medical info if provided
+    if (infoMedica) {
+      const [existingInfo] = await db
+        .select({ id: pacientesInfoMedica.id })
+        .from(pacientesInfoMedica)
+        .where(eq(pacientesInfoMedica.pacienteId, id))
+        .limit(1);
 
-        if (existingInfo) {
-          await tx
-            .update(pacientesInfoMedica)
-            .set({
-              ...infoMedica,
-              updatedAt: new Date(),
-            })
-            .where(eq(pacientesInfoMedica.id, existingInfo.id));
-        } else {
-          await tx.insert(pacientesInfoMedica).values({
-            pacienteId: id,
-            tipoSanguineo: infoMedica.tipoSanguineo,
-            alergias: infoMedica.alergias,
-            medicamentosAtuais: infoMedica.medicamentosAtuais,
-            queixasPrincipais: infoMedica.queixasPrincipais,
-          });
-        }
+      if (existingInfo) {
+        await db
+          .update(pacientesInfoMedica)
+          .set({
+            ...infoMedica,
+            updatedAt: new Date(),
+          })
+          .where(eq(pacientesInfoMedica.id, existingInfo.id));
+      } else {
+        await db.insert(pacientesInfoMedica).values({
+          pacienteId: id,
+          tipoSanguineo: infoMedica.tipoSanguineo,
+          alergias: infoMedica.alergias,
+          medicamentosAtuais: infoMedica.medicamentosAtuais,
+          queixasPrincipais: infoMedica.queixasPrincipais,
+        });
       }
+    }
 
-      return updated;
-    });
+    return updated;
   }),
 
   delete: mentoradoProcedure
@@ -595,32 +592,31 @@ export const pacientesRouter = router({
       for (let i = 0; i < input.length; i += chunkSize) {
         const chunk = input.slice(i, i + chunkSize);
 
-        await db.transaction(async (tx) => {
-          const valuesToInsert = chunk.map((p) => ({
-            mentoradoId,
-            nomeCompleto: p.nomeCompleto,
-            email: p.email || null, // Ensure empty string becomes null if schema requires
-            telefone: p.telefone,
-            dataNascimento: p.dataNascimento,
-            genero: p.genero,
-            cpf: p.cpf,
-            rg: p.rg,
-            endereco: p.endereco,
-            cep: p.cep,
-            logradouro: p.logradouro,
-            numero: p.numero,
-            bairro: p.bairro,
-            cidade: p.cidade,
-            estado: p.estado,
-            convenio: p.convenio,
-            numeroCarteirinha: p.numeroCarteirinha,
-            observacoes: p.observacoes,
-            status: "ativo" as const,
-          }));
+        // Direct insert per chunk (neon-http driver does not support transactions)
+        const valuesToInsert = chunk.map((p) => ({
+          mentoradoId,
+          nomeCompleto: p.nomeCompleto,
+          email: p.email || null,
+          telefone: p.telefone,
+          dataNascimento: p.dataNascimento,
+          genero: p.genero,
+          cpf: p.cpf,
+          rg: p.rg,
+          endereco: p.endereco,
+          cep: p.cep,
+          logradouro: p.logradouro,
+          numero: p.numero,
+          bairro: p.bairro,
+          cidade: p.cidade,
+          estado: p.estado,
+          convenio: p.convenio,
+          numeroCarteirinha: p.numeroCarteirinha,
+          observacoes: p.observacoes,
+          status: "ativo" as const,
+        }));
 
-          await tx.insert(pacientes).values(valuesToInsert);
-          totalCreated += chunk.length;
-        });
+        await db.insert(pacientes).values(valuesToInsert);
+        totalCreated += chunk.length;
       }
 
       return { count: totalCreated };

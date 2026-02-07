@@ -7,9 +7,12 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   CalendarDays,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Hash,
   Image as ImageIcon,
+  Images,
   Loader2,
   RefreshCw,
   Send,
@@ -42,6 +45,7 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 
 type Tone = "professional" | "casual" | "promotional" | "educational" | "inspiring";
+type MediaFormat = "single" | "carousel";
 
 const toneOptions: { value: Tone; label: string; toneValue: string }[] = [
   {
@@ -66,13 +70,22 @@ const toneColorMap: Record<Tone, string> = {
 // Instagram Preview Mockup
 function InstagramPreview({
   caption,
-  imageUrl,
+  imageUrls,
   isLoading,
+  format,
 }: {
   caption: string;
-  imageUrl: string | null;
+  imageUrls: string[];
   isLoading?: boolean;
+  format: MediaFormat;
 }) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const totalSlides = imageUrls.length;
+
+  const goToSlide = (index: number) => {
+    if (index >= 0 && index < totalSlides) setCurrentSlide(index);
+  };
+
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-border overflow-hidden shadow-lg max-w-[350px] mx-auto">
       {/* Header */}
@@ -90,11 +103,63 @@ function InstagramPreview({
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-pink-500/10 to-purple-500/10">
             <div className="text-center space-y-2">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
-              <p className="text-sm text-muted-foreground">Gerando imagem…</p>
+              <p className="text-sm text-muted-foreground">
+                Gerando {format === "carousel" ? "carrossel" : "imagem"}…
+              </p>
             </div>
           </div>
-        ) : imageUrl ? (
-          <img src={imageUrl} alt="Post" className="w-full h-full object-cover" />
+        ) : totalSlides > 0 ? (
+          <>
+            <img
+              src={imageUrls[currentSlide]}
+              alt={`Post ${currentSlide + 1}`}
+              className="w-full h-full object-cover"
+            />
+            {/* Carousel Navigation */}
+            {totalSlides > 1 && (
+              <>
+                {currentSlide > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => goToSlide(currentSlide - 1)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors cursor-pointer"
+                    aria-label="Imagem anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                )}
+                {currentSlide < totalSlides - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => goToSlide(currentSlide + 1)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors cursor-pointer"
+                    aria-label="Próxima imagem"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )}
+                {/* Dots */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {imageUrls.map((_, i) => (
+                    <button
+                      type="button"
+                      key={`dot-${imageUrls[i]?.slice(-8) ?? i}`}
+                      onClick={() => goToSlide(i)}
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-all cursor-pointer",
+                        i === currentSlide ? "bg-white scale-125" : "bg-white/50"
+                      )}
+                      aria-label={`Ir para imagem ${i + 1}`}
+                    />
+                  ))}
+                </div>
+                {/* Counter */}
+                <span className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                  {currentSlide + 1}/{totalSlides}
+                </span>
+              </>
+            )}
+          </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center space-y-2">
@@ -177,14 +242,18 @@ function AIContentPanel({
   isGenerating,
   prompt,
   onPromptChange,
+  format,
+  onFormatChange,
 }: {
-  onGenerate: (prompt: string, tone: Tone) => void;
+  onGenerate: (prompt: string, tone: Tone, format: MediaFormat) => void;
   onEnhance: (prompt: string) => void;
   caption: string;
   hashtags: string[];
   isGenerating: boolean;
   prompt: string;
   onPromptChange: (value: string) => void;
+  format: MediaFormat;
+  onFormatChange: (format: MediaFormat) => void;
 }) {
   const shouldReduceMotion = useReducedMotion();
   const [tone, setTone] = useState<Tone>("professional");
@@ -197,7 +266,7 @@ function AIContentPanel({
       toast.error("Digite um tema para gerar o conteúdo");
       return;
     }
-    onGenerate(prompt, tone);
+    onGenerate(prompt, tone, format);
   };
 
   const handleCopy = async () => {
@@ -261,6 +330,44 @@ function AIContentPanel({
         <p className="text-xs text-muted-foreground">
           Tom atual: <span className="font-medium text-foreground">{selectedTone?.label}</span>
         </p>
+      </div>
+
+      {/* Format Selector */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Formato do Post</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onFormatChange("single")}
+            className={cn(
+              "flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all cursor-pointer",
+              format === "single"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            )}
+          >
+            <ImageIcon className="h-4 w-4" />
+            Imagem Única
+          </button>
+          <button
+            type="button"
+            onClick={() => onFormatChange("carousel")}
+            className={cn(
+              "flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-all cursor-pointer",
+              format === "carousel"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            )}
+          >
+            <Images className="h-4 w-4" />
+            Carrossel (4)
+          </button>
+        </div>
+        {format === "carousel" && (
+          <p className="text-xs text-muted-foreground">
+            Serão geradas 4 imagens variadas para o carrossel.
+          </p>
+        )}
       </div>
 
       {/* Generate Button */}
@@ -354,12 +461,13 @@ function AIContentPanel({
 export function InstagramPublisher() {
   const [caption, setCaption] = useState("");
   const [hashtags, setHashtags] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState("");
+  const [mediaFormat, setMediaFormat] = useState<MediaFormat>("single");
 
   // Get current mentorado for publishing
   const { data: mentorado } = trpc.mentorados.me.useQuery();
@@ -396,8 +504,14 @@ export function InstagramPublisher() {
   // Image generation mutation
   const generateImageMutation = trpc.marketing.generateImage.useMutation({
     onSuccess: (data) => {
-      setImageUrl(data.imageUrl ?? null);
-      toast.success("Imagem gerada com sucesso!");
+      const urls: string[] = (data.imageUrls ?? (data.imageUrl ? [data.imageUrl] : [])).filter(
+        (u): u is string => typeof u === "string"
+      );
+      setImageUrls(urls);
+      const count = urls.length;
+      toast.success(
+        count > 1 ? `${count} imagens geradas com sucesso!` : "Imagem gerada com sucesso!"
+      );
       setIsGeneratingImage(false);
     },
     onError: (error) => {
@@ -406,10 +520,11 @@ export function InstagramPublisher() {
     },
   });
 
-  const handleGenerate = async (prompt: string, tone: Tone) => {
+  const handleGenerate = async (prompt: string, tone: Tone, format: MediaFormat) => {
     setIsGenerating(true);
     setCurrentPrompt(prompt);
     const toneOption = toneOptions.find((t) => t.value === tone);
+    const isCarousel = format === "carousel";
     try {
       // Generate caption
       await generateContent.mutateAsync({
@@ -420,13 +535,14 @@ export function InstagramPublisher() {
         includeCallToAction: true,
       });
 
-      // Generate image
+      // Generate image(s)
       setIsGeneratingImage(true);
       const imagePrompt = `Professional Instagram post image for aesthetic clinic: ${prompt}. Style: clean, modern, high-end beauty and wellness. Suitable for ${toneOption?.label || "professional"} tone. 1024x1024, photorealistic.`;
       await generateImageMutation.mutateAsync({
         prompt: imagePrompt,
         size: "1024x1024",
         quality: "hd",
+        numberOfImages: isCarousel ? 4 : 1,
       });
     } finally {
       setIsGenerating(false);
@@ -476,6 +592,7 @@ export function InstagramPublisher() {
         prompt: imagePrompt,
         size: "1024x1024",
         quality: "hd",
+        numberOfImages: mediaFormat === "carousel" ? 4 : 1,
       });
     } catch {
       // Error handled by mutation
@@ -487,7 +604,7 @@ export function InstagramPublisher() {
       toast.error("Gere uma legenda primeiro");
       return;
     }
-    if (!imageUrl) {
+    if (!imageUrls.length) {
       toast.error("Uma imagem é necessária para publicar");
       return;
     }
@@ -506,7 +623,7 @@ export function InstagramPublisher() {
       hashtags.length > 0 ? `\n\n${hashtags.map((h) => `#${h}`).join(" ")}` : "";
 
     await publishPost.mutateAsync({
-      imageUrl,
+      imageUrl: imageUrls[0],
       caption: `${caption}${hashTagSuffix}`,
     });
   };
@@ -545,6 +662,8 @@ export function InstagramPublisher() {
               isGenerating={isGenerating}
               prompt={prompt}
               onPromptChange={setPrompt}
+              format={mediaFormat}
+              onFormatChange={setMediaFormat}
             />
           </NeonCardContent>
         </NeonCard>
@@ -553,8 +672,13 @@ export function InstagramPublisher() {
         <div className="space-y-6">
           {/* Preview */}
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4">
-            <InstagramPreview caption={caption} imageUrl={imageUrl} isLoading={isGeneratingImage} />
-            {imageUrl && (
+            <InstagramPreview
+              caption={caption}
+              imageUrls={imageUrls}
+              isLoading={isGeneratingImage}
+              format={mediaFormat}
+            />
+            {imageUrls.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -565,7 +689,7 @@ export function InstagramPublisher() {
                 <RefreshCw
                   className={`h-4 w-4 ${isGeneratingImage ? "motion-safe:animate-spin" : ""}`}
                 />
-                Regenerar Imagem
+                Regenerar {mediaFormat === "carousel" ? "Carrossel" : "Imagem"}
               </Button>
             )}
             <p className="text-center text-xs text-muted-foreground">

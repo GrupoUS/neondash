@@ -24,6 +24,7 @@ import { protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import {
   enhanceImagePrompt,
+  enhanceUserPrompt,
   generateCampaignContent,
   generateCaption,
   generateImage,
@@ -404,6 +405,24 @@ export const marketingRouter = router({
       }
 
       return { caption: result.content };
+    }),
+
+  /**
+   * Enhance a user prompt using the Marketing Agent.
+   */
+  enhancePrompt: protectedProcedure
+    .input(z.object({ prompt: z.string().min(3) }))
+    .mutation(async ({ input }) => {
+      const result = await enhanceUserPrompt(input.prompt);
+
+      if (!result.success) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: result.error || "Erro ao melhorar prompt",
+        });
+      }
+
+      return { enhancedPrompt: result.content };
     }),
 
   /**

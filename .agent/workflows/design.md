@@ -43,6 +43,23 @@ Comprehensive design workflow combining **research/planning** → **design syste
 # PLAN-design-{slug}: {Title}
 > **Goal:** {One-line objective}
 
+## Skill Loading Protocol (MANDATORY DURING EXECUTION)
+> [!CAUTION]
+> Before executing ANY Atomic Task, the agent MUST:
+> 1. **READ** `.agent/skills/frontend-design/SKILL.md` → Apply React 19 patterns, Tailwind v4, A11y, animation, and form standards
+> 2. **READ** `.agent/skills/ui-ux-pro-max/SKILL.md` → Generate design system, query domains, apply anti-patterns checklist
+> 3. **FOLLOW** the skill integration map below to use the right skill at each phase
+
+### Skill Integration Map
+| Phase | Skill | What to Use |
+|-------|-------|-------------|
+| Design System | `ui-ux-pro-max` | `--design-system` command, domain searches (`style`, `color`, `typography`, `ux`) |
+| Component Design | `ui-ux-pro-max` | Stack guidelines (`--stack shadcn`), chart recommendations, anti-patterns |
+| Component Build | `frontend-design` | React performance patterns, bundle optimization, component boundaries |
+| Styling | `frontend-design` | Tailwind v4 patterns, Web Design Standards (A11y, animation, forms, typography) |
+| Assets | `frontend-design` | AI prototyping (Stitch), image generation (Nano Banana Pro) |
+| Validation | Both | `ui-ux-pro-max` Pre-Delivery Checklist + `frontend-design` Component Checklist |
+
 ## Research Findings
 | # | Finding | Confidence | Source |
 |---|---------|------------|--------|
@@ -55,6 +72,54 @@ Comprehensive design workflow combining **research/planning** → **design syste
 ## Atomic Tasks
 ### AT-001: {Task}
 - [ ] ST-001.1: {Subtask} → File: `path` → Validation: {check}
+```
+
+### Skill Integration During Execution (MANDATORY)
+
+> [!IMPORTANT]
+> When `/implement` executes a design plan, the agent MUST integrate skills efficiently:
+
+#### `ui-ux-pro-max` — Design Intelligence (use BEFORE writing code)
+
+| When | Action |
+|------|--------|
+| Starting a new component/page | Run `--design-system` to get style, typography, colors, effects |
+| Choosing chart type | Run `--domain chart "..."` for data visualization recommendations |
+| Defining interactions | Run `--domain ux "..."` for animation/accessibility best practices |
+| Selecting fonts | Run `--domain typography "..."` for font pairing recommendations |
+| Before delivery | Run Pre-Delivery Checklist (icons, cursor, contrast, layout) |
+
+#### `frontend-design` — Implementation Standards (use WHILE writing code)
+
+| When | Action |
+|------|--------|
+| Fetching data | Apply `async-parallel` pattern (Promise.all for independent ops) |
+| Importing components | Apply `bundle-barrel-imports` rule (direct imports, no barrels) |
+| Adding client interactivity | Apply `client-boundary` rule (keep "use client" at leaf level) |
+| Building forms | Apply Forms standards (autocomplete, inputmode, labels, errors) |
+| Adding animations | Apply Animation standards (only transform/opacity, prefers-reduced-motion) |
+| Styling text | Apply Typography standards (ellipsis, curly quotes, tabular-nums) |
+| Final review | Run Component Checklist (shadcn primitives, focus states, a11y) |
+
+#### Efficient Skill Usage Pattern
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  FOR EACH ATOMIC TASK:                                      │
+├─────────────────────────────────────────────────────────────┤
+│  1. DESIGN PHASE (ui-ux-pro-max)                           │
+│     └─→ Query design system / domain for the component     │
+│     └─→ Define: colors, typography, layout, interactions   │
+│                                                              │
+│  2. BUILD PHASE (frontend-design)                           │
+│     └─→ Apply React 19 performance patterns                │
+│     └─→ Apply Tailwind v4 + shadcn/ui standards            │
+│     └─→ Apply A11y, animation, form standards              │
+│                                                              │
+│  3. VALIDATE PHASE (both skills)                            │
+│     └─→ ui-ux-pro-max: visual quality + interaction check  │
+│     └─→ frontend-design: component + accessibility check   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Phase 0: Requirement Analysis (MANDATORY)
@@ -104,7 +169,7 @@ stitch_create_project(title="{slug}")
 
 # 2. Generate Screen (Iterate until satisfied)
 stitch_generate_screen_from_text(
-  project_id="...", 
+  project_id="...",
   prompt="High-fidelity dashboard for [User], [Style] aesthetics (Navy/Gold), using Tailwind v4 and shadcn/ui. [Specific Features]. Use gemini-3-pro."
 )
 
@@ -300,7 +365,7 @@ python3 .agent/skills/evolution-core/scripts/memory_manager.py capture "Implemen
 # Component patterns
 python3 memory_manager.py capture "Implemented: Dashboard card grid with Navy/Gold GPUS theme in client/src/pages/Dashboard.tsx" -t "design_pattern"
 
-# Animation patterns  
+# Animation patterns
 python3 memory_manager.py capture "Implemented: Micro-animation on hover with framer-motion scale(1.02) in FeatureCard.tsx" -t "design_pattern"
 
 # Layout patterns

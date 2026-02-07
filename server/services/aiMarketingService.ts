@@ -230,8 +230,8 @@ export async function generateImage(
   try {
     const response = await gemini.models.generateImages({
       model: "imagen-4.0-generate-001",
-      prompt: `Professional aesthetic clinic marketing image: ${prompt}. 
-Style: Modern, clean, premium healthcare aesthetic. 
+      prompt: `Professional aesthetic clinic marketing image: ${prompt}.
+Style: Modern, clean, premium healthcare aesthetic.
 Lighting: Soft, professional studio lighting.
 Colors: Neutral tones with subtle accents.
 DO NOT include any visible text, watermarks, or logos.`,
@@ -458,4 +458,52 @@ export async function getMonthlyUsageStats(mentoradoId: number) {
   }
 
   return stats;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// USER PROMPT ENHANCEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Enhance a user's raw idea into a strategic marketing prompt using the Agent's persona.
+ */
+export async function enhanceUserPrompt(userInput: string): Promise<ContentGenerationResult> {
+  if (!isAIConfigured()) {
+    return { success: false, error: "AI não configurada" };
+  }
+
+  const marketingPrompt = await getMarketingAgentPrompt();
+
+  const prompt = `${marketingPrompt}
+
+TAREFA: Como estrategista de marketing, melhore a ideia bruta abaixo para que se torne um prompt rico e detalhado para a criação de um post de Instagram de alta conversão.
+
+IDEIA BRUTA DO USUÁRIO: "${userInput}"
+
+SEU OBJETIVO: Transformar essa ideia simples em um comando estratégico que eu possa usar para gerar o post final.
+O novo prompt deve:
+1. Definir um ângulo criativo e único
+2. Especificar o "Gancho" (Hook) para prender a atenção
+3. Sugerir o formato ideal (Reel, Carrossel, Foto Única)
+4. Clarear o objetivo (Venda, Autoridade, Engajamento)
+
+RESPONDA APENAS COM O NOVO PROMPT MELHORADO. NÃO DÊ EXPLICAÇÕES.`;
+
+  try {
+    const result = await generateText({
+      model: defaultModel,
+      prompt,
+      maxTokens: 1000,
+    });
+
+    return {
+      success: true,
+      content: result.text,
+      inputTokens: result.usage?.promptTokens,
+      outputTokens: result.usage?.completionTokens,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    return { success: false, error: message };
+  }
 }

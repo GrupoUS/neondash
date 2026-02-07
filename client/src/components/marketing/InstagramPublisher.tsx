@@ -171,17 +171,22 @@ function InstagramPreview({
 // AI Content Panel
 function AIContentPanel({
   onGenerate,
+  onEnhance,
   caption,
   hashtags,
   isGenerating,
+  prompt,
+  onPromptChange,
 }: {
   onGenerate: (prompt: string, tone: Tone) => void;
+  onEnhance: (prompt: string) => void;
   caption: string;
   hashtags: string[];
   isGenerating: boolean;
+  prompt: string;
+  onPromptChange: (value: string) => void;
 }) {
   const shouldReduceMotion = useReducedMotion();
-  const [prompt, setPrompt] = useState("");
   const [tone, setTone] = useState<Tone>("professional");
   const [copied, setCopied] = useState(false);
 
@@ -214,13 +219,25 @@ function AIContentPanel({
           id="prompt"
           placeholder="Ex: Benefícios do tratamento facial com ácido hialurônico para rejuvenescimento…"
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(e) => onPromptChange(e.target.value)}
           className="min-h-[100px] resize-none"
           maxLength={500}
           name="postTopic"
           autoComplete="off"
         />
-        <p className="text-right text-xs text-muted-foreground tabular-nums">{prompt.length}/500</p>
+        <div className="flex justify-between items-center">
+          <p className="text-xs text-muted-foreground tabular-nums">{prompt.length}/500</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-xs gap-1 text-violet-500 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+            onClick={() => onEnhance(prompt)}
+            disabled={!prompt.trim() || isGenerating}
+          >
+            <Sparkles className="h-3 w-3" />
+            Aprimorar com IA
+          </Button>
+        </div>
       </div>
 
       {/* Tone Selector */}
@@ -416,6 +433,37 @@ export function InstagramPublisher() {
     }
   };
 
+  // Enhance prompt mutation
+  const enhancePromptMutation = trpc.marketing.enhancePrompt.useMutation({
+    onSuccess: (_data) => {
+      // We need to update the prompt in the child component.
+      // Since prompt state is local to AIContentPanel, we might need to lift state up or pass a key to force re-render.
+      // For now, let's assume valid implementation.
+      // Wait, prompt state IS local to AIContentPanel.
+      // I should lift the prompt state up to InstagramPublisher to control it.
+      toast.success("Prompt aprimorado com sucesso!");
+    },
+    onError: (error) => {
+      toast.error(`Erro ao aprimorar: ${error.message}`);
+    },
+  });
+
+  // State for prompt needs to be lifted up to handle the update
+  const [prompt, setPrompt] = useState("");
+
+  const handleEnhance = async (currentPrompt: string) => {
+    if (!currentPrompt.trim()) return;
+    setIsGenerating(true);
+    try {
+      const result = await enhancePromptMutation.mutateAsync({ prompt: currentPrompt });
+      if (result.enhancedPrompt) {
+        setPrompt(result.enhancedPrompt);
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleRegenerateImage = async () => {
     if (!currentPrompt) {
       toast.error("Digite um tema primeiro");
@@ -491,9 +539,12 @@ export function InstagramPublisher() {
           <NeonCardContent className="px-0 pb-0">
             <AIContentPanel
               onGenerate={handleGenerate}
+              onEnhance={handleEnhance}
               caption={caption}
               hashtags={hashtags}
               isGenerating={isGenerating}
+              prompt={prompt}
+              onPromptChange={setPrompt}
             />
           </NeonCardContent>
         </NeonCard>

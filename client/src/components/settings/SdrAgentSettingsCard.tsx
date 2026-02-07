@@ -3,8 +3,9 @@
  * Configures the SDR (Sales Development) AI Agent prompt
  */
 import { Save, Target } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +43,7 @@ LEMBRETE: Sua missão é qualificar, não vender. Mantenha a conversa humana, em
 
 export function SdrAgentSettingsCard() {
   const [prompt, setPrompt] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
 
   const { data: currentPrompt, isLoading } = trpc.admin.getPublicSetting.useQuery({
@@ -76,6 +78,25 @@ export function SdrAgentSettingsCard() {
     });
   };
 
+  const insertVariable = (variable: string) => {
+    if (!textareaRef.current) return;
+
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
+    const text = prompt;
+    const newText = text.substring(0, start) + variable + text.substring(end);
+
+    setPrompt(newText);
+
+    // Restore focus and cursor position
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(start + variable.length, start + variable.length);
+      }
+    }, 0);
+  };
+
   return (
     <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-950/20 to-green-950/10">
       <CardHeader>
@@ -89,11 +110,47 @@ export function SdrAgentSettingsCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Helper Variables */}
+        <div className="flex flex-wrap gap-2 text-sm bg-black/20 p-3 rounded-md border border-emerald-500/10">
+          <span className="text-muted-foreground mr-2 text-xs font-medium uppercase tracking-wider flex items-center">
+            Variáveis:
+          </span>
+          <Badge
+            variant="outline"
+            className="cursor-pointer hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors border-emerald-500/30 text-emerald-400"
+            onClick={() => insertVariable("{{lead_name}}")}
+          >
+            Nome do Lead
+          </Badge>
+          <Badge
+            variant="outline"
+            className="cursor-pointer hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors border-emerald-500/30 text-emerald-400"
+            onClick={() => insertVariable("{{business_name}}")}
+          >
+            Nome da Clínica
+          </Badge>
+          <Badge
+            variant="outline"
+            className="cursor-pointer hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors border-emerald-500/30 text-emerald-400"
+            onClick={() => insertVariable("{{services_list}}")}
+          >
+            Lista de Procedimentos
+          </Badge>
+          <Badge
+            variant="outline"
+            className="cursor-pointer hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors border-emerald-500/30 text-emerald-400"
+            onClick={() => insertVariable("{{consultant_name}}")}
+          >
+            Nome da Consultora
+          </Badge>
+        </div>
+
         <Textarea
+          ref={textareaRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Digite o prompt comercial aqui..."
-          className="min-h-[300px] font-mono text-sm bg-background/50 border-emerald-500/20 focus:border-emerald-500"
+          className="min-h-[400px] font-mono text-sm bg-slate-950/50 border-emerald-500/20 focus:border-emerald-500/50 leading-relaxed resize-y p-4"
           disabled={isLoading}
         />
         <div className="flex justify-end">

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearch } from "wouter";
 import type { ConversationItemData } from "@/components/chat/ConversationItem";
 import type { MessageBubbleData, MessageReaction } from "@/components/chat/MessageBubble";
+import { SdrSidebar } from "@/components/chat/SdrSidebar";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import type { RenderItem } from "@/components/chat/VirtualizedMessageList";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -166,6 +167,7 @@ export function ChatPage() {
   const [newContactName, setNewContactName] = useState("");
   const [videoComposerOpen, setVideoComposerOpen] = useState(false);
   const [_showSidebar, setShowSidebar] = useState(true);
+  const [isSdrSidebarOpen, setIsSdrSidebarOpen] = useState(false);
 
   // Parse query params for initial phone/lead selection
   const queryParams = useMemo(() => new URLSearchParams(search), [search]);
@@ -720,10 +722,12 @@ export function ChatPage() {
           isAiEnabled={isAiEnabled}
           onToggleAi={() => toggleAiMutation.mutate()}
           isToggling={toggleAiMutation.isPending}
+          onToggleSdrSidebar={() => setIsSdrSidebarOpen(!isSdrSidebarOpen)}
+          isSdrSidebarOpen={isSdrSidebarOpen}
         />
 
         {/* Main Content - Inbox Layout */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
           {/* Contact List Sidebar */}
           <ConversationSidebar
             conversations={conversationItems}
@@ -827,6 +831,16 @@ export function ChatPage() {
               <EmptyConversationState />
             )}
           </div>
+
+          <SdrSidebar
+            isOpen={isSdrSidebarOpen}
+            onClose={() => setIsSdrSidebarOpen(false)}
+            selectedPhone={selectedPhone}
+            contactName={selectedConversation?.name ?? null}
+            isAiEnabled={isAiEnabled}
+            onToggleAi={() => toggleAiMutation.mutate()}
+            className="absolute"
+          />
         </div>
       </div>
     </DashboardLayout>

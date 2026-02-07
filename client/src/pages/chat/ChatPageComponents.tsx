@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Loader2,
   MessageCircle,
+  PanelRight,
   Pencil,
   Plus,
   RefreshCw,
@@ -55,6 +56,8 @@ interface ChatPageHeaderProps {
   isAiEnabled: boolean;
   onToggleAi: () => void;
   isToggling: boolean;
+  onToggleSdrSidebar: () => void;
+  isSdrSidebarOpen: boolean;
 }
 
 export function ChatPageHeader({
@@ -62,6 +65,8 @@ export function ChatPageHeader({
   isAiEnabled,
   onToggleAi,
   isToggling,
+  onToggleSdrSidebar,
+  isSdrSidebarOpen,
 }: ChatPageHeaderProps) {
   return (
     <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-card/50">
@@ -101,6 +106,22 @@ export function ChatPageHeader({
             </Button>
           </TooltipTrigger>
           <TooltipContent>Configurações do AI SDR</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={isSdrSidebarOpen ? "secondary" : "ghost"}
+              size="icon"
+              onClick={onToggleSdrSidebar}
+              aria-label="Toggle SDR Sidebar"
+            >
+              <PanelRight className={cn("w-5 h-5", isSdrSidebarOpen && "text-primary")} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isSdrSidebarOpen ? "Fechar Painel SDR" : "Abrir Painel SDR"}
+          </TooltipContent>
         </Tooltip>
       </div>
     </div>

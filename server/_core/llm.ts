@@ -131,18 +131,12 @@ export type LLMError = {
  * ============================================
  */
 
-/** Default Gemini 3 Flash model - latest model from Google as of Dec 2025 */
-const DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview";
-
-/** Default Z.AI GLM 4.7 Flash model fallback */
-const DEFAULT_ZAI_MODEL = "glm-4.7-flash";
+/** Default model: Gemini 3 Flash Preview */
+const DEFAULT_MODEL = "gemini-3-flash-preview";
 
 /** Gemini OpenAI-compatible API endpoint */
 const GEMINI_API_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-
-/** Z.AI OpenAI-compatible API endpoint */
-const ZAI_API_ENDPOINT = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
 
 /** Request timeout in milliseconds (2 minutes) */
 const REQUEST_TIMEOUT_MS = 120000;
@@ -250,28 +244,11 @@ const normalizeToolChoice = (
   return toolChoice;
 };
 
-const resolveApiUrl = (): string => {
-  // Check for GEMINI_API_KEY first for Google's OpenAI-compatible endpoint
-  if (ENV.geminiApiKey) {
-    logger.info("using_gemini_endpoint");
-    return GEMINI_API_ENDPOINT;
-  }
-
-  if (!ENV.llmApiUrl || ENV.llmApiUrl.trim().length === 0) {
-    // Use Z.AI endpoint as default fallback
-    logger.info("using_zai_endpoint", { endpoint: ZAI_API_ENDPOINT });
-    return ZAI_API_ENDPOINT;
-  }
-
-  logger.info("using_custom_endpoint", { endpoint: ENV.llmApiUrl });
-  return `${ENV.llmApiUrl.replace(/\/$/, "")}/v1/chat/completions`;
-};
-
 const getApiKey = (): string => {
-  const apiKey = ENV.geminiApiKey || ENV.llmApiKey;
+  const apiKey = ENV.geminiApiKey;
   if (!apiKey) {
     throw new LLMConfigurationError(
-      "API Key missing. Configure GEMINI_API_KEY or LLM_API_KEY.",
+      "API Key missing. Configure GEMINI_API_KEY.",
       "API_KEY_MISSING"
     );
   }
@@ -279,23 +256,10 @@ const getApiKey = (): string => {
 };
 
 const resolveModel = (requestedModel?: string): string => {
-  // If a specific model is requested, use it
   if (requestedModel) {
-    logger.info("using_requested_model", { model: requestedModel });
     return requestedModel;
   }
-
-  // Determine model based on available config
-  const isGemini = !!ENV.geminiApiKey;
-
-  if (isGemini) {
-    logger.info("using_default_gemini_model", { model: DEFAULT_GEMINI_MODEL });
-    return DEFAULT_GEMINI_MODEL;
-  }
-
-  const model = ENV.llmModel || DEFAULT_ZAI_MODEL;
-  logger.info("using_zai_model", { model });
-  return model;
+  return DEFAULT_MODEL;
 };
 
 const normalizeResponseFormat = ({
@@ -441,10 +405,12 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
       logger.info("response_format_set", { requestId, type: normalizedResponseFormat.type });
     }
 
-    // Resolve API URL
-    const apiUrl = resolveApiUrl();
-
-    logger.info("sending_request", { requestId, apiUrl, model, messageCount: messages.length });
+    logger.info("sending_request", {
+      requestId,
+      apiUrl: GEMINI_API_ENDPOINT,
+      model,
+      messageCount: messages.length,
+    });
 
     // Create AbortController for timeout
     const controller = new AbortController();
@@ -456,7 +422,7 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     // Make the request
     let response: Response;
     try {
-      response = await fetch(apiUrl, {
+      response = await fetch(GEMINI_API_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -598,34 +564,25 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
 
 /**
  * Validates that the LLM is properly configured
- * Returns detailed configuration status
  */
 export function validateLLMConfig(): {
   isValid: boolean;
-  provider: "gemini" | "openai" | "none";
+  provider: "gemini" | "none";
   model: string;
   errors: string[];
 } {
   const errors: string[] = [];
-  let provider: "gemini" | "openai" | "none" = "none";
-  let model = "";
+  let provider: "gemini" | "none" = "none";
+  const model = DEFAULT_MODEL;
 
   if (ENV.geminiApiKey) {
     provider = "gemini";
-    model = DEFAULT_GEMINI_MODEL;
 
     if (ENV.geminiApiKey.length < 10) {
       errors.push("GEMINI_API_KEY appears to be invalid (too short)");
     }
-  } else if (ENV.llmApiKey) {
-    provider = "zai" as "gemini" | "openai" | "none";
-    model = ENV.llmModel || DEFAULT_ZAI_MODEL;
-
-    if (ENV.llmApiKey.length < 10) {
-      errors.push("LLM_API_KEY appears to be invalid (too short)");
-    }
   } else {
-    errors.push("No API key configured. Set GEMINI_API_KEY or LLM_API_KEY");
+    errors.push("No API key configured. Set GEMINI_API_KEY");
   }
 
   return {

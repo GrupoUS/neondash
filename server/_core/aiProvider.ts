@@ -10,17 +10,17 @@ import { ENV } from "./env";
 
 /**
  * Google Gemini AI provider instance.
- * Uses GOOGLE_GENERATIVE_AI_API_KEY or GOOGLE_API_KEY from environment.
+ * Uses GEMINI_API_KEY from environment.
  */
 export const google = createGoogleGenerativeAI({
-  apiKey: ENV.googleAiApiKey,
+  apiKey: ENV.geminiApiKey,
 });
 
 /**
  * Default AI model for the assistant.
- * Gemini 2.5 Flash offers best balance of speed and capability.
+ * Gemini 3 Flash Preview — latest and fastest.
  */
-export const defaultModel = google("gemini-2.5-flash");
+export const defaultModel = google("gemini-3-flash-preview");
 
 /**
  * Pro model for complex reasoning tasks.
@@ -32,5 +32,5 @@ export const proModel = google("gemini-2.5-pro");
  * Check if AI is configured and available.
  */
 export function isAIConfigured(): boolean {
-  return Boolean(ENV.googleAiApiKey);
+  return Boolean(ENV.geminiApiKey);
 }

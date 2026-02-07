@@ -1,22 +1,13 @@
 /**
- * Image generation helper using internal ImageService
+ * Image generation helper
  *
- * Example usage:
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "A serene landscape with mountains"
- *   });
+ * NOTE: The legacy image generation proxy (LLM_API_URL) has been removed.
+ * Use the Gemini API image generation via the AI Marketing Service instead
+ * (see server/aiMarketingService.ts).
  *
- * For editing:
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "Add a rainbow to this landscape",
- *     originalImages: [{
- *       url: "https://example.com/original.jpg",
- *       mimeType: "image/jpeg"
- *     }]
- *   });
+ * This module is kept for backward compatibility but will throw a clear error
+ * if called without a configured storage/proxy backend.
  */
-import { storagePut } from "../storage";
-import { ENV } from "./env";
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -31,51 +22,11 @@ export type GenerateImageResponse = {
   url?: string;
 };
 
-export async function generateImage(options: GenerateImageOptions): Promise<GenerateImageResponse> {
-  if (!ENV.llmApiUrl) {
-    throw new Error("LLM_API_URL is not configured");
-  }
-  if (!ENV.llmApiKey) {
-    throw new Error("LLM_API_KEY is not configured");
-  }
-
-  // Build the full URL by appending the service path to the base URL
-  const baseUrl = ENV.llmApiUrl.endsWith("/") ? ENV.llmApiUrl : `${ENV.llmApiUrl}/`;
-  const fullUrl = new URL("images.v1.ImageService/GenerateImage", baseUrl).toString();
-
-  const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.llmApiKey}`,
-    },
-    body: JSON.stringify({
-      prompt: options.prompt,
-      original_images: options.originalImages || [],
-    }),
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Image generation request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-    );
-  }
-
-  const result = (await response.json()) as {
-    image: {
-      b64Json: string;
-      mimeType: string;
-    };
-  };
-  const base64Data = result.image.b64Json;
-  const buffer = Buffer.from(base64Data, "base64");
-
-  // Save to S3
-  const { url } = await storagePut(`generated/${Date.now()}.png`, buffer, result.image.mimeType);
-  return {
-    url,
-  };
+export async function generateImage(
+  _options: GenerateImageOptions
+): Promise<GenerateImageResponse> {
+  throw new Error(
+    "Image generation via legacy proxy is not configured. " +
+      "Use the AI Marketing Service (aiMarketingService.ts) with Gemini API instead."
+  );
 }

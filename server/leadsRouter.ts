@@ -145,6 +145,7 @@ export const leadsRouter = router({
   create: protectedProcedure
     .input(
       z.object({
+        mentoradoId: z.number().optional(), // Admin can create for any mentorado
         nome: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
         email: z.string().email("Email inválido"),
         telefone: z.string().optional(),

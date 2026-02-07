@@ -149,6 +149,7 @@ export function CreateLeadDialog({
       : undefined;
 
     mutation.mutate({
+      mentoradoId, // Admin override
       nome: values.nome,
       email: values.email,
       telefone: normalizedTelefone,
@@ -179,8 +180,8 @@ export function CreateLeadDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Novo Lead</DialogTitle>
         </DialogHeader>
         <Form {...form}>
@@ -295,70 +296,13 @@ export function CreateLeadDialog({
                       <FormLabel>Gênero</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
+                          <Input placeholder="Já fez procedimentos anteriores? Quais?" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Feminino">Feminino</SelectItem>
-                          <SelectItem value="Masculino">Masculino</SelectItem>
-                          <SelectItem value="Outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* 2. Anamnese Comercial */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                Anamnese Comercial
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="tipoPele"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Pele</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Oleosa, Seca..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="alergias"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Alergias</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Possui alguma alergia?" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="historicoEstetico"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Histórico Estético</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Já fez procedimentos anteriores? Quais?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
             {/* 3. Interesse */}
             <div className="space-y-4">
@@ -425,87 +369,89 @@ export function CreateLeadDialog({
               </div>
             </div>
 
-            {/* 4. Outros (B2B / Qualificação) */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
-                Qualificação / B2B
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="origem"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Origem do Lead*</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="instagram">Instagram</SelectItem>
-                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                          <SelectItem value="google">Google</SelectItem>
-                          <SelectItem value="indicacao">Indicação</SelectItem>
-                          <SelectItem value="site">Site</SelectItem>
-                          <SelectItem value="outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="indicadoPor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Indicado Por</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome de quem indicou" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="temperatura"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Temperatura</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="frio">Frio ❄️</SelectItem>
-                          <SelectItem value="morno">Morno 🌤️</SelectItem>
-                          <SelectItem value="quente">Quente 🔥</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="valorEstimado"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Valor Proposta (R$)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="0,00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* 4. Outros (B2B / Qualificação) */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground border-b pb-1">
+                    Qualificação / B2B
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="origem"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Origem do Lead*</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="instagram">Instagram</SelectItem>
+                              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                              <SelectItem value="google">Google</SelectItem>
+                              <SelectItem value="indicacao">Indicação</SelectItem>
+                              <SelectItem value="site">Site</SelectItem>
+                              <SelectItem value="outro">Outro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="indicadoPor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Indicado Por</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Nome de quem indicou" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="temperatura"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Temperatura</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="frio">Frio ❄️</SelectItem>
+                              <SelectItem value="morno">Morno 🌤️</SelectItem>
+                              <SelectItem value="quente">Quente 🔥</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="valorEstimado"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Valor Proposta (R$)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="0,00" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -561,7 +507,7 @@ export function CreateLeadDialog({
               </div>
             </div>
 
-            <DialogFooter className="pt-4 sticky bottom-0 bg-background/95 backdrop-blur py-4 border-t mt-4">
+            <DialogFooter className="shrink-0 border-t bg-background/95 backdrop-blur px-6 py-4">
               <Button type="button" variant="secondary" onClick={onClose}>
                 Cancelar
               </Button>

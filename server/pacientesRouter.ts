@@ -403,17 +403,36 @@ export const pacientesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Decode Base64
-      const buffer = Buffer.from(input.file, "base64");
+      try {
+        // Decode Base64
+        const buffer = Buffer.from(input.file, "base64");
 
-      // Upload to Storage
-      const { url } = await storagePut(
-        `pacientes/docs/${ctx.mentorado.id}/${Date.now()}-${input.fileName}`,
-        buffer,
-        input.contentType
-      );
+        // Upload to Storage
+        const { url } = await storagePut(
+          `pacientes/docs/${ctx.mentorado.id}/${Date.now()}-${input.fileName}`,
+          buffer,
+          input.contentType
+        );
 
-      return { url };
+        return { url };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Erro desconhecido";
+        logger.error("Upload de documento falhou:", { error: message });
+
+        // If storage credentials are missing, return a clear error so frontend can handle it
+        if (message.includes("Storage proxy credentials missing")) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "Serviço de armazenamento não configurado. O paciente será criado sem documentos.",
+          });
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Falha ao fazer upload do documento",
+        });
+      }
     }),
 
   update: mentoradoProcedure.input(updatePacienteSchema).mutation(async ({ ctx, input }) => {
@@ -493,7 +512,7 @@ export const pacientesRouter = router({
       const systemPrompt = `
       Você é um especialista em integração de dados médicos.
       Sua tarefa é mapear colunas de uma planilha (CSV/XLSX) para o schema do banco de dados de pacientes.
-      
+
       Schema Alvo (Pacientes):
       - nomeCompleto (Obrigatório)
       - email

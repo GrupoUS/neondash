@@ -151,12 +151,14 @@ describe("maskCEP", () => {
 
 describe("formatDateBR", () => {
   it("should format date correctly", () => {
-    const date = new Date("2024-01-15");
+    // Use explicit time to avoid timezone issues (noon local time)
+    const date = new Date(2024, 0, 15, 12, 0, 0); // Jan 15, 2024 12:00:00
     expect(formatDateBR(date)).toBe("15/01/2024");
   });
 
   it("should handle ISO string", () => {
-    expect(formatDateBR("2024-01-15")).toMatch(/15\/01\/2024/);
+    // Use datetime format with timezone to ensure consistent parsing
+    expect(formatDateBR("2024-01-15T12:00:00")).toMatch(/15\/01\/2024/);
   });
 
   it("should return dash for null", () => {

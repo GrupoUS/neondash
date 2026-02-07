@@ -4,7 +4,7 @@
  * Tests for statistical calculation functions and alert classification.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import {
   calculateAlerts,
   calculateMean,

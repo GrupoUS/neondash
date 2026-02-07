@@ -8,49 +8,49 @@
  * - generateTopicSuggestions
  */
 
-import { describe, expect, it, mock } from "bun:test";
 import { TRPCError } from "@trpc/server";
+import { describe, expect, it, vi } from "vitest";
 
-// Mock database and external services
+// Mock database with vi.fn()
 const mockDb = {
-  select: mock(() => ({
-    from: mock(() => ({
-      where: mock(() => ({
-        limit: mock(() => Promise.resolve([])),
-        orderBy: mock(() => ({
-          limit: mock(() => Promise.resolve([])),
+  select: vi.fn(() => ({
+    from: vi.fn(() => ({
+      where: vi.fn(() => ({
+        limit: vi.fn(() => Promise.resolve([])),
+        orderBy: vi.fn(() => ({
+          limit: vi.fn(() => Promise.resolve([])),
         })),
       })),
-      innerJoin: mock(() => ({
-        where: mock(() => Promise.resolve([])),
+      innerJoin: vi.fn(() => ({
+        where: vi.fn(() => Promise.resolve([])),
       })),
     })),
   })),
-  insert: mock(() => ({
-    values: mock(() => ({
-      returning: mock(() => Promise.resolve([{ id: 1 }])),
+  insert: vi.fn(() => ({
+    values: vi.fn(() => ({
+      returning: vi.fn(() => Promise.resolve([{ id: 1 }])),
     })),
   })),
 };
 
 // Mock the getDb function
-mock.module("../../db", () => ({
+vi.mock("../../db", () => ({
   getDb: () => mockDb,
 }));
 
 // Mock Google Calendar service
-mock.module("../../services/googleCalendarService", () => ({
-  getEvents: mock(() => Promise.resolve([])),
-  refreshAccessToken: mock(() => Promise.resolve({ access_token: "new_token", expires_in: 3600 })),
+vi.mock("../../services/googleCalendarService", () => ({
+  getEvents: vi.fn(() => Promise.resolve([])),
+  refreshAccessToken: vi.fn(() => Promise.resolve({ access_token: "new_token", expires_in: 3600 })),
 }));
 
 // Mock alert service
-mock.module("../../services/alertService", () => ({
-  calculateAlerts: mock(() => Promise.resolve({ alerts: [], usedFallback: false })),
-  generateTopicSuggestions: mock(() =>
+vi.mock("../../services/alertService", () => ({
+  calculateAlerts: vi.fn(() => Promise.resolve({ alerts: [], usedFallback: false })),
+  generateTopicSuggestions: vi.fn(() =>
     Promise.resolve({ suggestions: ["Topic 1"], source: "fallback" })
   ),
-  getLastCallNotes: mock(() => Promise.resolve(null)),
+  getLastCallNotes: vi.fn(() => Promise.resolve(null)),
 }));
 
 // ═══════════════════════════════════════════════════════════════════════════

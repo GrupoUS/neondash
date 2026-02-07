@@ -4,52 +4,20 @@ description: Execute approved plan from /plan workflow. Reads PLAN-{slug}.md and
 
 # /implement - Execute Approved Plan
 
-Execute the approved implementation plan from `docs/PLAN-{slug}.md`.
-
----
-
 ## 🔴 CRITICAL RULES
 
-1. **PLAN REQUIRED**: Must have approved `docs/PLAN-{slug}.md` from `/plan` workflow
-2. **SKILL ACTIVATION**: Read `.agent/skills/planning/SKILL.md` for R.P.I.V Phase 2
-3. **ATOMIC EXECUTION**: Execute one AT-XXX task at a time with validation
-4. **VALIDATION GATES**: Run validation command after each task before proceeding
-5. **ROLLBACK READY**: On failure, execute rollback steps from plan
+1. **PLAN REQUIRED**: Approved `docs/PLAN-{slug}.md` from `/plan`
+2. **ANALYZE FIRST**: Run Plan Intelligence Analysis before ANY code
+3. **LOAD SKILLS**: Read mapped SKILL.md files BEFORE writing code
+4. **ATOMIC**: One AT-XXX at a time with validation
+5. **EVOLVE**: Start/end evolution-core session for learning
 
 ---
 
 ## Trigger
 
-- User approves plan: "approve", "proceed", "implement", "go ahead"
-- Direct command: `/implement` or `/implement PLAN-{slug}`
-
----
-
-## Input Contract
-
-```yaml
-input_contract:
-  source: "docs/PLAN-{slug}.md from /plan workflow"
-
-  required_sections:
-    - "## Atomic Tasks" # AT-XXX with validation + rollback
-    - "## Validation Gates" # Final verification commands
-
-  atomic_task_format:
-    id: "AT-XXX"
-    title: "[ACTION] [TARGET]"
-    phase: 1-5
-    dependencies: ["AT-XXX"]
-    parallel_safe: true # ⚡ marker
-    validation: "[COMMAND]"
-    rollback: "[UNDO STEPS]"
-
-  status_markers:
-    pending: "[ ]"
-    in_progress: "[/]"
-    completed: "[x]"
-    failed: "[!]"
-```
+- User: "approve", "proceed", "implement", "go ahead"
+- Direct: `/implement` or `/implement PLAN-{slug}`
 
 ---
 
@@ -57,153 +25,139 @@ input_contract:
 
 ```mermaid
 flowchart TD
-    A[/implement] --> B[Load PLAN-{slug}.md]
-    B --> C[Parse Atomic Tasks]
-    C --> D{Has pending AT-XXX?}
-    D -->|Yes| E[Execute AT-XXX]
-    E --> F[Run Validation Command]
-    F --> G{Passed?}
-    G -->|Yes| H[Mark [x] + Update task_boundary]
-    G -->|No| I[Run Rollback Steps]
-    I --> J[Sequential Thinking: Analyze]
-    J --> K{Recoverable?}
-    K -->|Yes| E
-    K -->|No| L[Mark [!] + notify_user]
-    H --> D
-    D -->|No| M[Run Final Validation Gates]
-    M --> N[Generate walkthrough.md]
-    N --> O[notify_user: Complete]
+    A[/implement] --> B[Load PLAN + Start Evolution Session]
+    B --> C[🧠 Plan Intelligence Analysis]
+    C --> D[Load Required SKILL.md Files]
+    D --> E{Pending AT-XXX?}
+    E -->|Yes| F[Route Skill/MCP → Execute]
+    F --> G{Validation OK?}
+    G -->|Yes| H[Mark x + Capture Progress]
+    G -->|No| I[Debug Skill + Sequential Thinking]
+    I --> J{Recoverable?}
+    J -->|Yes| F
+    J -->|No| K[Mark ! + notify_user]
+    H --> L{Every 5 tasks?}
+    L -->|Yes| M[Evolution Heartbeat]
+    L -->|No| E
+    M --> E
+    E -->|No| N[Final Validation Gates]
+    N --> O[End Evolution Session + Walkthrough]
 ```
 
 ---
 
-## Step 1: Initialize Execution
+## Step 1: Initialize
 
 ```yaml
-initialization:
-  1_load_plan:
-    action: "Read docs/PLAN-{slug}.md"
-    extract:
-      - complexity_level
-      - atomic_tasks (AT-XXX list)
-      - validation_gates
-      - assumptions_to_validate
+actions:
+  - Read docs/PLAN-{slug}.md → extract atomic_tasks, validation_gates
+  - Create task.md in brain directory with AT-XXX checklist
+  - task_boundary(Mode: EXECUTION, TaskName: from plan)
+  - "python3 .agent/skills/evolution-core/scripts/memory_manager.py session start -t 'Implementing PLAN-{slug}'"
+```
 
-  2_create_task_md:
-    action: "Create task.md in brain directory"
-    format: |
-      # Implementation: {plan_title}
+---
 
-      ## Progress
-      - [ ] AT-001: {title}
-      - [ ] AT-002: {title}
-      ...
+## Step 1.5: 🧠 Plan Intelligence Analysis (MANDATORY)
 
-      ## Validation Gates
-      - [ ] VG-001: bun run build
-      - [ ] VG-002: bun run check
-      - [ ] VG-003: bun test
+> [!CAUTION]
+> BEFORE executing ANY task, classify domains and map skills/MCPs.
 
-  3_set_task_boundary:
-    action: "task_boundary(Mode: EXECUTION, TaskName: from plan)"
+### Domain Classification
+
+Scan every AT-XXX and tag with domain(s):
+
+| Domain | Signals |
+|--------|---------|
+| `backend` | API, router, tRPC, procedure, query, mutation, middleware |
+| `database` | schema, table, migration, drizzle, SQL, seed, Neon |
+| `frontend` | component, page, UI, layout, form, card, sidebar |
+| `design` | style, theme, colors, typography, animation, UX |
+| `auth` | Clerk, auth, session, JWT, role, permission |
+| `integration` | WhatsApp, Baileys, Meta API, webhook, external API |
+| `debug` | fix, bug, error, broken, failing |
+
+### Skill Router
+
+| Domain | Skill to Load | SKILL.md Path |
+|--------|--------------|---------------|
+| `backend` / `database` | `backend-design` | `.agent/skills/backend-design/SKILL.md` |
+| `frontend` | `frontend-design` | `.agent/skills/frontend-design/SKILL.md` |
+| `design` | `ui-ux-pro-max` + `frontend-design` | Both SKILL.md |
+| `design` (theme) | `gpus-theme` | `.agent/skills/gpus-theme/SKILL.md` |
+| `integration` (WhatsApp) | `baileys-integration` | `.agent/skills/baileys-integration/SKILL.md` |
+| `integration` (Meta) | `meta-api-integration` | `.agent/skills/meta-api-integration/SKILL.md` |
+| `debug` | `debug` | `.agent/skills/debug/SKILL.md` |
+
+### MCP Router
+
+| Domain | MCP | When |
+|--------|-----|------|
+| `database` | `mcp-server-neon` | Schema, migrations, SQL, seeding |
+| `auth` | `clerk` | SDK snippets, auth flows, roles |
+| `backend`/`frontend` | `context7` | Library docs (tRPC, Drizzle, shadcn, React, TanStack) |
+| complex logic | `sequential-thinking` | Architecture decisions, root cause analysis |
+| fallback | `tavily` | When context7 insufficient |
+
+### Execution Strategy (mental model)
+
+```
+FOR EACH AT-XXX:
+  1. DOMAIN → identify (backend? frontend? design? auth?)
+  2. SKILL  → load mapped SKILL.md (if not loaded)
+  3. MCP    → Local → context7 → domain MCP → sequential-thinking → tavily
+  4. CODE   → apply skill patterns
+  5. CHECK  → validation command + skill checklist
 ```
 
 ---
 
 ## Step 2: Execute Atomic Tasks
 
-### Execution Pattern
+### Per-Task Protocol
 
 ```yaml
-for_each_atomic_task:
-  1_pre_check:
-    - Verify dependencies completed
-    - Check if parallel_safe for concurrent execution
-
-  2_execute:
-    - Set task_boundary status: "Executing AT-XXX: {title}"
-    - Perform the action (create/modify files)
-    - Mark [/] in task.md
-
-  3_validate:
-    - Run validation command from AT-XXX
-    - If passed: Mark [x] in task.md
-    - If failed: Execute rollback, mark [!]
-
-  4_parallel_optimization:
-    - Group tasks marked ⚡ PARALLEL-SAFE
-    - Execute independent tasks concurrently
-    - Wait at dependency barriers
+for_each_AT:
+  pre: Verify dependencies + identify domain
+  load: Read mapped SKILL.md (skip if already loaded)
+  query: context7 for library docs when needed
+  execute: Apply skill patterns, use domain MCPs
+  validate: Run AT validation command
+  capture: "python3 memory_manager.py capture 'Completed AT-XXX: {title}'"
+  status: Mark [x] in task.md
 ```
 
-### Phase-Based Execution
+### Phase Checkpoints
 
-| Phase | Focus                 | Checkpoint Command |
-| ----- | --------------------- | ------------------ |
-| 1     | Setup & Scaffolding   | `bun install`      |
-| 2     | Core Logic & Backend  | `bun run check`    |
-| 3     | Frontend Components   | `bun run build`    |
-| 4     | Integration & Routes  | `bun run check`    |
-| 5     | Verification & Polish | `bun test`         |
+| Phase | Focus | Skills | MCPs | Check |
+|-------|-------|--------|------|-------|
+| 1 | Setup | — | — | `bun install` |
+| 2 | Backend | `backend-design` | `context7`, `neon` | `bun run check` |
+| 3 | Frontend | `frontend-design`, `ui-ux-pro-max` | `context7`, `clerk` | `bun run build` |
+| 4 | Integration | domain-specific | all relevant | `bun run check` |
+| 5 | Polish | `debug` | `sequential-thinking` | `bun test` |
 
 ---
 
-## Evolution Checkpoint (AUTOMATIC - Every 5 Steps)
+## Evolution Checkpoints (Every 5 Tasks)
 
-> [!NOTE]
-> **Self-Evolving Agent Integration** - Runs automatically during implementation
-
-The `self-evolving-agent` skill automatically triggers every 5 implementation steps:
-
-1. **Capture State**: Stores current implementation progress via `evolution_engine.py checkpoint_progress`
-2. **Analyze Patterns**: Identifies inefficiencies or anti-patterns in recent work
-3. **Suggest Optimizations**: Proposes improvements if confidence > 80%
-4. **Store Observations**: Records tool usage for future learning
-
-```yaml
-EVOLUTION_CHECKPOINT:
-  trigger: "Every 5 AT-XXX completions"
-  actions:
-    - Snapshot current task.md status
-    - Analyze tool usage patterns
-    - Compare against successful past implementations
-    - Generate mutation suggestions (if applicable)
-  safety:
-    confirmation_required: true  # Mutations require explicit approval
-    max_suggestions: 3           # Limit per checkpoint
+```bash
+# turbo
+python3 .agent/skills/evolution-core/scripts/heartbeat.py
 ```
 
-**Mutation Approval**: If the evolution engine suggests optimizations, it will pause and ask:
-
-```
-🧬 Evolution Suggestion (89% confidence):
-- Pattern: Repeated file reads without caching
-- Suggestion: Batch file operations
-- Apply? [y/n]
-```
+Captures: tool usage patterns, skill effectiveness, anti-patterns detected.
+If confidence > 80%, suggests optimizations (requires approval).
 
 ---
 
 ## Step 3: Validation Gates
 
-After all AT-XXX tasks complete:
-
 ```yaml
-validation_gates:
-  VG-001:
-    command: "bun run build"
-    expected: "Exit 0, no errors"
-
-  VG-002:
-    command: "bun run check"
-    expected: "No TypeScript errors"
-
-  VG-003:
-    command: "bun test"
-    expected: "All tests passing"
-
-  VG-004:
-    action: "Manual verification of assumptions from plan"
+VG-001: "bun run build"    # Exit 0
+VG-002: "bun run check"    # No TS errors
+VG-003: "bun test"         # All passing
+VG-004: Manual assumption verification
 ```
 
 ---
@@ -212,31 +166,12 @@ validation_gates:
 
 ```yaml
 on_failure:
-  1_pause:
-    action: "Stop execution immediately"
-
-  2_analyze:
-    action: "Use sequential-thinking MCP"
-    thoughts:
-      - "What exactly failed?"
-      - "Why did it fail? (root cause)"
-      - "3 possible fixes"
-      - "Which fix is safest?"
-
-  3_rollback:
-    action: "Execute rollback steps from AT-XXX"
-    update: "Mark [!] with error reason"
-
-  4_decide:
-    recoverable:
-      action: "Apply fix, retry AT-XXX"
-    not_recoverable:
-      action: "notify_user with error details"
-      include:
-        - Failed task ID and title
-        - Error message
-        - Attempted rollback
-        - Suggested next steps
+  1_pause: Stop immediately
+  2_skill: Read .agent/skills/debug/SKILL.md
+  3_think: sequential-thinking → root cause + 3 fixes
+  4_capture: "python3 memory_manager.py capture 'Failed AT-XXX: {error}' -t bug_fix"
+  5_rollback: Execute rollback from AT-XXX, mark [!]
+  6_decide: Recoverable → retry | Not → notify_user
 ```
 
 ---
@@ -245,31 +180,14 @@ on_failure:
 
 ```yaml
 completion:
-  1_final_validation:
-    action: "Run all VG-XXX gates"
-
-  2_generate_walkthrough:
-    action: "Create walkthrough.md in brain directory"
-    content:
-      - Summary of changes
-      - Files created/modified
-      - Validation results
-      - Screenshots if UI changes
-
-  3_notify_user:
-    action: "notify_user with completion summary"
-    message: |
-      ✅ Implementation complete: {plan_title}
-
-      Tasks executed: {completed}/{total}
-      Validation gates: {passed}/{total}
-
-      Changes:
-      - {file_list}
-
-      Next steps:
-      - Review walkthrough.md
-      - Test manually if needed
+  1_validate: Run all VG-XXX gates
+  2_end_session: "python3 memory_manager.py session end -s 'Completed PLAN-{slug}: {summary}'"
+  3_walkthrough: Create walkthrough.md (changes, skills used, validation results)
+  4_notify: |
+    ✅ Implementation complete: {plan_title}
+    Tasks: {completed}/{total} | Gates: {passed}/{total}
+    Skills: {list} | MCPs: {list}
+    Files: {file_list}
 ```
 
 ---
@@ -277,41 +195,26 @@ completion:
 ## Quick Reference
 
 ```
-EXECUTION LOOP:
-  Load Plan → Parse AT-XXX → Execute → Validate → Repeat
-
-VALIDATION PATTERN:
-  AT-XXX → validation command → pass? → next : rollback
-
-FAILURE PROTOCOL:
-  PAUSE → THINK (sequential-thinking) → ROLLBACK → RETRY or NOTIFY
-
-STATUS MARKERS:
-  [ ] pending  |  [/] in progress  |  [x] done  |  [!] failed
+LOOP:     Load Plan → Analyze → Map Skills/MCPs → Execute → Validate → Repeat
+ROUTING:  AT-XXX → domain → skill → MCP → execute → validate
+MCP:      Local → context7 → clerk/neon → sequential-thinking → tavily
+FAILURE:  PAUSE → debug skill → sequential-thinking → ROLLBACK → RETRY/NOTIFY
+MARKERS:  [ ] pending | [/] progress | [x] done | [!] failed
+EVOLVE:   session start → capture per-task → heartbeat/5 → session end
 ```
 
 ---
 
-## Pre-Completion Checklist
+## Checklist
 
 ```yaml
-execution:
-  - [ ] All AT-XXX tasks marked [x]?
-  - [ ] No [!] failed tasks remaining?
-  - [ ] Dependencies respected?
-  - [ ] Parallel tasks executed when safe?
-
-validation:
-  - [ ] bun run build passes?
-  - [ ] bun run check passes?
-  - [ ] bun test passes?
-  - [ ] Assumptions validated?
-
-delivery:
-  - [ ] task.md updated with final status?
-  - [ ] walkthrough.md created?
-  - [ ] task_boundary set to VERIFICATION?
-  - [ ] notify_user called with summary?
+analysis:  [ ] Domains classified? Skills mapped? MCPs routed?
+execution: [ ] All [x]? No [!]? Dependencies respected?
+skills:    [ ] Correct skills loaded per domain?
+mcps:      [ ] context7 for docs? neon for DB? clerk for auth?
+validation:[ ] build ✓ | check ✓ | test ✓ | assumptions ✓
+evolution: [ ] Session started? Captures logged? Session ended?
+delivery:  [ ] task.md final? walkthrough.md created? notify_user?
 ```
 
 ---
@@ -319,5 +222,6 @@ delivery:
 ## References
 
 - Planning: `.agent/workflows/plan.md`
-- Skill: `.agent/skills/planning/SKILL.md`
+- Design: `.agent/workflows/design.md`
 - Debug: `.agent/workflows/debug.md`
+- Evolution: `.agent/skills/evolution-core/SKILL.md`

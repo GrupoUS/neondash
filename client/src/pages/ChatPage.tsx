@@ -839,7 +839,6 @@ export function ChatPage() {
             contactName={selectedConversation?.name ?? null}
             isAiEnabled={isAiEnabled}
             onToggleAi={() => toggleAiMutation.mutate()}
-            className="absolute"
           />
         </div>
       </div>

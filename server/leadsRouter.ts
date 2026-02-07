@@ -3,7 +3,7 @@ import { and, arrayContains, desc, eq, gte, inArray, lte, sql } from "drizzle-or
 import { z } from "zod";
 import { interacoes, leads } from "../drizzle/schema";
 import { validateBrazilianPhone } from "../shared/phone-utils";
-import { mentoradoProcedure, protectedProcedure, router } from "./_core/trpc";
+import { protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 
 export const leadsRouter = router({
@@ -132,7 +132,7 @@ export const leadsRouter = router({
     return { lead, interacoes: lead.interacoes };
   }),
 
-  create: mentoradoProcedure
+  create: protectedProcedure
     .input(
       z.object({
         nome: z.string().min(2, "Nome deve ter no mínimo 2 caracteres"),
@@ -160,10 +160,24 @@ export const leadsRouter = router({
         tipoPele: z.string().optional(),
         disponibilidade: z.string().optional(),
         objecoes: z.array(z.string()).optional(),
+        // Admin override
+        mentoradoId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
+
+      // Determine target mentorado (admin override or own)
+      let targetMentoradoId = ctx.mentorado?.id;
+      if (input.mentoradoId) {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
+        }
+        targetMentoradoId = input.mentoradoId;
+      }
+      if (!targetMentoradoId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Perfil de mentorado necessário" });
+      }
 
       // Validate and normalize phone if provided
       let normalizedPhone: string | undefined;
@@ -181,7 +195,7 @@ export const leadsRouter = router({
       const [newLead] = await db
         .insert(leads)
         .values({
-          mentoradoId: ctx.mentorado.id,
+          mentoradoId: targetMentoradoId,
           nome: input.nome,
           email: input.email,
           telefone: normalizedPhone,
@@ -214,7 +228,7 @@ export const leadsRouter = router({
       return newLead;
     }),
 
-  update: mentoradoProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -243,6 +257,8 @@ export const leadsRouter = router({
         tipoPele: z.string().optional(),
         disponibilidade: z.string().optional(),
         objecoes: z.array(z.string()).optional(),
+        // Admin override
+        mentoradoId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -258,8 +274,10 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. Strict Ownership
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Ownership check with admin bypass
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+      const isAdmin = ctx.user.role === "admin";
+      if (!isOwner && !isAdmin) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -312,7 +330,7 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  updateStatus: mentoradoProcedure
+  updateStatus: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -325,6 +343,8 @@ export const leadsRouter = router({
           "fechado",
           "perdido",
         ]),
+        // Admin override
+        mentoradoId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -340,8 +360,10 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. Strict Ownership
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Ownership check with admin bypass
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+      const isAdmin = ctx.user.role === "admin";
+      if (!isOwner && !isAdmin) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -354,10 +376,10 @@ export const leadsRouter = router({
         })
         .where(eq(leads.id, input.id));
 
-      // 4. Add auto interaction
+      // 4. Add auto interaction (use lead's mentorado for consistency)
       await db.insert(interacoes).values({
         leadId: lead.id,
-        mentoradoId: ctx.mentorado.id,
+        mentoradoId: lead.mentoradoId,
         tipo: "nota",
         notas: `Status alterado de "${lead.status}" para "${input.status}"`,
       });
@@ -365,8 +387,8 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  delete: mentoradoProcedure
-    .input(z.object({ id: z.number() }))
+  delete: protectedProcedure
+    .input(z.object({ id: z.number(), mentoradoId: z.number().optional() }))
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
 
@@ -380,9 +402,10 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. Strict Ownership (Admin exception removed as per request to have strict separation here)
-      // If admin needs delete, use admin router or separate procedure
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Ownership check with admin bypass
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+      const isAdmin = ctx.user.role === "admin";
+      if (!isOwner && !isAdmin) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -391,13 +414,15 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  addInteraction: mentoradoProcedure
+  addInteraction: protectedProcedure
     .input(
       z.object({
         leadId: z.number(),
         tipo: z.enum(["ligacao", "email", "whatsapp", "reuniao", "nota"]),
         notas: z.string().optional(),
         duracao: z.number().optional(),
+        // Admin override
+        mentoradoId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -413,8 +438,10 @@ export const leadsRouter = router({
         });
       }
 
-      // 2. ownership
-      if (lead.mentoradoId !== ctx.mentorado.id) {
+      // 2. Ownership check with admin bypass
+      const isOwner = ctx.mentorado?.id === lead.mentoradoId;
+      const isAdmin = ctx.user.role === "admin";
+      if (!isOwner && !isAdmin) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
 
@@ -422,7 +449,7 @@ export const leadsRouter = router({
         .insert(interacoes)
         .values({
           leadId: input.leadId,
-          mentoradoId: ctx.mentorado.id,
+          mentoradoId: lead.mentoradoId, // Use lead's mentorado for consistency
           tipo: input.tipo,
           notas: input.notas,
           duracao: input.duracao,
@@ -535,7 +562,7 @@ export const leadsRouter = router({
         leadsPorOrigem,
       };
     }),
-  bulkUpdateStatus: mentoradoProcedure
+  bulkUpdateStatus: protectedProcedure
     .input(
       z.object({
         ids: z.array(z.number()),
@@ -548,17 +575,23 @@ export const leadsRouter = router({
           "fechado",
           "perdido",
         ]),
+        // Admin override
+        mentoradoId: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
+      const isAdmin = ctx.user.role === "admin";
 
       const targets = await db
         .select({ id: leads.id, mentoradoId: leads.mentoradoId })
         .from(leads)
         .where(inArray(leads.id, input.ids));
 
-      const validIds = targets.filter((l) => l.mentoradoId === ctx.mentorado.id).map((l) => l.id);
+      // Admin can update all requested leads, regular users only their own
+      const validIds = isAdmin
+        ? targets.map((l) => l.id)
+        : targets.filter((l) => l.mentoradoId === ctx.mentorado?.id).map((l) => l.id);
 
       if (validIds.length === 0) return { count: 0 };
 
@@ -570,16 +603,21 @@ export const leadsRouter = router({
       return { count: validIds.length };
     }),
 
-  bulkDelete: mentoradoProcedure
-    .input(z.object({ ids: z.array(z.number()) }))
+  bulkDelete: protectedProcedure
+    .input(z.object({ ids: z.array(z.number()), mentoradoId: z.number().optional() }))
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
+      const isAdmin = ctx.user.role === "admin";
+
       const targets = await db
         .select({ id: leads.id, mentoradoId: leads.mentoradoId })
         .from(leads)
         .where(inArray(leads.id, input.ids));
 
-      const validIds = targets.filter((l) => l.mentoradoId === ctx.mentorado.id).map((l) => l.id);
+      // Admin can delete all requested leads, regular users only their own
+      const validIds = isAdmin
+        ? targets.map((l) => l.id)
+        : targets.filter((l) => l.mentoradoId === ctx.mentorado?.id).map((l) => l.id);
 
       if (validIds.length === 0) return { count: 0 };
 
@@ -587,17 +625,27 @@ export const leadsRouter = router({
       return { count: validIds.length };
     }),
 
-  bulkAddTags: mentoradoProcedure
-    .input(z.object({ ids: z.array(z.number()), tags: z.array(z.string()) }))
+  bulkAddTags: protectedProcedure
+    .input(
+      z.object({
+        ids: z.array(z.number()),
+        tags: z.array(z.string()),
+        mentoradoId: z.number().optional(),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const db = getDb();
+      const isAdmin = ctx.user.role === "admin";
 
       const targets = await db
         .select({ id: leads.id, mentoradoId: leads.mentoradoId })
         .from(leads)
         .where(inArray(leads.id, input.ids));
 
-      const validIds = targets.filter((l) => l.mentoradoId === ctx.mentorado.id).map((l) => l.id);
+      // Admin can update all requested leads, regular users only their own
+      const validIds = isAdmin
+        ? targets.map((l) => l.id)
+        : targets.filter((l) => l.mentoradoId === ctx.mentorado?.id).map((l) => l.id);
 
       if (validIds.length === 0) return { count: 0 };
 

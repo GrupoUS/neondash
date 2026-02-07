@@ -236,10 +236,10 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-5xl p-0 gap-0 overflow-hidden border-border/40 shadow-2xl bg-card">
-        <div className="flex flex-col md:flex-row h-[85vh] md:h-[750px] w-full">
+      <DialogContent className="sm:max-w-5xl w-[calc(100vw-1rem)] sm:w-full p-0 gap-0 overflow-hidden border-border/40 shadow-2xl bg-card">
+        <div className="flex flex-col md:flex-row h-[92dvh] sm:h-[90dvh] md:h-[88dvh] max-h-[920px] w-full min-h-0">
           {/* Sidebar - Steps */}
-          <div className="w-full md:w-[280px] bg-muted/30 border-r border-border/40 p-6 flex flex-col gap-8">
+          <div className="w-full md:w-[280px] md:shrink-0 bg-muted/30 border-r border-border/40 p-6 flex flex-col gap-8 min-h-0 overflow-y-auto">
             <div className="space-y-1">
               <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                 <UserPlus className="h-6 w-6 text-primary" />
@@ -311,7 +311,7 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col bg-card/50 overflow-hidden">
+          <div className="flex-1 flex flex-col bg-card/50 overflow-hidden min-h-0">
             <DialogHeader className="px-8 py-6 border-b border-border/50">
               <div className="flex items-center justify-between">
                 <div>
@@ -331,330 +331,335 @@ export function AddPatientWizard({ open, onOpenChange, onSuccess }: AddPatientWi
               </div>
             </DialogHeader>
 
-            <ScrollArea className="flex-1 p-8" type="always">
-              <Form {...form}>
-                <form className="space-y-6">
-                  <AnimatePresence custom={direction} mode="wait">
-                    <motion.div
-                      key={currentStep}
-                      custom={direction}
-                      variants={variants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{
-                        x: { type: "spring", stiffness: 300, damping: 30 },
-                        opacity: { duration: 0.2 },
-                      }}
-                      className="space-y-6"
-                    >
-                      {currentStep === 0 && (
-                        <div className="grid grid-cols-2 gap-6">
-                          <FormField
-                            control={form.control}
-                            name="nomeCompleto"
-                            render={({ field }) => (
-                              <FormItem className="col-span-2">
-                                <FormLabel>Nome Completo</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                      className="pl-9"
-                                      placeholder="Ex: Maria Silva"
-                                      {...field}
-                                    />
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="maria@email.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="telefone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Telefone (WhatsApp)</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="(11) 99999-9999" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="cpf"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>CPF</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="000.000.000-00" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="rg"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>RG</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="00.000.000-0" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <div className="col-span-2 h-px bg-border/50 my-2" />
-                          <FormField
-                            control={form.control}
-                            name="convenio"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Convênio</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Ex: Unimed, Bradesco..." {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="numeroCarteirinha"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nº Carteirinha</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="0000 0000 0000 00" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
-
-                      {currentStep === 1 && (
-                        <div className="grid grid-cols-6 gap-6">
-                          <FormField
-                            control={form.control}
-                            name="cep"
-                            render={({ field }) => (
-                              <FormItem className="col-span-2">
-                                <FormLabel>CEP</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="00000-000" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="logradouro"
-                            render={({ field }) => (
-                              <FormItem className="col-span-4">
-                                <FormLabel>Endereço</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Rua das Flores" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="numero"
-                            render={({ field }) => (
-                              <FormItem className="col-span-2">
-                                <FormLabel>Número</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="123" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="complemento"
-                            render={({ field }) => (
-                              <FormItem className="col-span-4">
-                                <FormLabel>Complemento</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Apto 42" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="bairro"
-                            render={({ field }) => (
-                              <FormItem className="col-span-2">
-                                <FormLabel>Bairro</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Centro" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="cidade"
-                            render={({ field }) => (
-                              <FormItem className="col-span-3">
-                                <FormLabel>Cidade</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="São Paulo" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="estado"
-                            render={({ field }) => (
-                              <FormItem className="col-span-1">
-                                <FormLabel>UF</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="SP" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
-
-                      {currentStep === 2 && (
-                        <div className="space-y-6">
-                          <div className="grid grid-cols-2 gap-6">
+            <ScrollArea className="flex-1 min-h-0" type="always">
+              <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-8">
+                <Form {...form}>
+                  <form className="space-y-6">
+                    <AnimatePresence custom={direction} mode="wait">
+                      <motion.div
+                        key={currentStep}
+                        custom={direction}
+                        variants={variants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{
+                          x: { type: "spring", stiffness: 300, damping: 30 },
+                          opacity: { duration: 0.2 },
+                        }}
+                        className="space-y-6"
+                      >
+                        {currentStep === 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
                               control={form.control}
-                              name="tipoSanguineo"
+                              name="nomeCompleto"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                  <FormLabel>Nome Completo</FormLabel>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                      <Input
+                                        className="pl-9"
+                                        placeholder="Ex: Maria Silva"
+                                        {...field}
+                                      />
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="email"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Tipo Sanguíneo</FormLabel>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormLabel>Email</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="maria@email.com" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="telefone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Telefone (WhatsApp)</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="(11) 99999-9999" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="cpf"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>CPF</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="000.000.000-00" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="rg"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>RG</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="00.000.000-0" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <div className="md:col-span-2 h-px bg-border/50 my-2" />
+                            <FormField
+                              control={form.control}
+                              name="convenio"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Convênio</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Ex: Unimed, Bradesco..." {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="numeroCarteirinha"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Nº Carteirinha</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="0000 0000 0000 00" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+
+                        {currentStep === 1 && (
+                          <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+                            <FormField
+                              control={form.control}
+                              name="cep"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                  <FormLabel>CEP</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="00000-000" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="logradouro"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-4">
+                                  <FormLabel>Endereço</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Rua das Flores" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="numero"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                  <FormLabel>Número</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="123" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="complemento"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-4">
+                                  <FormLabel>Complemento</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Apto 42" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="bairro"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                  <FormLabel>Bairro</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Centro" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="cidade"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-3">
+                                  <FormLabel>Cidade</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="São Paulo" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="estado"
+                              render={({ field }) => (
+                                <FormItem className="md:col-span-1">
+                                  <FormLabel>UF</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="SP" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+
+                        {currentStep === 2 && (
+                          <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <FormField
+                                control={form.control}
+                                name="tipoSanguineo"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Tipo Sanguíneo</FormLabel>
+                                    <Select
+                                      onValueChange={field.onChange}
+                                      defaultValue={field.value}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecione" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        <SelectItem value="A+">A+</SelectItem>
+                                        <SelectItem value="A-">A-</SelectItem>
+                                        <SelectItem value="B+">B+</SelectItem>
+                                        <SelectItem value="B-">B-</SelectItem>
+                                        <SelectItem value="AB+">AB+</SelectItem>
+                                        <SelectItem value="AB-">AB-</SelectItem>
+                                        <SelectItem value="O+">O+</SelectItem>
+                                        <SelectItem value="O-">O-</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="alergias"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Alergias</FormLabel>
                                     <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Selecione" />
-                                      </SelectTrigger>
+                                      <Input placeholder="Ex: Dipirona, Latex" {...field} />
                                     </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="A+">A+</SelectItem>
-                                      <SelectItem value="A-">A-</SelectItem>
-                                      <SelectItem value="B+">B+</SelectItem>
-                                      <SelectItem value="B-">B-</SelectItem>
-                                      <SelectItem value="AB+">AB+</SelectItem>
-                                      <SelectItem value="AB-">AB-</SelectItem>
-                                      <SelectItem value="O+">O+</SelectItem>
-                                      <SelectItem value="O-">O-</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="alergias"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Alergias</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Ex: Dipirona, Latex" {...field} />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="medicamentosAtuais"
-                              render={({ field }) => (
-                                <FormItem className="col-span-2">
-                                  <FormLabel>Medicamentos em uso</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Ex: Roacutan 20mg" {...field} />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="queixasPrincipais"
-                              render={({ field }) => (
-                                <FormItem className="col-span-2">
-                                  <FormLabel>Queixas Principais</FormLabel>
-                                  <FormControl>
-                                    <Textarea
-                                      placeholder="Descreva as principais queixas..."
-                                      className="min-h-[120px] max-h-[120px] overflow-y-auto resize-none"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="observacoes"
-                              render={({ field }) => (
-                                <FormItem className="col-span-2">
-                                  <FormLabel>Observações Gerais</FormLabel>
-                                  <FormControl>
-                                    <Textarea
-                                      placeholder="Outras observações importantes..."
-                                      className="min-h-[120px] max-h-[120px] overflow-y-auto resize-none"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="medicamentosAtuais"
+                                render={({ field }) => (
+                                  <FormItem className="md:col-span-2">
+                                    <FormLabel>Medicamentos em uso</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Ex: Roacutan 20mg" {...field} />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="queixasPrincipais"
+                                render={({ field }) => (
+                                  <FormItem className="md:col-span-2">
+                                    <FormLabel>Queixas Principais</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Descreva as principais queixas..."
+                                        className="min-h-[120px] max-h-[120px] overflow-y-auto resize-none"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="observacoes"
+                                render={({ field }) => (
+                                  <FormItem className="md:col-span-2">
+                                    <FormLabel>Observações Gerais</FormLabel>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder="Outras observações importantes..."
+                                        className="min-h-[120px] max-h-[120px] overflow-y-auto resize-none"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
 
-                          <div className="pt-4 border-t border-border/50">
-                            <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-primary" />
-                              Documentos e Anexos
-                            </h3>
-                            <FileUpload
-                              onFilesSelected={setUploadedFiles}
-                              maxFiles={3}
-                              accept={{
-                                "image/*": [".png", ".jpg", ".jpeg"],
-                                "application/pdf": [".pdf"],
-                              }}
-                            />
+                            <div className="pt-4 border-t border-border/50">
+                              <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-primary" />
+                                Documentos e Anexos
+                              </h3>
+                              <FileUpload
+                                onFilesSelected={setUploadedFiles}
+                                maxFiles={3}
+                                accept={{
+                                  "image/*": [".png", ".jpg", ".jpeg"],
+                                  "application/pdf": [".pdf"],
+                                }}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </form>
-              </Form>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                  </form>
+                </Form>
+              </div>
             </ScrollArea>
 
             <div className="p-6 border-t border-border/10 bg-muted/10 flex justify-between items-center">

@@ -1,6 +1,7 @@
 import type {
   AuthenticationCreds,
   AuthenticationState,
+  SignalDataSet,
   SignalDataTypeMap,
 } from "@whiskeysockets/baileys";
 import { BufferJSON, initAuthCreds, proto } from "@whiskeysockets/baileys";
@@ -102,10 +103,10 @@ export const usePostgresAuthState = async (
     state: {
       creds,
       keys: {
-        get: async (type, ids) => {
-          const data: { [key: string]: SignalDataTypeMap[typeof type] } = {};
+        get: async <T extends keyof SignalDataTypeMap>(type: T, ids: string[]) => {
+          const data: { [key: string]: SignalDataTypeMap[T] } = {};
           await Promise.all(
-            ids.map(async (id) => {
+            ids.map(async (id: string) => {
               let value = await readData(`${type}-${id}`);
               if (type === "app-state-sync-key" && value) {
                 value = proto.Message.AppStateSyncKeyData.fromObject(value);
@@ -117,7 +118,7 @@ export const usePostgresAuthState = async (
           );
           return data;
         },
-        set: async (data) => {
+        set: async (data: SignalDataSet) => {
           const tasks: Promise<void>[] = [];
           for (const category in data) {
             const cat = category as keyof typeof data;

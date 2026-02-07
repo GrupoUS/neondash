@@ -485,69 +485,75 @@ class BaileysService extends EventEmitter {
         }
       });
 
-      socket.ev.on("messages.upsert", (m) => {
-        const active = this.sessions.get(mentoradoId);
-        if (!active || active.socket !== socket || m.type !== "notify") {
-          return;
-        }
+      socket.ev.on(
+        "messages.upsert",
+        (m: { type: string; messages: WAProto.IWebMessageInfo[] }) => {
+          const active = this.sessions.get(mentoradoId);
+          if (!active || active.socket !== socket || m.type !== "notify") {
+            return;
+          }
 
-        for (const msg of m.messages) {
-          if (msg.key.fromMe) continue;
-          const jid = msg.key.remoteJid;
-          if (!jid) continue;
-          if (jid.endsWith("@g.us")) continue;
+          for (const msg of m.messages) {
+            if (!msg.key || msg.key.fromMe) continue;
+            const jid = msg.key.remoteJid;
+            if (!jid) continue;
+            if (jid.endsWith("@g.us")) continue;
 
-          const normalizedJid = this.normalizeJid(jid);
-          const phone = this.extractPhoneFromJid(normalizedJid);
-          if (!phone) continue;
+            const normalizedJid = this.normalizeJid(jid);
+            const phone = this.extractPhoneFromJid(normalizedJid);
+            if (!phone) continue;
 
-          const payload: BaileysMessageEventPayload = {
-            event: "message",
-            mentoradoId,
-            message: msg,
-            phone,
-            jid: normalizedJid,
-            content: this.extractTextContent(msg.message),
-            timestamp: new Date().toISOString(),
-          };
+            const payload: BaileysMessageEventPayload = {
+              event: "message",
+              mentoradoId,
+              message: msg,
+              phone,
+              jid: normalizedJid,
+              content: this.extractTextContent(msg.message),
+              timestamp: new Date().toISOString(),
+            };
 
-          this.emitMessageEvent(payload);
-        }
-      });
-
-      // Handle contact updates (names, push names)
-      socket.ev.on("contacts.upsert", (contacts) => {
-        const active = this.sessions.get(mentoradoId);
-        if (!active || active.socket !== socket) {
-          return;
-        }
-
-        const contactList: Array<{ phone: string; name: string | null }> = [];
-        for (const contact of contacts) {
-          if (!contact.id) continue;
-          // Skip groups
-          if (contact.id.endsWith("@g.us")) continue;
-
-          const phone = this.extractPhoneFromJid(contact.id);
-          if (!phone) continue;
-
-          // Use notify (push name) or name
-          const name = contact.notify || contact.name || null;
-          if (name) {
-            contactList.push({ phone, name });
+            this.emitMessageEvent(payload);
           }
         }
+      );
 
-        if (contactList.length > 0) {
-          const payload: BaileysContactEventPayload = {
-            event: "contacts",
-            mentoradoId,
-            contacts: contactList,
-            timestamp: new Date().toISOString(),
-          };
-          this.emit("contacts", payload);
+      // Handle contact updates (names, push names)
+      socket.ev.on(
+        "contacts.upsert",
+        (contacts: Array<{ id?: string | null; notify?: string | null; name?: string | null }>) => {
+          const active = this.sessions.get(mentoradoId);
+          if (!active || active.socket !== socket) {
+            return;
+          }
+
+          const contactList: Array<{ phone: string; name: string | null }> = [];
+          for (const contact of contacts) {
+            if (!contact.id) continue;
+            // Skip groups
+            if (contact.id.endsWith("@g.us")) continue;
+
+            const phone = this.extractPhoneFromJid(contact.id);
+            if (!phone) continue;
+
+            // Use notify (push name) or name
+            const name = contact.notify || contact.name || null;
+            if (name) {
+              contactList.push({ phone, name });
+            }
+          }
+
+          if (contactList.length > 0) {
+            const payload: BaileysContactEventPayload = {
+              event: "contacts",
+              mentoradoId,
+              contacts: contactList,
+              timestamp: new Date().toISOString(),
+            };
+            this.emit("contacts", payload);
+          }
         }
-      });
+      );
     } catch (error) {
       const active = this.sessions.get(mentoradoId);
       if (active && active.generation === generation) {

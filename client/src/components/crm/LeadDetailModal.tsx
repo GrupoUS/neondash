@@ -54,7 +54,8 @@ interface LeadDetailModalProps {
   leadId: number | null;
   isOpen: boolean;
   onClose: () => void;
-  isReadOnly?: boolean;
+  /** Admin override - mentoradoId for admin operations */
+  mentoradoId?: number;
   onSchedule?: (leadName: string) => void;
 }
 
@@ -85,7 +86,7 @@ export function LeadDetailModal({
   leadId,
   isOpen,
   onClose,
-  isReadOnly = false,
+  mentoradoId,
   onSchedule,
 }: LeadDetailModalProps) {
   const [interactionDialogOpen, setInteractionDialogOpen] = useState(false);
@@ -140,7 +141,7 @@ export function LeadDetailModal({
 
   const handleDelete = () => {
     if (leadId) {
-      deleteMutation.mutate({ id: leadId });
+      deleteMutation.mutate({ id: leadId, mentoradoId });
     }
   };
 
@@ -209,6 +210,7 @@ export function LeadDetailModal({
       dorPrincipal: editData.dorPrincipal as string,
       desejoPrincipal: editData.desejoPrincipal as string,
       temperatura: editData.temperatura as "frio" | "morno" | "quente" | undefined,
+      mentoradoId,
     });
   };
 
@@ -422,54 +424,52 @@ export function LeadDetailModal({
                         )}
                       </div>
 
-                      {/* Header Actions */}
-                      {!isReadOnly && (
-                        <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
-                          {isEditing ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => setIsEditing(false)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                className="h-8 w-8 bg-primary text-primary-foreground hover:bg-primary/90"
-                                onClick={handleSave}
-                                disabled={updateMutation.isPending}
-                              >
-                                {updateMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Check className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                onClick={() => setIsEditing(true)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => setShowDeleteConfirm(true)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      )}
+                      {/* Header Actions - always allow editing now, admin can edit any lead */}
+                      <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
+                        {isEditing ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => setIsEditing(false)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              className="h-8 w-8 bg-primary text-primary-foreground hover:bg-primary/90"
+                              onClick={handleSave}
+                              disabled={updateMutation.isPending}
+                            >
+                              {updateMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              onClick={() => setIsEditing(true)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setShowDeleteConfirm(true)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -569,7 +569,6 @@ export function LeadDetailModal({
                         editData={editData}
                         setEditData={setEditData}
                         updateMutation={updateMutation}
-                        isReadOnly={isReadOnly}
                         onSchedule={onSchedule}
                       />
                     </TabsContent>

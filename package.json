@@ -160,9 +160,7 @@
   "trustedDependencies": [
     "@clerk/express"
   ],
-  "overrides": {
-    "nanoid": "3.3.7"
-  },
+  "overrides": {},
   "patchedDependencies": {
     "wouter@3.7.1": "patches/wouter@3.7.1.patch"
   }

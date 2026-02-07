@@ -36,13 +36,23 @@ interface ColumnEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
   defaultColumns: { id: string; title: string; color: string }[];
+  /** Admin override - edit columns for this mentorado */
+  mentoradoId?: number;
 }
 
-export function ColumnEditDialog({ isOpen, onClose, defaultColumns }: ColumnEditDialogProps) {
+export function ColumnEditDialog({
+  isOpen,
+  onClose,
+  defaultColumns,
+  mentoradoId,
+}: ColumnEditDialogProps) {
   const trpcUtils = trpc.useUtils();
-  const { data: storedColumns } = trpc.crmColumns.list.useQuery(undefined, {
-    enabled: isOpen,
-  });
+  const { data: storedColumns } = trpc.crmColumns.list.useQuery(
+    mentoradoId ? { mentoradoId } : undefined,
+    {
+      enabled: isOpen,
+    }
+  );
 
   const saveMutation = trpc.crmColumns.save.useMutation({
     onSuccess: () => {
@@ -112,7 +122,7 @@ export function ColumnEditDialog({ isOpen, onClose, defaultColumns }: ColumnEdit
       order: index, // Save current index as order
     }));
 
-    saveMutation.mutate(payload);
+    saveMutation.mutate({ columns: payload, mentoradoId });
   };
 
   return (
@@ -134,8 +144,8 @@ export function ColumnEditDialog({ isOpen, onClose, defaultColumns }: ColumnEdit
                   className="flex items-center gap-3 p-3 border rounded-md bg-card"
                 >
                   <div className="cursor-grab text-muted-foreground hover:text-foreground">
-                    {/* Simple drag handle visual, actual drag logic requires dnd-kit but simple up/down buttons or just order input works too. 
-                       For now, let's just list them. Adding drag-drop is AT-009 or here. 
+                    {/* Simple drag handle visual, actual drag logic requires dnd-kit but simple up/down buttons or just order input works too.
+                       For now, let's just list them. Adding drag-drop is AT-009 or here.
                        Let's stick to simple form first. Reordering might be tricky without dnd-kit here.
                        Actually, we can use simple 'Move Up' / 'Move Down' buttons if needed, or just let them edit properties for now.
                        The prompt implies "Dynamic Columns", so reordering is key.

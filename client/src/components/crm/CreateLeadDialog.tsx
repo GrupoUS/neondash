@@ -72,9 +72,16 @@ interface CreateLeadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  /** Admin override - creates lead for this mentorado */
+  mentoradoId?: number;
 }
 
-export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialogProps) {
+export function CreateLeadDialog({
+  isOpen,
+  onClose,
+  onSuccess,
+  mentoradoId,
+}: CreateLeadDialogProps) {
   const trpcUtils = trpc.useUtils();
   const form = useForm<CreateLeadFormValues>({
     resolver: zodResolver(createLeadFormSchema) as any,
@@ -165,6 +172,8 @@ export function CreateLeadDialog({ isOpen, onClose, onSuccess }: CreateLeadDialo
       alergias: values.alergias || undefined,
       tipoPele: values.tipoPele || undefined,
       disponibilidade: values.disponibilidade || undefined,
+      // Admin override
+      mentoradoId,
     });
   };
 

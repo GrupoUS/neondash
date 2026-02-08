@@ -589,9 +589,10 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
       </Card>
 
       {/* Term Preview / Edit Dialog */}
+      {/* Term Preview / Edit Dialog */}
       <Dialog open={!!selectedTerm} onOpenChange={() => closeTerm()}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-4xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4">
             <DialogTitle className="flex items-center gap-2">
               {selectedTerm &&
                 (() => {
@@ -621,14 +622,14 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
           <Separator />
 
           {/* Scrollable content area */}
-          <ScrollArea className="flex-1 min-h-0 max-h-[50vh] overflow-hidden">
+          <ScrollArea className="flex-1 w-full p-0">
             <div
               ref={contentRef}
               contentEditable={isEditing}
               suppressContentEditableWarning
-              className={`prose prose-sm max-w-none p-4 sm:p-6 break-words [word-break:break-word] [overflow-wrap:anywhere] ${
+              className={`prose prose-sm max-w-none p-6 break-words [word-break:break-word] [overflow-wrap:anywhere] min-h-full ${
                 isEditing
-                  ? "bg-white dark:bg-zinc-900 rounded-lg border border-primary/40 ring-2 ring-primary/20 outline-none focus:ring-primary/40"
+                  ? "bg-white dark:bg-zinc-900 border border-primary/40 ring-2 ring-primary/20 outline-none focus:ring-primary/40"
                   : ""
               }`}
               // biome-ignore lint/security/noDangerouslySetInnerHtml: Controlled HTML from template literals, no user input
@@ -640,7 +641,7 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
 
           <Separator />
 
-          <DialogFooter className="flex-col gap-3">
+          <DialogFooter className="flex-col gap-3 p-6 pt-4 bg-muted/10">
             {/* Row 1: Edit toggle + template actions */}
             <div className="flex items-center justify-between w-full gap-2">
               <Button

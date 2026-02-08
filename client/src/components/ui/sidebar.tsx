@@ -84,7 +84,8 @@ export const DesktopSidebar = ({ className, children, ...props }: React.Componen
   return (
     <div
       className={cn(
-        "h-full px-4 py-4 hidden md:flex md:flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shrink-0 overflow-hidden",
+        "h-full px-4 py-4 hidden md:flex md:flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border overflow-hidden",
+        "fixed top-0 left-0 z-40",
         "transition-[width] duration-300 ease-in-out",
         isOpen ? "w-[300px]" : "w-[60px]",
         className

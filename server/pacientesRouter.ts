@@ -18,6 +18,7 @@ import { invokeLLM } from "./_core/llm";
 import { createLogger } from "./_core/logger";
 import { mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import { sendEmail } from "./emailService";
 import { patientChat } from "./services/patientAiService";
 import { storagePut } from "./storage";
 
@@ -1116,6 +1117,96 @@ export const pacientesRouter = router({
         await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
         await db.delete(pacientesDocumentos).where(eq(pacientesDocumentos.id, input.id));
         return { success: true };
+      }),
+
+    sendTermByEmail: mentoradoProcedure
+      .input(
+        z.object({
+          pacienteId: z.number(),
+          pacienteEmail: z.string().email("E-mail do paciente é obrigatório"),
+          pacienteNome: z.string().min(1),
+          termoTitulo: z.string().min(1),
+          termoHtml: z.string().min(1, "Conteúdo do termo é obrigatório"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        const emailHtml = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${input.termoTitulo}</title>
+</head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f4f4f5;">
+    <tr>
+      <td style="padding:40px 20px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="700" style="max-width:700px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding:24px 40px;background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">
+                <span style="color:#818cf8;">NEON</span> Clínica
+              </h1>
+            </td>
+          </tr>
+          <!-- Intro -->
+          <tr>
+            <td style="padding:30px 40px 10px;">
+              <p style="margin:0 0 8px;color:#374151;font-size:16px;">Prezado(a) <strong>${input.pacienteNome}</strong>,</p>
+              <p style="margin:0;color:#6b7280;font-size:15px;line-height:1.6;">Segue abaixo o <strong>${input.termoTitulo}</strong> para sua análise. Por favor, leia atentamente e responda este e-mail confirmando seu consentimento.</p>
+            </td>
+          </tr>
+          <!-- Term Content -->
+          <tr>
+            <td style="padding:20px 40px;">
+              <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:30px;font-size:14px;color:#1f2937;line-height:1.7;">
+                ${input.termoHtml}
+              </div>
+            </td>
+          </tr>
+          <!-- CTA -->
+          <tr>
+            <td style="padding:20px 40px;text-align:center;">
+              <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">Para confirmar seu consentimento, responda este e-mail com <strong>"CONCORDO"</strong>.</p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;">Este e-mail foi enviado automaticamente pela clínica.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
+
+        const sent = await sendEmail({
+          to: input.pacienteEmail,
+          subject: `${input.termoTitulo} — Assinatura Necessária`,
+          body: emailHtml,
+        });
+
+        if (!sent) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Falha ao enviar e-mail. Verifique se o serviço Resend está configurado.",
+          });
+        }
+
+        logger.info("term_email_sent", {
+          pacienteId: input.pacienteId,
+          email: input.pacienteEmail,
+          termo: input.termoTitulo,
+        });
+
+        return { success: true, email: input.pacienteEmail };
       }),
   }),
 

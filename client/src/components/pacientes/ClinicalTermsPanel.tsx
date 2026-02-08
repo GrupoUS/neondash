@@ -108,22 +108,6 @@ function fillPlaceholders(template: string, patient: PatientData): string {
     );
 }
 
-function stripHtmlForEmail(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<\/h[1-6]>/gi, "\n\n")
-    .replace(/<\/li>/gi, "\n")
-    .replace(/<li>/gi, "• ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // TERM TEMPLATES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -348,6 +332,13 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
     onError: (e) => toast.error(e.message || "Erro ao salvar termo"),
   });
 
+  const sendEmailMutation = trpc.pacientes.documentos.sendTermByEmail.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Termo enviado com sucesso para ${data.email}`);
+    },
+    onError: (e) => toast.error(e.message || "Erro ao enviar e-mail"),
+  });
+
   const handleSave = (term: TermTemplate) => {
     const filledContent = fillPlaceholders(term.conteudo, patientData);
     const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${term.titulo}</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:800px;margin:0 auto;line-height:1.7;color:#1a1a1a}h2{color:#111}ul,ol{margin:12px 0}li{margin:4px 0}strong{color:#000}</style></head><body>${filledContent}</body></html>`;
@@ -370,14 +361,14 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
     }
 
     const filledContent = fillPlaceholders(term.conteudo, patientData);
-    const plainText = stripHtmlForEmail(filledContent);
-    const subject = encodeURIComponent(`${term.titulo} — Assinatura Necessária`);
-    const body = encodeURIComponent(
-      `Prezado(a) ${patientData.nomeCompleto},\n\nSegue abaixo o ${term.titulo} para sua análise e assinatura:\n\n${"─".repeat(50)}\n\n${plainText}\n\n${"─".repeat(50)}\n\nPor favor, leia atentamente e responda este e-mail confirmando seu consentimento.\n\nAtenciosamente,\nClínica`
-    );
 
-    window.open(`mailto:${patientData.email}?subject=${subject}&body=${body}`, "_self");
-    toast.success(`Email sendo preparado para ${patientData.email}`);
+    sendEmailMutation.mutate({
+      pacienteId: patientId,
+      pacienteEmail: patientData.email,
+      pacienteNome: patientData.nomeCompleto,
+      termoTitulo: term.titulo,
+      termoHtml: filledContent,
+    });
   };
 
   const handlePrint = (term: TermTemplate) => {
@@ -532,10 +523,14 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
               variant="outline"
               className="gap-2 cursor-pointer"
               onClick={() => selectedTerm && handleEmail(selectedTerm)}
-              disabled={!patientData.email}
+              disabled={!patientData.email || sendEmailMutation.isPending}
               title={!patientData.email ? "Paciente sem e-mail cadastrado" : undefined}
             >
-              <Mail className="h-4 w-4" />
+              {sendEmailMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
               Enviar por E-mail
             </Button>
             <Button

@@ -388,6 +388,15 @@ Use as ferramentas disponíveis para buscar informações do prontuário antes d
         system: systemPrompt,
         messages: currentMessages as Parameters<typeof generateText>[0]["messages"],
         tools,
+        providerOptions: {
+          google: {
+            // Gemini 3 Flash with thinking generates thought_signature tokens
+            // that @ai-sdk/google v1 can't preserve across multi-turn tool calls.
+            // Setting thinkingLevel to "low" avoids signature issues while keeping
+            // useful reasoning. Upgrade to @ai-sdk/google v2 to remove this workaround.
+            thinkingConfig: { thinkingLevel: "low" },
+          },
+        },
       });
 
       // Collect tool names used in this step

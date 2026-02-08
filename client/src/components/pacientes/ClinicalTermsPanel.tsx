@@ -590,7 +590,7 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
 
       {/* Term Preview / Edit Dialog */}
       <Dialog open={!!selectedTerm} onOpenChange={() => closeTerm()}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedTerm &&
@@ -626,7 +626,7 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
               ref={contentRef}
               contentEditable={isEditing}
               suppressContentEditableWarning
-              className={`prose prose-sm max-w-none p-6 rounded-lg border transition-all ${
+              className={`prose prose-sm max-w-none p-6 rounded-lg border transition-all overflow-hidden break-words [word-break:break-word] ${
                 isEditing
                   ? "bg-white dark:bg-zinc-900 border-primary/40 ring-2 ring-primary/20 outline-none focus:ring-primary/40"
                   : "bg-white dark:bg-zinc-950 border-border/50"

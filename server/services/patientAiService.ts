@@ -48,6 +48,7 @@ export interface PatientChatResult {
 
 export interface PatientChatOptions {
   generateImage?: boolean;
+  forceImageGeneration?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -447,10 +448,12 @@ async function runToolLoop(
 async function tryGenerateSimulationImage(
   messages: PatientChatMessage[],
   context: PatientChatContext,
-  assistantText: string
+  assistantText: string,
+  force = false
 ): Promise<string | null> {
   const latestUserMessage = getLatestUserMessage(messages);
-  if (!latestUserMessage || !shouldGenerateSimulationImage(latestUserMessage)) return null;
+  if (!latestUserMessage) return null;
+  if (!force && !shouldGenerateSimulationImage(latestUserMessage)) return null;
 
   try {
     const result = await generateImage({
@@ -520,7 +523,12 @@ export async function patientChat(
 
     let generatedImageUrl: string | null = null;
     if (options.generateImage !== false) {
-      generatedImageUrl = await tryGenerateSimulationImage(messages, context, finalText);
+      generatedImageUrl = await tryGenerateSimulationImage(
+        messages,
+        context,
+        finalText,
+        options.forceImageGeneration
+      );
       if (generatedImageUrl) uniqueToolsUsed.push("generateImage");
     }
 

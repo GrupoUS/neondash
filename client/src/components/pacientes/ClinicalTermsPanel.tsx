@@ -4,6 +4,7 @@
  * Supports: editable content, save as document, send via email/WhatsApp, print/PDF.
  */
 
+import { useUser } from "@clerk/clerk-react";
 import {
   Check,
   FileSignature,
@@ -89,7 +90,11 @@ function todayBR(): string {
   });
 }
 
-function fillPlaceholders(template: string, patient: PatientData): string {
+function fillPlaceholders(
+  template: string,
+  patient: PatientData,
+  professionalName?: string
+): string {
   const endereco =
     patient.endereco ||
     [patient.cidade, patient.estado].filter(Boolean).join(" - ") ||
@@ -107,7 +112,8 @@ function fillPlaceholders(template: string, patient: PatientData): string {
     .replace(
       /\{\{CIDADE_ESTADO\}\}/g,
       [patient.cidade, patient.estado].filter(Boolean).join("/") || "_______________"
-    );
+    )
+    .replace(/\{\{NOME_PROFISSIONAL\}\}/g, professionalName || "___________________________");
 }
 
 /** Strip HTML tags to get plain text for WhatsApp */
@@ -188,7 +194,8 @@ const TERM_TEMPLATES: TermTemplate[] = [
 <p><strong>{{NOME_PACIENTE}}</strong> — CPF: {{CPF}}</p>
 <br/>
 <p>_____________________________________________</p>
-<p><strong>Profissional Responsável</strong></p>
+<p><strong>{{NOME_PROFISSIONAL}}</strong></p>
+<p>Profissional Responsável</p>
     `.trim(),
   },
   {
@@ -269,7 +276,8 @@ const TERM_TEMPLATES: TermTemplate[] = [
 <p><strong>{{NOME_PACIENTE}}</strong> — CPF: {{CPF}}</p>
 <br/>
 <p>_____________________________________________</p>
-<p><strong>Profissional Responsável</strong></p>
+<p><strong>{{NOME_PROFISSIONAL}}</strong></p>
+<p>Profissional Responsável</p>
     `.trim(),
   },
   {
@@ -311,7 +319,8 @@ const TERM_TEMPLATES: TermTemplate[] = [
 <p><strong>{{NOME_PACIENTE}}</strong> — CPF: {{CPF}}</p>
 <br/>
 <p>_____________________________________________</p>
-<p><strong>Profissional Responsável</strong></p>
+<p><strong>{{NOME_PROFISSIONAL}}</strong></p>
+<p>Profissional Responsável</p>
     `.trim(),
   },
 ];
@@ -321,6 +330,8 @@ const TERM_TEMPLATES: TermTemplate[] = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPanelProps) {
+  const { user } = useUser();
+  const professionalName = user?.fullName || "";
   const [selectedTerm, setSelectedTerm] = useState<TermTemplate | null>(null);
   const [savedTerms, setSavedTerms] = useState<Set<string>>(new Set());
   const [isEditing, setIsEditing] = useState(false);
@@ -370,7 +381,11 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
       void utils.pacientes.termos.getAll.invalidate();
       // Re-render with default template
       if (selectedTerm && contentRef.current) {
-        contentRef.current.innerHTML = fillPlaceholders(selectedTerm.conteudo, patientData);
+        contentRef.current.innerHTML = fillPlaceholders(
+          selectedTerm.conteudo,
+          patientData,
+          professionalName
+        );
       }
     },
     onError: (e) => toast.error(e.message || "Erro ao restaurar modelo"),
@@ -383,11 +398,11 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
       if (customHtml) {
         // Custom templates already have placeholders filled with previous patient data,
         // so we store the raw template. Re-fill placeholders on the custom content.
-        return fillPlaceholders(customHtml, patientData);
+        return fillPlaceholders(customHtml, patientData, professionalName);
       }
-      return fillPlaceholders(term.conteudo, patientData);
+      return fillPlaceholders(term.conteudo, patientData, professionalName);
     },
-    [customTermsMap, patientData]
+    [customTermsMap, patientData, professionalName]
   );
 
   /** Get current HTML from the editable content area (may be edited by user) */

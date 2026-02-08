@@ -1376,6 +1376,7 @@ export const pacientesRouter = router({
           sessionId: z.string(),
           userMessage: z.string().min(1),
           imagemUrl: z.string().url().optional(),
+          forceImageGeneration: z.boolean().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -1445,6 +1446,7 @@ export const pacientesRouter = router({
           },
           {
             generateImage: true,
+            forceImageGeneration: input.forceImageGeneration,
           }
         );
 

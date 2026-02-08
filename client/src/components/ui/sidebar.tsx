@@ -93,6 +93,7 @@ export const DesktopSidebar = ({
       animate={{
         width: animate ? (open ? "300px" : "60px") : "300px",
       }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       {...props}
@@ -147,18 +148,20 @@ export const SidebarLink = ({ link, className, ...props }: { link: Links; classN
   const { open, animate } = useSidebar();
   const isExternal = link.href.startsWith("http") || link.href.startsWith("mailto");
 
+  const shouldShow = animate ? open : true;
+
   const content = (
     <>
       {link.icon}
-      <motion.span
-        animate={{
-          display: animate ? (open ? "inline-block" : "none") : "inline-block",
-          opacity: animate ? (open ? 1 : 0) : 1,
-        }}
-        className="text-sidebar-foreground text-base group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+      <span
+        className={cn(
+          "text-sidebar-foreground text-base group-hover/sidebar:translate-x-1 whitespace-pre !p-0 !m-0",
+          "transition-opacity duration-200 ease-in-out",
+          shouldShow ? "opacity-100 inline-block" : "opacity-0 hidden"
+        )}
       >
         {link.label}
-      </motion.span>
+      </span>
     </>
   );
 

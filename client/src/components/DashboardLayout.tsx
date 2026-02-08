@@ -1,5 +1,4 @@
 "use client";
-import { motion } from "framer-motion";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -163,7 +162,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
 
                 {open && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0">
+                  <div className="min-w-0 animate-in fade-in duration-200">
                     <p className="text-xs text-sidebar-foreground font-medium leading-tight">
                       WhatsApp
                     </p>
@@ -174,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           ? `Ativo via ${providerLabel}`
                           : "Configurar conexão"}
                     </p>
-                  </motion.div>
+                  </div>
                 )}
               </div>
             </Link>
@@ -195,14 +194,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </Button>
               {open && (
-                <motion.span
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm text-muted-foreground whitespace-pre cursor-pointer"
+                <button
+                  type="button"
+                  className="text-sm text-muted-foreground whitespace-pre cursor-pointer animate-in fade-in duration-200 bg-transparent border-none p-0"
                   onClick={toggleTheme}
                 >
                   {theme === "light" ? "Modo Escuro" : "Modo Claro"}
-                </motion.span>
+                </button>
               )}
             </div>
             <div className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary transition-colors">
@@ -210,13 +208,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <UserButton />
               </div>
               {open && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm text-muted-foreground whitespace-pre overflow-hidden text-ellipsis"
-                >
+                <div className="text-sm text-muted-foreground whitespace-pre overflow-hidden text-ellipsis animate-in fade-in duration-200">
                   {user.name || "Minha Conta"}
-                </motion.div>
+                </div>
               )}
             </div>
           </div>
@@ -237,13 +231,9 @@ export const Logo = () => {
       className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
     >
       <img src="/brand/neon-symbol-official.png" alt="Neon" className="h-6 w-6 flex-shrink-0" />
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="font-medium text-black dark:text-white whitespace-pre"
-      >
+      <span className="font-medium text-black dark:text-white whitespace-pre animate-in fade-in duration-200">
         NEON DASHBOARD
-      </motion.span>
+      </span>
     </Link>
   );
 };

@@ -374,12 +374,18 @@ Use as ferramentas disponíveis para buscar informações do prontuário antes d
     });
 
     // Early cast to avoid deep type instantiation issues
+    // Disable thinking (thinkingBudget: 0) to avoid thought_signature errors.
+    // Gemini 3 models require thought signatures in multi-step tool calls,
+    // but @ai-sdk/google@1.x doesn't preserve them in round-trips.
     const result = await generateText({
       model: defaultModel,
       system: systemPrompt,
       messages: formattedMessages as Parameters<typeof generateText>[0]["messages"],
       tools,
       maxSteps: 5, // Allow up to 5 tool calls
+      providerOptions: {
+        google: { thinkingConfig: { thinkingBudget: 0 } },
+      },
     });
 
     const toolsUsed: string[] = result.steps

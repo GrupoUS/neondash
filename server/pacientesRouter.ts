@@ -12,6 +12,7 @@ import {
   pacientesFotos,
   pacientesInfoMedica,
   pacientesProcedimentos,
+  pacientesRelatoriosConsulta,
 } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 import { createLogger } from "./_core/logger";
@@ -337,6 +338,12 @@ export const pacientesRouter = router({
       .orderBy(desc(pacientesDocumentos.createdAt))
       .limit(20);
 
+    const relatoriosConsulta = await db
+      .select()
+      .from(pacientesRelatoriosConsulta)
+      .where(eq(pacientesRelatoriosConsulta.pacienteId, input.id))
+      .orderBy(desc(pacientesRelatoriosConsulta.dataConsulta));
+
     // Calculate stats
     const [statsResult] = await db
       .select({
@@ -355,6 +362,7 @@ export const pacientesRouter = router({
       procedimentos,
       fotosRecentes,
       documentos,
+      relatoriosConsulta,
       stats: {
         totalProcedimentos: statsResult?.totalProcedimentos ?? 0,
         totalFotos: statsResult?.totalFotos ?? 0,
@@ -697,6 +705,103 @@ export const pacientesRouter = router({
         .returning();
       return created;
     }),
+  }),
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RELATÓRIOS DE CONSULTA
+  // ─────────────────────────────────────────────────────────────────────────
+
+  relatorios: router({
+    list: mentoradoProcedure
+      .input(z.object({ pacienteId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        return db
+          .select()
+          .from(pacientesRelatoriosConsulta)
+          .where(eq(pacientesRelatoriosConsulta.pacienteId, input.pacienteId))
+          .orderBy(desc(pacientesRelatoriosConsulta.dataConsulta));
+      }),
+
+    create: mentoradoProcedure
+      .input(
+        z.object({
+          pacienteId: z.number(),
+          dataConsulta: z.string().min(1, "Data é obrigatória"),
+          observacao: z.string().min(1, "Observação é obrigatória"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        const [created] = await db
+          .insert(pacientesRelatoriosConsulta)
+          .values({
+            pacienteId: input.pacienteId,
+            dataConsulta: input.dataConsulta,
+            observacao: input.observacao,
+          })
+          .returning();
+        return created;
+      }),
+
+    update: mentoradoProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          pacienteId: z.number(),
+          dataConsulta: z.string().optional(),
+          observacao: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        const { id, pacienteId, ...data } = input;
+        const updatePayload: Record<string, unknown> = { updatedAt: new Date() };
+        if (data.dataConsulta !== undefined) updatePayload.dataConsulta = data.dataConsulta;
+        if (data.observacao !== undefined) updatePayload.observacao = data.observacao;
+
+        const [updated] = await db
+          .update(pacientesRelatoriosConsulta)
+          .set(updatePayload)
+          .where(
+            and(
+              eq(pacientesRelatoriosConsulta.id, id),
+              eq(pacientesRelatoriosConsulta.pacienteId, pacienteId)
+            )
+          )
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Relatório não encontrado",
+          });
+        }
+        return updated;
+      }),
+
+    delete: mentoradoProcedure
+      .input(z.object({ id: z.number(), pacienteId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        await db
+          .delete(pacientesRelatoriosConsulta)
+          .where(
+            and(
+              eq(pacientesRelatoriosConsulta.id, input.id),
+              eq(pacientesRelatoriosConsulta.pacienteId, input.pacienteId)
+            )
+          );
+        return { success: true };
+      }),
   }),
 
   // ─────────────────────────────────────────────────────────────────────────

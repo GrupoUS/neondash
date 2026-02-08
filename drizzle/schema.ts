@@ -463,7 +463,7 @@ export const leads = pgTable(
     status: statusLeadEnum("status").notNull().default("novo"),
     valorEstimado: integer("valor_estimado"), // em centavos
     tags: text("tags").array(),
-    
+
     // Novos campos
     objecoes: text("objecoes").array(),
     indicadoPor: text("indicado_por"),
@@ -484,7 +484,7 @@ export const leads = pgTable(
     alergias: text("alergias"),
     tipoPele: text("tipo_pele"),
     disponibilidade: text("disponibilidade"),
-    
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -1541,7 +1541,7 @@ export const pacientes = pgTable(
     genero: pacienteGeneroEnum("genero"),
     cpf: varchar("cpf", { length: 14 }),
     rg: varchar("rg", { length: 20 }), // NEW
-    
+
     // Address Fields (Structured)
     endereco: text("endereco"), // Legacy full address (keep as fallback)
     cep: varchar("cep", { length: 9 }),
@@ -1551,37 +1551,37 @@ export const pacientes = pgTable(
     bairro: varchar("bairro", { length: 100 }),
     cidade: varchar("cidade", { length: 100 }),
     estado: varchar("estado", { length: 2 }), // UF
-    
+
     // Insurance
     convenio: varchar("convenio", { length: 100 }), // NEW
     numeroCarteirinha: varchar("numero_carteirinha", { length: 50 }), // NEW
-    
+
     // Contato Extra
     telefoneSecundario: varchar("telefone_secundario", { length: 20 }),
     metodoContatoPreferido: varchar("metodo_contato_preferido", { length: 20 }).default("whatsapp"),
-    
+
     // Documentos Extra
     // rg: varchar("rg", { length: 20 }), // Duplicate removed
     // convenio: varchar("convenio", { length: 100 }), // Duplicate removed
     numeroConvenio: varchar("numero_convenio", { length: 50 }),
-    
+
     // Contato Emergência
     contatoEmergenciaNome: varchar("contato_emergencia_nome", { length: 255 }),
     contatoEmergenciaTelefone: varchar("contato_emergencia_telefone", { length: 20 }),
     contatoEmergenciaRelacao: varchar("contato_emergencia_relacao", { length: 50 }),
-    
+
     // LGPD
     lgpdConsentimento: simNaoEnum("lgpd_consentimento").default("nao"),
     lgpdDataConsentimento: timestamp("lgpd_data_consentimento"),
     lgpdConsentimentoMarketing: simNaoEnum("lgpd_consentimento_marketing").default("nao"),
     lgpdConsentimentoFotos: simNaoEnum("lgpd_consentimento_fotos").default("nao"),
-    
+
     // Métricas/Status
     fotoUrl: text("foto_url"),
     observacoes: text("observacoes"),
     status: pacienteStatusEnum("status").default("ativo").notNull(),
     numeroProntuario: varchar("numero_prontuario", { length: 20 }),
-    
+
     // KPI
     totalConsultas: integer("total_consultas").default(0),
     totalFaltas: integer("total_faltas").default(0),
@@ -1622,7 +1622,7 @@ export const pacientesInfoMedica = pgTable(
     historicoCircurgico: text("historico_cirurgico"),
     contraindacacoes: text("contraindicacoes"),
     observacoesClinicas: text("observacoes_clinicas"),
-    
+
     // Aesthetic Profile
     tipoPele: tipoPeleFitzpatrickEnum("tipo_pele"),
     fototipo: varchar("fototipo", { length: 20 }),
@@ -1639,6 +1639,31 @@ export type PacienteInfoMedica = typeof pacientesInfoMedica.$inferSelect;
 export type InsertPacienteInfoMedica = typeof pacientesInfoMedica.$inferInsert;
 
 /**
+ * Pacientes Relatórios de Consulta - Consultation reports for patient progression tracking
+ * Multiple entries per patient, one per consultation date
+ */
+export const pacientesRelatoriosConsulta = pgTable(
+  "pacientes_relatorios_consulta",
+  {
+    id: serial("id").primaryKey(),
+    pacienteId: integer("paciente_id")
+      .notNull()
+      .references(() => pacientes.id, { onDelete: "cascade" }),
+    dataConsulta: date("data_consulta").notNull(),
+    observacao: text("observacao").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("pacientes_relatorios_paciente_idx").on(table.pacienteId),
+    index("pacientes_relatorios_data_idx").on(table.pacienteId, table.dataConsulta),
+  ]
+);
+
+export type PacienteRelatorioConsulta = typeof pacientesRelatoriosConsulta.$inferSelect;
+export type InsertPacienteRelatorioConsulta = typeof pacientesRelatoriosConsulta.$inferInsert;
+
+/**
  * Pacientes Procedimentos - Procedure history for each patient
  */
 export const pacientesProcedimentos = pgTable(
@@ -1651,33 +1676,33 @@ export const pacientesProcedimentos = pgTable(
     procedimentoId: integer("procedimento_id").references(() => procedimentos.id, {
       onDelete: "set null",
     }),
-    
+
     // Details
     titulo: varchar("titulo", { length: 255 }), // Create custom title if no procedure ID
     status: statusTratamentoEnum("status").default("planejado"),
     dataRealizacao: timestamp("data_realizacao"),
     profissionalResponsavel: varchar("profissional_responsavel", { length: 255 }), // Legacy/External
     profissionalResponsavelId: integer("profissional_responsavel_id").references(() => users.id), // Internal
-    
+
     // Clinical Data
     notasClinicas: text("notas_clinicas"),
     diagnostico: text("diagnostico"),
     tecnicaUtilizada: text("tecnica_utilizada"),
     observacoes: text("observacoes"),
-    
+
     // Vitals immediately before/after
     peso: decimal("peso", { precision: 5, scale: 2 }), // kg
     altura: decimal("altura", { precision: 3, scale: 2 }), // meters
     pressaoArterial: varchar("pressao_arterial", { length: 20 }),
     duracaoMinutos: integer("duracao_minutos"),
-    
+
     // Financial (Snapshot)
     valorCobrado: integer("valor_cobrado"), // em centavos
     valorReal: integer("valor_real"), // valor com desconto, em centavos
-    
+
     // Result
     resultadoAvaliacao: text("resultado_avaliacao"),
-    
+
     // Specific to aesthetic procedures
     areaAplicacao: varchar("area_aplicacao", { length: 255 }),
     produtosUtilizados: text("produtos_utilizados"),
@@ -1754,7 +1779,7 @@ export const pacientesDocumentos = pgTable(
     tipo: tipoDocumentoEnum("tipo").notNull(),
     nome: varchar("nome", { length: 255 }).notNull(),
     descricao: text("descricao"),
-    
+
     // File Info
     url: text("url").notNull(),
     s3Key: text("s3_key"),

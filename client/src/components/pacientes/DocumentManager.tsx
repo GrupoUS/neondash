@@ -25,7 +25,6 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +66,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { ClinicalTermsPanel } from "./ClinicalTermsPanel";
 
 type TipoDocumento = "consentimento" | "exame" | "prescricao" | "outro";
 
@@ -83,6 +83,18 @@ interface PatientDocument {
 
 interface DocumentManagerProps {
   patientId: number;
+  patientData?: {
+    id: number;
+    nomeCompleto: string;
+    email?: string | null;
+    telefone?: string | null;
+    cpf?: string | null;
+    rg?: string | null;
+    dataNascimento?: string | null;
+    endereco?: string | null;
+    cidade?: string | null;
+    estado?: string | null;
+  };
 }
 
 const tipoLabels: Record<TipoDocumento, string> = {
@@ -146,7 +158,7 @@ function downloadDataUrl(dataUrl: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function DocumentManager({ patientId }: DocumentManagerProps) {
+export function DocumentManager({ patientId, patientData }: DocumentManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTipo, setFilterTipo] = useState<"all" | TipoDocumento>("all");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -494,6 +506,7 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
 
   return (
     <>
+      {patientData && <ClinicalTermsPanel patientId={patientId} patientData={patientData} />}
       <Card className="border-primary/10">
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
           <div>

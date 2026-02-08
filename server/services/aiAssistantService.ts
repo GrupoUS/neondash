@@ -761,6 +761,9 @@ DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
       }
     }
 
+    // Disable thinking (thinkingBudget: 0) to avoid thought_signature errors.
+    // Gemini 3 models require thought signatures in multi-step tool calls,
+    // but @ai-sdk/google@1.x doesn't preserve them in round-trips.
     const result = await generateText({
       model: defaultModel,
       system: effectiveSystemPrompt,
@@ -770,6 +773,9 @@ DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
       })),
       tools,
       maxSteps: 5, // Allow up to 5 tool calls in a single request
+      providerOptions: {
+        google: { thinkingConfig: { thinkingBudget: 0 } },
+      },
     });
 
     const toolsUsed = result.steps

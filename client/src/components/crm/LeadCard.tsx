@@ -50,24 +50,27 @@ function LeadCardComponent({
   } = useSortable({
     id: `lead-${lead.id}`,
     data: lead,
-    disabled: isSelectMode, // Disable drag when in selection mode
+    disabled: isSelectMode,
   });
 
   const isDragging = propIsDragging || dndIsDragging;
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: transition || "transform 200ms cubic-bezier(0.25, 1, 0.5, 1)",
   };
 
-  const formattedValue = lead.valor
+  const hasValue = lead.valor != null && lead.valor > 0;
+  const hasTags = lead.tags != null && lead.tags.length > 0;
+  const hasFooterContent = hasValue;
+
+  const formattedValue = hasValue
     ? new Intl.NumberFormat("pt-BR", {
         style: "currency",
         currency: "BRL",
-      }).format(lead.valor)
-    : "R$ 0,00";
+      }).format(lead.valor!)
+    : null;
 
-  // Initials for avatar
   const initials = lead.nome
     .split(" ")
     .map((n) => n[0])
@@ -88,14 +91,16 @@ function LeadCardComponent({
         onClick();
       }}
       className={cn(
-        "group relative flex flex-col gap-3 rounded-xl border p-4 transition-all duration-300 ease-out",
-        // Default State: Dark transparent card with blur
+        "group relative flex flex-col rounded-xl border transition-all duration-200 ease-out",
+        // Adaptive padding: compact base
+        "p-3 gap-2",
+        // Default State
         "bg-card/40 backdrop-blur-md border-border/40 shadow-sm",
-        // Hover State: Neon Glow & Lift
+        // Hover State
         !isDragging &&
-          "hover:-translate-y-1 hover:shadow-[0_8px_30px_-10px_rgba(var(--primary),0.15)] hover:border-primary/30 hover:bg-card/60",
-        // Dragging State
-        isDragging && "opacity-0", // Hide original when dragging (overlay takes over)
+          "hover:-translate-y-0.5 hover:shadow-[0_6px_24px_-8px_rgba(var(--primary),0.15)] hover:border-primary/30 hover:bg-card/60",
+        // Dragging State — ghost placeholder instead of hiding
+        isDragging && "opacity-40 scale-[0.97] ring-2 ring-primary/30 shadow-none",
         // Selected State
         isSelected && "border-primary bg-primary/10 ring-1 ring-primary",
         isSelectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"
@@ -103,7 +108,7 @@ function LeadCardComponent({
     >
       {/* Quick Select Checkbox */}
       {isSelectMode && (
-        <div className="absolute top-3 right-3 z-20">
+        <div className="absolute top-2.5 right-2.5 z-20">
           <Checkbox
             checked={isSelected}
             onCheckedChange={() => onToggleSelect?.()}
@@ -113,18 +118,18 @@ function LeadCardComponent({
       )}
 
       {/* Header: Avatar, Name, Company */}
-      <div className="flex items-start gap-3 relative z-10">
-        <div className="relative">
-          <Avatar className="h-10 w-10 border border-primary/20 ring-2 ring-background shadow-lg transition-transform group-hover:scale-105">
+      <div className="flex items-start gap-2.5 relative z-10">
+        <div className="relative shrink-0">
+          <Avatar className="h-9 w-9 border border-primary/20 ring-2 ring-background shadow-lg transition-transform group-hover:scale-105">
             <AvatarImage src={`https://ui-avatars.com/api/?name=${lead.nome}&background=random`} />
-            <AvatarFallback className="text-xs bg-sidebar-primary text-sidebar-primary-foreground font-bold">
+            <AvatarFallback className="text-[11px] bg-sidebar-primary text-sidebar-primary-foreground font-bold">
               {initials}
             </AvatarFallback>
           </Avatar>
-          {/* Status Dot Indicator */}
+          {/* Status Dot */}
           <div
             className={cn(
-              "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background",
+              "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background",
               lead.status === "novo"
                 ? "bg-blue-500"
                 : lead.status === "qualificado"
@@ -134,91 +139,88 @@ function LeadCardComponent({
           />
         </div>
 
-        <div className="flex-1 min-w-0 pt-0.5">
-          <h4 className="text-sm font-bold truncate leading-none mb-1.5 text-foreground group-hover:text-primary transition-colors">
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-bold truncate leading-tight text-foreground group-hover:text-primary transition-colors">
             {lead.nome}
           </h4>
-          <div className="flex flex-col gap-0.5">
-            {lead.empresa ? (
-              <span className="text-xs font-medium text-foreground/80 truncate flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-primary/50" />
-                {lead.empresa}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground italic">Sem empresa</span>
-            )}
-            {lead.cargo && (
-              <span className="text-[10px] text-muted-foreground truncate">{lead.cargo}</span>
-            )}
-          </div>
+          {lead.empresa ? (
+            <span className="text-xs text-foreground/70 truncate block leading-tight mt-0.5">
+              {lead.empresa}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground/50 italic block leading-tight mt-0.5">
+              Sem empresa
+            </span>
+          )}
+          {lead.cargo && (
+            <span className="text-[10px] text-muted-foreground truncate block leading-tight">
+              {lead.cargo}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Tags Row - Minimalist Pills */}
-      {lead.tags && lead.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-1">
-          {lead.tags.slice(0, 3).map((tag) => (
+      {/* Tags — only rendered when present */}
+      {hasTags && (
+        <div className="flex flex-wrap gap-1">
+          {lead.tags!.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="text-[10px] px-2 py-0.5 rounded-md bg-secondary/30 text-secondary-foreground font-medium border border-secondary/20 hover:border-secondary/50 transition-colors"
+              className="text-[10px] px-1.5 py-px rounded-md bg-secondary/30 text-secondary-foreground font-medium border border-secondary/20"
             >
               {tag}
             </span>
           ))}
-          {lead.tags.length > 3 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md text-muted-foreground bg-muted/30 font-medium">
-              +{lead.tags.length - 3}
+          {lead.tags!.length > 3 && (
+            <span className="text-[10px] px-1.5 py-px rounded-md text-muted-foreground bg-muted/30 font-medium">
+              +{lead.tags!.length - 3}
             </span>
           )}
         </div>
       )}
 
-      <div className="h-px bg-gradient-to-r from-transparent via-border/40 to-transparent w-full my-1" />
+      {/* Footer — only rendered when there's a value or actions */}
+      {hasFooterContent && (
+        <>
+          <div className="h-px bg-gradient-to-r from-transparent via-border/30 to-transparent w-full" />
+          <div className="flex items-center justify-between relative z-10">
+            <span className="text-sm font-bold font-mono tracking-tight text-emerald-400">
+              {formattedValue}
+            </span>
 
-      {/* Footer: Value & Actions */}
-      <div className="flex items-center justify-between relative z-10 h-7">
-        <span
-          className={cn(
-            "text-sm font-bold font-mono tracking-tight",
-            lead.valor ? "text-emerald-400" : "text-muted-foreground/60"
-          )}
-        >
-          {formattedValue}
-        </span>
-
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-          {/* Schedule Appointment Button */}
-          {onSchedule && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 rounded-lg text-primary hover:text-primary/80 hover:bg-primary/10 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSchedule(lead);
-              }}
-              title="Agendar Procedimento"
-            >
-              <CalendarPlus className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {/* WhatsApp Button */}
-          {hasPhone && onWhatsApp && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                onWhatsApp(lead);
-              }}
-              title="Enviar WhatsApp"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-      </div>
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 group-focus-within:translate-x-0">
+              {onSchedule && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 rounded-lg text-primary hover:text-primary/80 hover:bg-primary/10 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSchedule(lead);
+                  }}
+                  title="Agendar Procedimento"
+                >
+                  <CalendarPlus className="h-3 w-3" />
+                </Button>
+              )}
+              {hasPhone && onWhatsApp && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onWhatsApp(lead);
+                  }}
+                  title="Enviar WhatsApp"
+                >
+                  <MessageCircle className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -35,6 +35,7 @@ export interface ContentGenerationResult {
 export interface ImageGenerationResult {
   success: boolean;
   imageUrl?: string;
+  imageUrls?: string[];
   revisedPrompt?: string;
   error?: string;
   costCents?: number;
@@ -193,20 +194,52 @@ RESPONDA APENAS com a legenda pronta, sem explicações adicionais.`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// IMAGE GENERATION (DALL-E 3)
+// IMAGE GENERATION (Nano Banana Pro — gemini-3-pro-image-preview)
 // ═══════════════════════════════════════════════════════════════════════════
 
+const IMAGE_MODEL = "gemini-3-pro-image-preview";
+
 /**
- * Generate an image using Google Gemini Imagen.
+ * Generate a single image via Nano Banana Pro (generateContent).
+ * Returns base64 data URL or null on failure.
+ */
+async function generateSingleImage(
+  gemini: ReturnType<typeof getGeminiClient>,
+  prompt: string,
+  aspectRatio: string
+): Promise<string | null> {
+  const response = await gemini!.models.generateContent({
+    model: IMAGE_MODEL,
+    contents: prompt,
+    config: {
+      responseModalities: ["IMAGE"],
+      imageConfig: { aspectRatio },
+    },
+  });
+
+  // Extract image from response parts
+  const parts = response.candidates?.[0]?.content?.parts ?? [];
+  for (const part of parts) {
+    if (part.inlineData?.data) {
+      const mimeType = part.inlineData.mimeType ?? "image/png";
+      return `data:${mimeType};base64,${part.inlineData.data}`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Generate images using Nano Banana Pro (gemini-3-pro-image-preview).
  *
- * Uses imagen-4.0-generate-001 model with GEMINI_API_KEY.
- * Free tier: limited generations/day.
+ * Uses generateContent API — superior for images with text overlays.
+ * For carousel (2–4 images), makes parallel API calls.
  */
 export async function generateImage(
   prompt: string,
   options: {
     size?: "1024x1024" | "1024x1792" | "1792x1024";
     quality?: "standard" | "hd";
+    numberOfImages?: number;
     mentoradoId?: number;
     postId?: number;
   } = {}
@@ -217,55 +250,58 @@ export async function generateImage(
   }
 
   const { mentoradoId, postId } = options;
+  const imageCount = Math.min(Math.max(options.numberOfImages ?? 1, 1), 4);
 
   // Map size to aspect ratio
-  let aspectRatio: "1:1" | "16:9" | "9:16" = "1:1";
+  let aspectRatio = "1:1";
   if (options.size === "1024x1792") {
     aspectRatio = "9:16";
   } else if (options.size === "1792x1024") {
     aspectRatio = "16:9";
   }
 
-  try {
-    const response = await gemini.models.generateImages({
-      model: "imagen-4.0-generate-001",
-      prompt: `Professional aesthetic clinic marketing image: ${prompt}.
+  const fullPrompt = `Professional aesthetic clinic marketing image: ${prompt}.
 Style: Modern, clean, premium healthcare aesthetic.
 Lighting: Soft, professional studio lighting.
-Colors: Neutral tones with subtle accents.
-DO NOT include any visible text, watermarks, or logos.`,
-      config: {
-        numberOfImages: 1,
-        includeRaiReason: true,
-        aspectRatio,
-      },
-    });
+Colors: Neutral tones with subtle accents.`;
 
-    const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-    if (!imageBytes) {
+  try {
+    // Generate images in parallel for carousel, or a single call
+    const promises = Array.from({ length: imageCount }, (_, i) =>
+      generateSingleImage(
+        gemini,
+        imageCount > 1
+          ? `${fullPrompt}\nVariation ${i + 1} of ${imageCount}: unique composition and angle.`
+          : fullPrompt,
+        aspectRatio
+      )
+    );
+
+    const results = await Promise.all(promises);
+    const imageUrls = results.filter((url): url is string => url !== null);
+
+    if (imageUrls.length === 0) {
       return { success: false, error: "Nenhuma imagem gerada" };
     }
 
-    // Return image as base64 data URL (no external storage needed)
-    const imageUrl = `data:image/png;base64,${imageBytes}`;
-
-    // Log usage (Gemini Imagen is free for now, but log for tracking)
+    // Log usage
     if (mentoradoId) {
       await logGeneration({
         mentoradoId,
         generationType: "image",
         promptUsed: prompt,
-        resultSummary: `Gemini Imagen ${aspectRatio}`,
-        modelUsed: "imagen-4.0-generate-001",
-        imagesGenerated: 1,
-        estimatedCostCents: 0, // Gemini Imagen free tier
+        resultSummary: `Nano Banana Pro ${aspectRatio} x${imageUrls.length}`,
+        modelUsed: IMAGE_MODEL,
+        imagesGenerated: imageUrls.length,
+        estimatedCostCents: 0,
         postId,
       });
     }
 
     return {
       success: true,
-      imageUrl,
+      imageUrl: imageUrls[0],
+      imageUrls,
       costCents: 0,
     };
   } catch (error) {

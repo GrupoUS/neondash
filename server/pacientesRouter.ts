@@ -6,19 +6,31 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
+  mentoradosTermosCustomizados,
   pacientes,
   pacientesChatIa,
   pacientesDocumentos,
   pacientesFotos,
   pacientesInfoMedica,
   pacientesProcedimentos,
+  pacientesRelatoriosConsulta,
 } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 import { createLogger } from "./_core/logger";
 import { mentoradoProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import { sendEmail } from "./emailService";
 import { patientChat } from "./services/patientAiService";
 import { storagePut } from "./storage";
+
+/** Server-safe HTML sanitizer: strips <script>, event handlers, and dangerous protocols */
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/\s*on\w+\s*=\s*(["'])[^"']*\1/gi, "")
+    .replace(/\s*on\w+\s*=\s*[^\s>]+/gi, "")
+    .replace(/href\s*=\s*["']?\s*javascript:/gi, 'href="#"');
+}
 
 const logger = createLogger({ service: "pacientesRouter" });
 
@@ -129,8 +141,8 @@ const updateProcedimentoSchema = createProcedimentoSchema.partial().extend({
 const createFotoSchema = z.object({
   pacienteId: z.number(),
   procedimentoRealizadoId: z.number().optional().nullable(),
-  url: z.string().url(),
-  thumbnailUrl: z.string().url().optional().nullable(),
+  url: z.string().min(1),
+  thumbnailUrl: z.string().optional().nullable(),
   tipo: z.enum(["antes", "depois", "evolucao", "simulacao"]),
   angulo: z.enum(["frontal", "perfil_esquerdo", "perfil_direito", "obliquo"]).optional().nullable(),
   dataCaptura: z.string().optional(),
@@ -140,12 +152,39 @@ const createFotoSchema = z.object({
   grupoId: z.string().optional().nullable(),
 });
 
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10MB
+
+const uploadFotoSchema = z.object({
+  pacienteId: z.number(),
+  fileData: z.string().min(1, "Arquivo é obrigatório"),
+  thumbnailData: z.string().optional(),
+  fileName: z.string().min(1),
+  contentType: z.string().min(1),
+  tipo: z.enum(["antes", "depois", "evolucao", "simulacao"]),
+  angulo: z.enum(["frontal", "perfil_esquerdo", "perfil_direito", "obliquo"]).optional().nullable(),
+  descricao: z.string().optional().nullable(),
+  areaFotografada: z.string().optional().nullable(),
+  parComId: z.number().optional().nullable(),
+  grupoId: z.string().optional().nullable(),
+});
+
+const uploadDocumentoSchema = z.object({
+  pacienteId: z.number(),
+  fileData: z.string().min(1, "Arquivo é obrigatório"),
+  fileName: z.string().min(1),
+  contentType: z.string().min(1),
+  tipo: z.enum(["consentimento", "exame", "prescricao", "outro"]),
+  nome: z.string().min(1, "Nome do documento é obrigatório"),
+  observacoes: z.string().optional().nullable(),
+});
+
 const createDocumentoSchema = z.object({
   pacienteId: z.number(),
   procedimentoRealizadoId: z.number().optional().nullable(),
   tipo: z.enum(["consentimento", "exame", "prescricao", "outro"]),
   nome: z.string().min(1, "Nome do documento é obrigatório"),
-  url: z.string().url(),
+  url: z.string().min(1),
   mimeType: z.string().optional().nullable(),
   tamanhoBytes: z.number().optional().nullable(),
   dataAssinatura: z.string().optional().nullable(),
@@ -167,7 +206,7 @@ const createChatMessageSchema = z.object({
   imagemUrl: z.string().url().optional().nullable(),
   imagemGeradaUrl: z.string().url().optional().nullable(),
   tokens: z.number().optional().nullable(),
-  metadata: z.any().optional().nullable(),
+  metadata: z.record(z.unknown()).optional().nullable(),
 });
 
 const saveGeneratedChatImageSchema = z
@@ -310,6 +349,12 @@ export const pacientesRouter = router({
       .orderBy(desc(pacientesDocumentos.createdAt))
       .limit(20);
 
+    const relatoriosConsulta = await db
+      .select()
+      .from(pacientesRelatoriosConsulta)
+      .where(eq(pacientesRelatoriosConsulta.pacienteId, input.id))
+      .orderBy(desc(pacientesRelatoriosConsulta.dataConsulta));
+
     // Calculate stats
     const [statsResult] = await db
       .select({
@@ -328,6 +373,7 @@ export const pacientesRouter = router({
       procedimentos,
       fotosRecentes,
       documentos,
+      relatoriosConsulta,
       stats: {
         totalProcedimentos: statsResult?.totalProcedimentos ?? 0,
         totalFotos: statsResult?.totalFotos ?? 0,
@@ -342,42 +388,44 @@ export const pacientesRouter = router({
     const db = getDb();
     const mentoradoId = ctx.mentorado.id;
 
-    return await db.transaction(async (tx) => {
-      const [newPaciente] = await tx
-        .insert(pacientes)
-        .values({
-          mentoradoId,
-          nomeCompleto: input.nomeCompleto,
-          nomePreferido: input.nomePreferido,
-          email: input.email,
-          telefone: input.telefone,
-          dataNascimento: input.dataNascimento,
-          genero: input.genero,
-          cpf: input.cpf,
-          rg: input.rg,
+    // Sequential inserts (neon-http driver does not support transactions)
+    const [newPaciente] = await db
+      .insert(pacientes)
+      .values({
+        mentoradoId,
+        nomeCompleto: input.nomeCompleto,
+        nomePreferido: input.nomePreferido,
+        email: input.email,
+        telefone: input.telefone,
+        dataNascimento: input.dataNascimento,
+        genero: input.genero,
+        cpf: input.cpf,
+        rg: input.rg,
 
-          // Address
-          endereco: input.endereco,
-          cep: input.cep,
-          logradouro: input.logradouro,
-          numero: input.numero,
-          complemento: input.complemento,
-          bairro: input.bairro,
-          cidade: input.cidade,
-          estado: input.estado,
+        // Address
+        endereco: input.endereco,
+        cep: input.cep,
+        logradouro: input.logradouro,
+        numero: input.numero,
+        complemento: input.complemento,
+        bairro: input.bairro,
+        cidade: input.cidade,
+        estado: input.estado,
 
-          // Insurance
-          convenio: input.convenio,
-          numeroCarteirinha: input.numeroCarteirinha,
+        // Insurance
+        convenio: input.convenio,
+        numeroCarteirinha: input.numeroCarteirinha,
 
-          fotoUrl: input.fotoUrl,
-          observacoes: input.observacoes,
-        })
-        .returning();
+        fotoUrl: input.fotoUrl,
+        observacoes: input.observacoes,
+      })
+      .returning();
 
-      // Insert documents if provided
-      if (input.documentos && input.documentos.length > 0) {
-        await tx.insert(pacientesDocumentos).values(
+    // Insert documents if provided
+    if (input.documentos && input.documentos.length > 0) {
+      await db
+        .insert(pacientesDocumentos)
+        .values(
           input.documentos.map((doc) => ({
             pacienteId: newPaciente.id,
             tipo: doc.tipo,
@@ -386,11 +434,11 @@ export const pacientesRouter = router({
             mimeType: doc.mimeType,
             tamanhoBytes: doc.tamanhoBytes,
           }))
-        );
-      }
+        )
+        .returning();
+    }
 
-      return newPaciente;
-    });
+    return newPaciente;
   }),
 
   // Upload Document Mutation
@@ -403,17 +451,36 @@ export const pacientesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Decode Base64
-      const buffer = Buffer.from(input.file, "base64");
+      try {
+        // Decode Base64
+        const buffer = Buffer.from(input.file, "base64");
 
-      // Upload to Storage
-      const { url } = await storagePut(
-        `pacientes/docs/${ctx.mentorado.id}/${Date.now()}-${input.fileName}`,
-        buffer,
-        input.contentType
-      );
+        // Upload to Storage
+        const { url } = await storagePut(
+          `pacientes/docs/${ctx.mentorado.id}/${Date.now()}-${input.fileName}`,
+          buffer,
+          input.contentType
+        );
 
-      return { url };
+        return { url };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Erro desconhecido";
+        logger.error("Upload de documento falhou:", { error: message });
+
+        // If storage credentials are missing, return a clear error so frontend can handle it
+        if (message.includes("Storage proxy credentials missing")) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "Serviço de armazenamento não configurado. O paciente será criado sem documentos.",
+          });
+        }
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Falha ao fazer upload do documento",
+        });
+      }
     }),
 
   update: mentoradoProcedure.input(updatePacienteSchema).mutation(async ({ ctx, input }) => {
@@ -422,46 +489,44 @@ export const pacientesRouter = router({
 
     await verifyPatientOwnership(mentoradoId, input.id);
 
-    return await db.transaction(async (tx) => {
-      const { id, infoMedica, ...updateData } = input;
+    // Sequential queries (neon-http driver does not support transactions)
+    const { id, infoMedica, ...updateData } = input;
 
-      // Update patient core data
-      const [updated] = await tx
-        .update(pacientes)
-        .set({ ...updateData, updatedAt: new Date() })
-        .where(eq(pacientes.id, id))
-        .returning();
+    // Update patient core data
+    const [updated] = await db
+      .update(pacientes)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(pacientes.id, id))
+      .returning();
 
-      // Upsert medical info if provided
-      if (infoMedica) {
-        // Check if exists
-        const [existingInfo] = await tx
-          .select({ id: pacientesInfoMedica.id })
-          .from(pacientesInfoMedica)
-          .where(eq(pacientesInfoMedica.pacienteId, id))
-          .limit(1);
+    // Upsert medical info if provided
+    if (infoMedica) {
+      const [existingInfo] = await db
+        .select({ id: pacientesInfoMedica.id })
+        .from(pacientesInfoMedica)
+        .where(eq(pacientesInfoMedica.pacienteId, id))
+        .limit(1);
 
-        if (existingInfo) {
-          await tx
-            .update(pacientesInfoMedica)
-            .set({
-              ...infoMedica,
-              updatedAt: new Date(),
-            })
-            .where(eq(pacientesInfoMedica.id, existingInfo.id));
-        } else {
-          await tx.insert(pacientesInfoMedica).values({
-            pacienteId: id,
-            tipoSanguineo: infoMedica.tipoSanguineo,
-            alergias: infoMedica.alergias,
-            medicamentosAtuais: infoMedica.medicamentosAtuais,
-            queixasPrincipais: infoMedica.queixasPrincipais,
-          });
-        }
+      if (existingInfo) {
+        await db
+          .update(pacientesInfoMedica)
+          .set({
+            ...infoMedica,
+            updatedAt: new Date(),
+          })
+          .where(eq(pacientesInfoMedica.id, existingInfo.id));
+      } else {
+        await db.insert(pacientesInfoMedica).values({
+          pacienteId: id,
+          tipoSanguineo: infoMedica.tipoSanguineo,
+          alergias: infoMedica.alergias,
+          medicamentosAtuais: infoMedica.medicamentosAtuais,
+          queixasPrincipais: infoMedica.queixasPrincipais,
+        });
       }
+    }
 
-      return updated;
-    });
+    return updated;
   }),
 
   delete: mentoradoProcedure
@@ -493,7 +558,7 @@ export const pacientesRouter = router({
       const systemPrompt = `
       Você é um especialista em integração de dados médicos.
       Sua tarefa é mapear colunas de uma planilha (CSV/XLSX) para o schema do banco de dados de pacientes.
-      
+
       Schema Alvo (Pacientes):
       - nomeCompleto (Obrigatório)
       - email
@@ -576,32 +641,34 @@ export const pacientesRouter = router({
       for (let i = 0; i < input.length; i += chunkSize) {
         const chunk = input.slice(i, i + chunkSize);
 
-        await db.transaction(async (tx) => {
-          const valuesToInsert = chunk.map((p) => ({
-            mentoradoId,
-            nomeCompleto: p.nomeCompleto,
-            email: p.email || null, // Ensure empty string becomes null if schema requires
-            telefone: p.telefone,
-            dataNascimento: p.dataNascimento,
-            genero: p.genero,
-            cpf: p.cpf,
-            rg: p.rg,
-            endereco: p.endereco,
-            cep: p.cep,
-            logradouro: p.logradouro,
-            numero: p.numero,
-            bairro: p.bairro,
-            cidade: p.cidade,
-            estado: p.estado,
-            convenio: p.convenio,
-            numeroCarteirinha: p.numeroCarteirinha,
-            observacoes: p.observacoes,
-            status: "ativo" as const,
-          }));
+        // Direct insert per chunk (neon-http driver does not support transactions)
+        const valuesToInsert = chunk.map((p) => ({
+          mentoradoId,
+          nomeCompleto: p.nomeCompleto,
+          email: p.email || null,
+          telefone: p.telefone,
+          dataNascimento: p.dataNascimento,
+          genero: p.genero,
+          cpf: p.cpf,
+          rg: p.rg,
+          endereco: p.endereco,
+          cep: p.cep,
+          logradouro: p.logradouro,
+          numero: p.numero,
+          bairro: p.bairro,
+          cidade: p.cidade,
+          estado: p.estado,
+          convenio: p.convenio,
+          numeroCarteirinha: p.numeroCarteirinha,
+          observacoes: p.observacoes,
+          status: "ativo" as const,
+        }));
 
-          await tx.insert(pacientes).values(valuesToInsert);
-          totalCreated += chunk.length;
-        });
+        const inserted = await db
+          .insert(pacientes)
+          .values(valuesToInsert)
+          .returning({ id: pacientes.id });
+        totalCreated += inserted.length;
       }
 
       return { count: totalCreated };
@@ -655,6 +722,103 @@ export const pacientesRouter = router({
         .returning();
       return created;
     }),
+  }),
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RELATÓRIOS DE CONSULTA
+  // ─────────────────────────────────────────────────────────────────────────
+
+  relatorios: router({
+    list: mentoradoProcedure
+      .input(z.object({ pacienteId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        return db
+          .select()
+          .from(pacientesRelatoriosConsulta)
+          .where(eq(pacientesRelatoriosConsulta.pacienteId, input.pacienteId))
+          .orderBy(desc(pacientesRelatoriosConsulta.dataConsulta));
+      }),
+
+    create: mentoradoProcedure
+      .input(
+        z.object({
+          pacienteId: z.number(),
+          dataConsulta: z.string().min(1, "Data é obrigatória"),
+          observacao: z.string().min(1, "Observação é obrigatória"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        const [created] = await db
+          .insert(pacientesRelatoriosConsulta)
+          .values({
+            pacienteId: input.pacienteId,
+            dataConsulta: input.dataConsulta,
+            observacao: input.observacao,
+          })
+          .returning();
+        return created;
+      }),
+
+    update: mentoradoProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          pacienteId: z.number(),
+          dataConsulta: z.string().optional(),
+          observacao: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        const { id, pacienteId, ...data } = input;
+        const updatePayload: Record<string, unknown> = { updatedAt: new Date() };
+        if (data.dataConsulta !== undefined) updatePayload.dataConsulta = data.dataConsulta;
+        if (data.observacao !== undefined) updatePayload.observacao = data.observacao;
+
+        const [updated] = await db
+          .update(pacientesRelatoriosConsulta)
+          .set(updatePayload)
+          .where(
+            and(
+              eq(pacientesRelatoriosConsulta.id, id),
+              eq(pacientesRelatoriosConsulta.pacienteId, pacienteId)
+            )
+          )
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Relatório não encontrado",
+          });
+        }
+        return updated;
+      }),
+
+    delete: mentoradoProcedure
+      .input(z.object({ id: z.number(), pacienteId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        await db
+          .delete(pacientesRelatoriosConsulta)
+          .where(
+            and(
+              eq(pacientesRelatoriosConsulta.id, input.id),
+              eq(pacientesRelatoriosConsulta.pacienteId, input.pacienteId)
+            )
+          );
+        return { success: true };
+      }),
   }),
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -763,6 +927,42 @@ export const pacientesRouter = router({
         .values({
           ...input,
           dataCaptura: input.dataCaptura ? new Date(input.dataCaptura) : new Date(),
+        })
+        .returning();
+      return created;
+    }),
+
+    upload: mentoradoProcedure.input(uploadFotoSchema).mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+      // Validate base64 size
+      const rawSize = Math.ceil((input.fileData.length * 3) / 4);
+      if (rawSize > MAX_PHOTO_SIZE) {
+        throw new TRPCError({
+          code: "PAYLOAD_TOO_LARGE",
+          message: `Arquivo excede o limite de ${MAX_PHOTO_SIZE / 1024 / 1024}MB`,
+        });
+      }
+
+      const dataUrl = `data:${input.contentType};base64,${input.fileData}`;
+      const thumbnailUrl = input.thumbnailData
+        ? `data:${input.contentType};base64,${input.thumbnailData}`
+        : null;
+
+      const [created] = await db
+        .insert(pacientesFotos)
+        .values({
+          pacienteId: input.pacienteId,
+          url: dataUrl,
+          thumbnailUrl,
+          tipo: input.tipo,
+          angulo: input.angulo ?? null,
+          dataCaptura: new Date(),
+          descricao: input.descricao ?? null,
+          areaFotografada: input.areaFotografada ?? null,
+          parComId: input.parComId ?? null,
+          grupoId: input.grupoId ?? null,
         })
         .returning();
       return created;
@@ -896,12 +1096,211 @@ export const pacientesRouter = router({
       return updated;
     }),
 
+    upload: mentoradoProcedure.input(uploadDocumentoSchema).mutation(async ({ ctx, input }) => {
+      const db = getDb();
+      await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+      // Validate base64 size
+      const rawSize = Math.ceil((input.fileData.length * 3) / 4);
+      if (rawSize > MAX_DOC_SIZE) {
+        throw new TRPCError({
+          code: "PAYLOAD_TOO_LARGE",
+          message: `Arquivo excede o limite de ${MAX_DOC_SIZE / 1024 / 1024}MB`,
+        });
+      }
+
+      const dataUrl = `data:${input.contentType};base64,${input.fileData}`;
+
+      const [created] = await db
+        .insert(pacientesDocumentos)
+        .values({
+          pacienteId: input.pacienteId,
+          tipo: input.tipo,
+          nome: input.nome,
+          url: dataUrl,
+          mimeType: input.contentType,
+          tamanhoBytes: rawSize,
+          observacoes: input.observacoes ?? null,
+        })
+        .returning();
+      return created;
+    }),
+
     delete: mentoradoProcedure
       .input(z.object({ id: z.number(), pacienteId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const db = getDb();
         await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
         await db.delete(pacientesDocumentos).where(eq(pacientesDocumentos.id, input.id));
+        return { success: true };
+      }),
+
+    sendTermByEmail: mentoradoProcedure
+      .input(
+        z.object({
+          pacienteId: z.number(),
+          pacienteEmail: z.string().email("E-mail do paciente é obrigatório"),
+          pacienteNome: z.string().min(1),
+          termoTitulo: z.string().min(1),
+          termoHtml: z.string().min(1, "Conteúdo do termo é obrigatório"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await verifyPatientOwnership(ctx.mentorado.id, input.pacienteId);
+
+        const emailHtml = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${input.termoTitulo}</title>
+</head>
+<body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background-color:#f4f4f5;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color:#f4f4f5;">
+    <tr>
+      <td style="padding:40px 20px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="700" style="max-width:700px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="padding:24px 40px;background:linear-gradient(135deg,#1e1b4b 0%,#312e81 100%);text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">
+                <span style="color:#818cf8;">NEON</span> Clínica
+              </h1>
+            </td>
+          </tr>
+          <!-- Intro -->
+          <tr>
+            <td style="padding:30px 40px 10px;">
+              <p style="margin:0 0 8px;color:#374151;font-size:16px;">Prezado(a) <strong>${input.pacienteNome}</strong>,</p>
+              <p style="margin:0;color:#6b7280;font-size:15px;line-height:1.6;">Segue abaixo o <strong>${input.termoTitulo}</strong> para sua análise. Por favor, leia atentamente e responda este e-mail confirmando seu consentimento.</p>
+            </td>
+          </tr>
+          <!-- Term Content -->
+          <tr>
+            <td style="padding:20px 40px;">
+              <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:30px;font-size:14px;color:#1f2937;line-height:1.7;">
+                ${sanitizeHtml(input.termoHtml)}
+              </div>
+            </td>
+          </tr>
+          <!-- CTA -->
+          <tr>
+            <td style="padding:20px 40px;text-align:center;">
+              <p style="margin:0 0 16px;color:#6b7280;font-size:14px;">Para confirmar seu consentimento, responda este e-mail com <strong>"CONCORDO"</strong>.</p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;">Este e-mail foi enviado automaticamente pela clínica.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
+
+        const sent = await sendEmail({
+          to: input.pacienteEmail,
+          subject: `${input.termoTitulo} — Assinatura Necessária`,
+          body: emailHtml,
+        });
+
+        if (!sent) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Falha ao enviar e-mail. Verifique se o serviço Resend está configurado.",
+          });
+        }
+
+        logger.info("term_email_sent", {
+          pacienteId: input.pacienteId,
+          email: input.pacienteEmail.replace(/(.{2}).+(@.+)/, "$1***$2"),
+          termo: input.termoTitulo,
+        });
+
+        return { success: true, email: input.pacienteEmail };
+      }),
+  }),
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TERMOS CUSTOMIZADOS (per-mentorado persistent templates)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  termos: router({
+    /** Load all custom term templates for the logged-in mentorado */
+    getAll: mentoradoProcedure.query(async ({ ctx }) => {
+      const db = getDb();
+      return db
+        .select()
+        .from(mentoradosTermosCustomizados)
+        .where(eq(mentoradosTermosCustomizados.mentoradoId, ctx.mentorado.id));
+    }),
+
+    /** Upsert a custom term template */
+    save: mentoradoProcedure
+      .input(
+        z.object({
+          termoId: z.string().min(1).max(100),
+          conteudoHtml: z.string().min(1, "Conteúdo do termo é obrigatório"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+
+        // Check if exists
+        const existing = await db
+          .select({ id: mentoradosTermosCustomizados.id })
+          .from(mentoradosTermosCustomizados)
+          .where(
+            and(
+              eq(mentoradosTermosCustomizados.mentoradoId, ctx.mentorado.id),
+              eq(mentoradosTermosCustomizados.termoId, input.termoId)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          // Update
+          const [updated] = await db
+            .update(mentoradosTermosCustomizados)
+            .set({
+              conteudoHtml: input.conteudoHtml,
+              updatedAt: new Date(),
+            })
+            .where(eq(mentoradosTermosCustomizados.id, existing[0].id))
+            .returning();
+          return updated;
+        }
+
+        // Insert
+        const [created] = await db
+          .insert(mentoradosTermosCustomizados)
+          .values({
+            mentoradoId: ctx.mentorado.id,
+            termoId: input.termoId,
+            conteudoHtml: input.conteudoHtml,
+          })
+          .returning();
+        return created;
+      }),
+
+    /** Delete a custom term to revert to default template */
+    reset: mentoradoProcedure
+      .input(z.object({ termoId: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await db
+          .delete(mentoradosTermosCustomizados)
+          .where(
+            and(
+              eq(mentoradosTermosCustomizados.mentoradoId, ctx.mentorado.id),
+              eq(mentoradosTermosCustomizados.termoId, input.termoId)
+            )
+          );
         return { success: true };
       }),
   }),
@@ -992,6 +1391,7 @@ export const pacientesRouter = router({
           sessionId: z.string(),
           userMessage: z.string().min(1),
           imagemUrl: z.string().url().optional(),
+          forceImageGeneration: z.boolean().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -1061,6 +1461,7 @@ export const pacientesRouter = router({
           },
           {
             generateImage: true,
+            forceImageGeneration: input.forceImageGeneration,
           }
         );
 

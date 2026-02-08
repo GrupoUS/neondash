@@ -1,22 +1,13 @@
 /**
- * Image generation helper using internal ImageService
+ * Image generation helper — Nano Banana Pro (gemini-3-pro-image-preview)
  *
- * Example usage:
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "A serene landscape with mountains"
- *   });
- *
- * For editing:
- *   const { url: imageUrl } = await generateImage({
- *     prompt: "Add a rainbow to this landscape",
- *     originalImages: [{
- *       url: "https://example.com/original.jpg",
- *       mimeType: "image/jpeg"
- *     }]
- *   });
+ * Uses Google Gemini generateContent API with IMAGE response modality.
+ * Supports input images for before/after simulation editing.
  */
-import { storagePut } from "../storage";
-import { ENV } from "./env";
+
+import { GoogleGenAI } from "@google/genai";
+
+const IMAGE_MODEL = "gemini-3-pro-image-preview";
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -31,51 +22,100 @@ export type GenerateImageResponse = {
   url?: string;
 };
 
+function getClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+}
+
+/** Fetch a remote URL and convert to base64 + mimeType */
+async function fetchImageAsBase64(url: string): Promise<{ data: string; mimeType: string } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    const mimeType = res.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
+    const data = Buffer.from(buffer).toString("base64");
+    return { data, mimeType };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Generate or edit an image using Nano Banana Pro.
+ *
+ * When `originalImages` are provided (e.g. patient photo),
+ * the model uses them as context for before/after simulation.
+ */
 export async function generateImage(options: GenerateImageOptions): Promise<GenerateImageResponse> {
-  if (!ENV.llmApiUrl) {
-    throw new Error("LLM_API_URL is not configured");
-  }
-  if (!ENV.llmApiKey) {
-    throw new Error("LLM_API_KEY is not configured");
+  const gemini = getClient();
+  if (!gemini) {
+    throw new Error("Gemini não configurada. Configure GEMINI_API_KEY.");
   }
 
-  // Build the full URL by appending the service path to the base URL
-  const baseUrl = ENV.llmApiUrl.endsWith("/") ? ENV.llmApiUrl : `${ENV.llmApiUrl}/`;
-  const fullUrl = new URL("images.v1.ImageService/GenerateImage", baseUrl).toString();
+  // Build multimodal content parts
+  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
 
-  const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.llmApiKey}`,
-    },
-    body: JSON.stringify({
-      prompt: options.prompt,
-      original_images: options.originalImages || [],
-    }),
+  // Add original images as context (for before/after simulation)
+  if (options.originalImages?.length) {
+    for (const img of options.originalImages) {
+      if (img.b64Json) {
+        parts.push({
+          inlineData: {
+            mimeType: img.mimeType ?? "image/jpeg",
+            data: img.b64Json,
+          },
+        });
+      } else if (img.url?.startsWith("data:")) {
+        // Parse data URL: data:mime;base64,DATA
+        const match = img.url.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          parts.push({
+            inlineData: {
+              mimeType: match[1],
+              data: match[2],
+            },
+          });
+        }
+      } else if (img.url) {
+        // Fetch remote HTTP(S) URL and convert to base64
+        const fetched = await fetchImageAsBase64(img.url);
+        if (fetched) {
+          parts.push({
+            inlineData: {
+              mimeType: fetched.mimeType,
+              data: fetched.data,
+            },
+          });
+        }
+      }
+    }
+  }
+
+  // Add text prompt — context-aware for simulation vs standalone
+  parts.push({
+    text: options.originalImages?.length
+      ? `Based on the provided patient photo, create a realistic before/after aesthetic simulation.\n${options.prompt}\nStyle: Clinical, natural-looking result. Soft, neutral lighting. Professional medical aesthetic.`
+      : `${options.prompt}\nGenerate a realistic clinical aesthetic simulation image.\nStyle: Clinical aesthetic simulation. Soft neutral lighting. Professional medical.`,
   });
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Image generation request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-    );
+  const response = await gemini.models.generateContent({
+    model: IMAGE_MODEL,
+    contents: [{ role: "user", parts }],
+    config: {
+      responseModalities: ["TEXT", "IMAGE"],
+    },
+  });
+
+  // Extract image from response (may contain both text and image parts)
+  const responseParts = response.candidates?.[0]?.content?.parts ?? [];
+  for (const part of responseParts) {
+    if (part.inlineData?.data) {
+      const mimeType = part.inlineData.mimeType ?? "image/png";
+      return { url: `data:${mimeType};base64,${part.inlineData.data}` };
+    }
   }
 
-  const result = (await response.json()) as {
-    image: {
-      b64Json: string;
-      mimeType: string;
-    };
-  };
-  const base64Data = result.image.b64Json;
-  const buffer = Buffer.from(base64Data, "base64");
-
-  // Save to S3
-  const { url } = await storagePut(`generated/${Date.now()}.png`, buffer, result.image.mimeType);
-  return {
-    url,
-  };
+  return {};
 }

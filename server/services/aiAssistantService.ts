@@ -761,24 +761,71 @@ DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
       }
     }
 
-    const result = await generateText({
-      model: defaultModel,
-      system: effectiveSystemPrompt,
-      messages: messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-      tools,
-      maxSteps: 5, // Allow up to 5 tool calls in a single request
-    });
+    // Manual tool-calling loop to avoid thought_signature errors.
+    // @ai-sdk/google v1 doesn't preserve thought signatures in multi-step
+    // tool calls. By making single-step calls and looping manually,
+    // each API call is independent and doesn't need replayed signatures.
+    const MAX_TOOL_STEPS = 5;
+    const formattedMessages = messages.map((m) => ({
+      role: m.role as "user" | "assistant" | "system",
+      content: m.content,
+    }));
+    let currentMessages: Array<{ role: string; content: unknown }> = [...formattedMessages];
+    const allToolsUsed: string[] = [];
+    let finalText = "";
 
-    const toolsUsed = result.steps
-      .flatMap((step) => step.toolCalls?.map((tc) => tc.toolName) ?? [])
-      .filter(Boolean);
+    for (let step = 0; step < MAX_TOOL_STEPS; step++) {
+      const result = await generateText({
+        model: defaultModel,
+        system: effectiveSystemPrompt,
+        messages: currentMessages as Parameters<typeof generateText>[0]["messages"],
+        tools,
+      });
+
+      // Collect tool names used in this step
+      const stepTools = result.toolCalls?.map((tc) => tc.toolName as string) ?? [];
+      allToolsUsed.push(...stepTools);
+
+      // If no tool calls, we have the final text response
+      if (!result.toolCalls || result.toolCalls.length === 0) {
+        finalText = result.text || "Desculpe, não consegui gerar uma resposta. Tente reformular.";
+        break;
+      }
+
+      // Build tool result messages and continue the loop
+      currentMessages = [
+        ...currentMessages,
+        {
+          role: "assistant" as const,
+          content: result.toolCalls.map((tc) => ({
+            type: "tool-call" as const,
+            toolCallId: tc.toolCallId,
+            toolName: tc.toolName,
+            args: tc.args,
+          })),
+        },
+        {
+          role: "tool" as const,
+          content: result.toolResults.map((tr) => ({
+            type: "tool-result" as const,
+            toolCallId: tr.toolCallId,
+            toolName: tr.toolName,
+            result: tr.result,
+          })),
+        },
+      ];
+
+      // If this is the last allowed step, use whatever text we have
+      if (step === MAX_TOOL_STEPS - 1) {
+        finalText = result.text || "Desculpe, não consegui completar a análise. Tente reformular.";
+      }
+    }
+
+    const toolsUsed = Array.from(new Set(allToolsUsed));
 
     return {
       success: true,
-      message: result.text,
+      message: finalText,
       toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
     };
   } catch (error) {

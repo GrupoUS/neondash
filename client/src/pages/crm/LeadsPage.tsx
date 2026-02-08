@@ -1,5 +1,4 @@
 import { Filter as FilterIcon, LayoutGrid, List, Settings, ShieldAlert } from "lucide-react";
-import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { useSearch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -15,7 +14,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AnimatedTooltipSelector } from "@/components/ui/animated-tooltip";
 import { Button } from "@/components/ui/button";
 
-import { staggerContainer } from "@/lib/animation-variants";
 import { trpc } from "@/lib/trpc";
 
 export function LeadsPage() {
@@ -130,12 +128,7 @@ export function LeadsPage() {
         {/* Decorative ambient light */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-primary/5 blur-3xl opacity-50 pointer-events-none rounded-full" />
 
-        <motion.div
-          className="flex h-full relative z-10"
-          initial="initial"
-          animate="animate"
-          variants={staggerContainer}
-        >
+        <div className="flex h-full relative z-10">
           <div
             className={`flex-1 flex flex-col transition-all duration-300 ${filtersOpen ? "mr-0" : ""}`}
           >
@@ -328,7 +321,7 @@ export function LeadsPage() {
             }}
             onSuccess={() => setScheduleDialogOpen(false)}
           />
-        </motion.div>
+        </div>
       </div>
     </DashboardLayout>
   );

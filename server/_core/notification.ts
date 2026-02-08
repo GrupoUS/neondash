@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { ENV } from "./env";
 
 export type NotificationPayload = {
   title: string;
@@ -12,11 +11,6 @@ const CONTENT_MAX_LENGTH = 20000;
 const trimValue = (value: string): string => value.trim();
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
-
-const buildEndpointUrl = (baseUrl: string): string => {
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return new URL("webdevtoken.v1.WebDevService/SendNotification", normalizedBase).toString();
-};
 
 const validatePayload = (input: NotificationPayload): NotificationPayload => {
   if (!isNonEmptyString(input.title)) {
@@ -53,49 +47,17 @@ const validatePayload = (input: NotificationPayload): NotificationPayload => {
 };
 
 /**
- * Dispatches a project-owner notification through the configured notification service.
- * Returns `true` if the request was accepted, `false` when the upstream service
- * cannot be reached (callers can fall back to email/slack). Validation errors
- * bubble up as TRPC errors so callers can fix the payload.
+ * Dispatches a project-owner notification.
+ *
+ * NOTE: The legacy notification proxy (LLM_API_URL) has been removed.
+ * This function now returns `false` (notification not sent) instead of
+ * throwing, allowing callers to gracefully fall back to email/slack.
  */
 export async function notifyOwner(payload: NotificationPayload): Promise<boolean> {
-  const { title, content } = validatePayload(payload);
+  // Validate payload (still throws on bad input so callers fix their data)
+  validatePayload(payload);
 
-  if (!ENV.llmApiUrl) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "LLM_API_URL is not configured. Notification service unavailable.",
-    });
-  }
-
-  if (!ENV.llmApiKey) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "LLM_API_KEY is not configured. Notification service unavailable.",
-    });
-  }
-
-  const endpoint = buildEndpointUrl(ENV.llmApiUrl);
-
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${ENV.llmApiKey}`,
-        "content-type": "application/json",
-        "connect-protocol-version": "1",
-      },
-      body: JSON.stringify({ title, content }),
-    });
-
-    if (!response.ok) {
-      const _detail = await response.text().catch(() => "");
-      return false;
-    }
-
-    return true;
-  } catch (_error) {
-    return false;
-  }
+  // Legacy notification proxy is no longer available
+  // Return false so callers can fall back to alternative channels (email, Resend, etc.)
+  return false;
 }

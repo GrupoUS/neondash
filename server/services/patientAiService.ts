@@ -1,20 +1,24 @@
 /**
  * Patient AI Service
  *
- * Uses Vercel AI SDK with Google Gemini to provide an intelligent assistant
- * for patient prontuário analysis, procedure recommendations, and simulations.
+ * Uses @google/genai SDK directly with Gemini 3 Flash for patient chat.
+ * The native SDK handles thought_signature management automatically,
+ * which is mandatory for Gemini 3 multi-step function calling.
+ *
+ * @ai-sdk/google v1 strips thought signatures, causing 400 errors.
+ * See: https://ai.google.dev/gemini-api/docs/thought-signatures
  */
 
-import { generateText, tool } from "ai";
+import type { FunctionDeclaration } from "@google/genai";
+import { Type } from "@google/genai";
 import { and, desc, eq } from "drizzle-orm";
-import { z } from "zod";
 import {
   pacientes,
   pacientesFotos,
   pacientesInfoMedica,
   pacientesProcedimentos,
 } from "../../drizzle/schema";
-import { defaultModel, isAIConfigured } from "../_core/aiProvider";
+import { getGeminiClient, isAIConfigured } from "../_core/aiProvider";
 import { generateImage } from "../_core/imageGeneration";
 import { getDb } from "../db";
 
@@ -44,7 +48,15 @@ export interface PatientChatResult {
 
 export interface PatientChatOptions {
   generateImage?: boolean;
+  forceImageGeneration?: boolean;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const MODEL = "gemini-3-flash-preview";
+const MAX_TOOL_STEPS = 5;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SYSTEM PROMPT
@@ -96,185 +108,206 @@ Use markdown para formatar respostas:
 `;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TOOLS DEFINITION
+// TOOL DECLARATIONS (Google GenAI format)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function createPatientTools(ctx: PatientChatContext) {
+const toolDeclarations: FunctionDeclaration[] = [
+  {
+    name: "getPatientInfo",
+    description: "Obter informações básicas do paciente (nome, idade, gênero, contato).",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+    },
+  },
+  {
+    name: "getMedicalInfo",
+    description:
+      "Obter histórico médico do paciente (alergias, medicamentos, contraindicações, histórico cirúrgico).",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+    },
+  },
+  {
+    name: "getProcedureHistory",
+    description: "Obter histórico de procedimentos realizados no paciente.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        limit: {
+          type: Type.NUMBER,
+          description: "Número de procedimentos para buscar (1-20, padrão 10)",
+        },
+      },
+    },
+  },
+  {
+    name: "getPhotos",
+    description: "Obter fotos do paciente para análise visual (antes/depois/evolução).",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        tipo: {
+          type: Type.STRING,
+          description: "Filtrar por tipo de foto: antes, depois, evolucao, simulacao",
+        },
+        limit: {
+          type: Type.NUMBER,
+          description: "Número de fotos (1-20, padrão 10)",
+        },
+      },
+    },
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOOL EXECUTORS
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function executeToolCall(
+  toolName: string,
+  args: Record<string, unknown>,
+  ctx: PatientChatContext
+): Promise<unknown> {
   const db = getDb();
 
-  return {
-    getPatientInfo: tool({
-      description: "Obter informações básicas do paciente (nome, idade, gênero, contato).",
-      parameters: z.object({}),
-      execute: async () => {
-        const [patient] = await db
-          .select({
-            nomeCompleto: pacientes.nomeCompleto,
-            email: pacientes.email,
-            telefone: pacientes.telefone,
-            dataNascimento: pacientes.dataNascimento,
-            genero: pacientes.genero,
-            observacoes: pacientes.observacoes,
-            updatedAt: pacientes.updatedAt,
-          })
-          .from(pacientes)
-          .where(eq(pacientes.id, ctx.pacienteId))
-          .limit(1);
+  switch (toolName) {
+    case "getPatientInfo": {
+      const [patient] = await db
+        .select({
+          nomeCompleto: pacientes.nomeCompleto,
+          email: pacientes.email,
+          telefone: pacientes.telefone,
+          dataNascimento: pacientes.dataNascimento,
+          genero: pacientes.genero,
+          observacoes: pacientes.observacoes,
+          updatedAt: pacientes.updatedAt,
+        })
+        .from(pacientes)
+        .where(eq(pacientes.id, ctx.pacienteId))
+        .limit(1);
 
-        if (!patient) {
-          return { status: "error", message: "Paciente não encontrado.", data: null };
+      if (!patient) {
+        return { status: "error", message: "Paciente não encontrado.", data: null };
+      }
+
+      let idade = null;
+      if (patient.dataNascimento) {
+        const birth = new Date(patient.dataNascimento);
+        const today = new Date();
+        idade = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+          idade--;
         }
+      }
 
-        // Calculate age if birth date exists
-        let idade = null;
-        if (patient.dataNascimento) {
-          const birth = new Date(patient.dataNascimento);
-          const today = new Date();
-          idade = today.getFullYear() - birth.getFullYear();
-          const m = today.getMonth() - birth.getMonth();
-          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-            idade--;
-          }
-        }
+      return {
+        status: "success",
+        message: `Informações do paciente ${patient.nomeCompleto}.`,
+        data: { ...patient, idade },
+      };
+    }
 
+    case "getMedicalInfo": {
+      const [medical] = await db
+        .select({
+          tipoSanguineo: pacientesInfoMedica.tipoSanguineo,
+          alergias: pacientesInfoMedica.alergias,
+          medicamentosAtuais: pacientesInfoMedica.medicamentosAtuais,
+          condicoesPreexistentes: pacientesInfoMedica.condicoesPreexistentes,
+          historicoCircurgico: pacientesInfoMedica.historicoCircurgico,
+          contraindacacoes: pacientesInfoMedica.contraindacacoes,
+          observacoesClinicas: pacientesInfoMedica.observacoesClinicas,
+        })
+        .from(pacientesInfoMedica)
+        .where(eq(pacientesInfoMedica.pacienteId, ctx.pacienteId))
+        .limit(1);
+
+      if (!medical) {
+        return { status: "empty", message: "Histórico médico não cadastrado.", data: null };
+      }
+
+      return { status: "success", message: "Histórico médico do paciente.", data: medical };
+    }
+
+    case "getProcedureHistory": {
+      const limit = Math.min(Math.max(Number(args.limit) || 10, 1), 20);
+      const procedures = await db
+        .select({
+          id: pacientesProcedimentos.id,
+          titulo: pacientesProcedimentos.titulo,
+          dataRealizacao: pacientesProcedimentos.dataRealizacao,
+          profissionalResponsavel: pacientesProcedimentos.profissionalResponsavel,
+          valorCobrado: pacientesProcedimentos.valorCobrado,
+          areaAplicacao: pacientesProcedimentos.areaAplicacao,
+          produtosUtilizados: pacientesProcedimentos.produtosUtilizados,
+          quantidadeAplicada: pacientesProcedimentos.quantidadeAplicada,
+          observacoes: pacientesProcedimentos.observacoes,
+          resultadoAvaliacao: pacientesProcedimentos.resultadoAvaliacao,
+        })
+        .from(pacientesProcedimentos)
+        .where(eq(pacientesProcedimentos.pacienteId, ctx.pacienteId))
+        .orderBy(desc(pacientesProcedimentos.dataRealizacao))
+        .limit(limit);
+
+      if (procedures.length === 0) {
+        return { status: "empty", message: "Nenhum procedimento registrado.", data: [] };
+      }
+
+      const totalGasto = procedures.reduce((sum, p) => sum + (p.valorCobrado || 0), 0);
+      return {
+        status: "success",
+        message: `${procedures.length} procedimentos encontrados. Total investido: R$ ${(totalGasto / 100).toFixed(2)}`,
+        data: procedures,
+      };
+    }
+
+    case "getPhotos": {
+      const tipo = args.tipo as string | undefined;
+      const photoLimit = Math.min(Math.max(Number(args.limit) || 10, 1), 20);
+      const conditions = [eq(pacientesFotos.pacienteId, ctx.pacienteId)];
+      if (tipo && ["antes", "depois", "evolucao", "simulacao"].includes(tipo)) {
+        conditions.push(
+          eq(pacientesFotos.tipo, tipo as "antes" | "depois" | "evolucao" | "simulacao")
+        );
+      }
+
+      const photos = await db
+        .select({
+          id: pacientesFotos.id,
+          url: pacientesFotos.url,
+          tipo: pacientesFotos.tipo,
+          angulo: pacientesFotos.angulo,
+          areaFotografada: pacientesFotos.areaFotografada,
+          dataCaptura: pacientesFotos.dataCaptura,
+          descricao: pacientesFotos.descricao,
+        })
+        .from(pacientesFotos)
+        .where(and(...conditions))
+        .orderBy(desc(pacientesFotos.dataCaptura))
+        .limit(photoLimit);
+
+      if (photos.length === 0) {
         return {
-          status: "success",
-          message: `Informações do paciente ${patient.nomeCompleto}.`,
-          data: { ...patient, idade },
+          status: "empty",
+          message: tipo ? `Nenhuma foto tipo "${tipo}" encontrada.` : "Nenhuma foto cadastrada.",
+          data: [],
         };
-      },
-    }),
+      }
 
-    getMedicalInfo: tool({
-      description:
-        "Obter histórico médico do paciente (alergias, medicamentos, contraindicações, histórico cirúrgico).",
-      parameters: z.object({}),
-      execute: async () => {
-        const [medical] = await db
-          .select({
-            tipoSanguineo: pacientesInfoMedica.tipoSanguineo,
-            alergias: pacientesInfoMedica.alergias,
-            medicamentosAtuais: pacientesInfoMedica.medicamentosAtuais,
-            condicoesPreexistentes: pacientesInfoMedica.condicoesPreexistentes,
-            historicoCircurgico: pacientesInfoMedica.historicoCircurgico,
-            contraindacacoes: pacientesInfoMedica.contraindacacoes,
-            observacoesClinicas: pacientesInfoMedica.observacoesClinicas,
-          })
-          .from(pacientesInfoMedica)
-          .where(eq(pacientesInfoMedica.pacienteId, ctx.pacienteId))
-          .limit(1);
+      return { status: "success", message: `${photos.length} fotos encontradas.`, data: photos };
+    }
 
-        if (!medical) {
-          return {
-            status: "empty",
-            message: "Histórico médico não cadastrado.",
-            data: null,
-          };
-        }
-
-        return {
-          status: "success",
-          message: "Histórico médico do paciente.",
-          data: medical,
-        };
-      },
-    }),
-
-    getProcedureHistory: tool({
-      description: "Obter histórico de procedimentos realizados no paciente.",
-      parameters: z.object({
-        limit: z
-          .number()
-          .min(1)
-          .max(20)
-          .default(10)
-          .describe("Número de procedimentos para buscar"),
-      }),
-      execute: async ({ limit }) => {
-        const procedures = await db
-          .select({
-            id: pacientesProcedimentos.id,
-            titulo: pacientesProcedimentos.titulo,
-            dataRealizacao: pacientesProcedimentos.dataRealizacao,
-            profissionalResponsavel: pacientesProcedimentos.profissionalResponsavel,
-            valorCobrado: pacientesProcedimentos.valorCobrado,
-            areaAplicacao: pacientesProcedimentos.areaAplicacao,
-            produtosUtilizados: pacientesProcedimentos.produtosUtilizados,
-            quantidadeAplicada: pacientesProcedimentos.quantidadeAplicada,
-            observacoes: pacientesProcedimentos.observacoes,
-            resultadoAvaliacao: pacientesProcedimentos.resultadoAvaliacao,
-          })
-          .from(pacientesProcedimentos)
-          .where(eq(pacientesProcedimentos.pacienteId, ctx.pacienteId))
-          .orderBy(desc(pacientesProcedimentos.dataRealizacao))
-          .limit(limit);
-
-        if (procedures.length === 0) {
-          return {
-            status: "empty",
-            message: "Nenhum procedimento registrado.",
-            data: [],
-          };
-        }
-
-        // Calculate total spent
-        const totalGasto = procedures.reduce((sum, p) => sum + (p.valorCobrado || 0), 0);
-
-        return {
-          status: "success",
-          message: `${procedures.length} procedimentos encontrados. Total investido: R$ ${(totalGasto / 100).toFixed(2)}`,
-          data: procedures,
-        };
-      },
-    }),
-
-    getPhotos: tool({
-      description: "Obter fotos do paciente para análise visual (antes/depois/evolução).",
-      parameters: z.object({
-        tipo: z
-          .enum(["antes", "depois", "evolucao", "simulacao"])
-          .optional()
-          .describe("Filtrar por tipo de foto"),
-        limit: z.number().min(1).max(20).default(10).describe("Número de fotos"),
-      }),
-      execute: async ({ tipo, limit }) => {
-        const conditions = [eq(pacientesFotos.pacienteId, ctx.pacienteId)];
-        if (tipo) {
-          conditions.push(eq(pacientesFotos.tipo, tipo));
-        }
-
-        const photos = await db
-          .select({
-            id: pacientesFotos.id,
-            url: pacientesFotos.url,
-            tipo: pacientesFotos.tipo,
-            angulo: pacientesFotos.angulo,
-            areaFotografada: pacientesFotos.areaFotografada,
-            dataCaptura: pacientesFotos.dataCaptura,
-            descricao: pacientesFotos.descricao,
-          })
-          .from(pacientesFotos)
-          .where(and(...conditions))
-          .orderBy(desc(pacientesFotos.dataCaptura))
-          .limit(limit);
-
-        if (photos.length === 0) {
-          return {
-            status: "empty",
-            message: tipo ? `Nenhuma foto tipo "${tipo}" encontrada.` : "Nenhuma foto cadastrada.",
-            data: [],
-          };
-        }
-
-        return {
-          status: "success",
-          message: `${photos.length} fotos encontradas.`,
-          data: photos,
-        };
-      },
-    }),
-  };
+    default:
+      return { status: "error", message: `Ferramenta "${toolName}" não reconhecida.` };
+  }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// IMAGE GENERATION HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
 
 const IMAGE_GENERATION_KEYWORDS = [
   "simula",
@@ -295,17 +328,17 @@ function getLatestUserMessage(messages: PatientChatMessage[]): PatientChatMessag
       return message;
     }
   }
-
   return null;
 }
 
 function shouldGenerateSimulationImage(message: PatientChatMessage): boolean {
-  if (message.imagemUrl) {
-    return true;
-  }
-
   const normalizedContent = message.content.toLowerCase();
-  return IMAGE_GENERATION_KEYWORDS.some((keyword) => normalizedContent.includes(keyword));
+  const hasSimulationKeyword = IMAGE_GENERATION_KEYWORDS.some((keyword) =>
+    normalizedContent.includes(keyword)
+  );
+  // Only generate when simulation keywords are present (photo alone is not enough —
+  // user might just want analysis, not an expensive image generation call)
+  return hasSimulationKeyword;
 }
 
 function buildSimulationImagePrompt(params: {
@@ -322,11 +355,138 @@ function buildSimulationImagePrompt(params: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// INTERNAL HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+type ChatPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+type ChatContent = { role: "user" | "model"; parts: ChatPart[] };
+
+/** Parse a data-URL into an inlineData part, or null if not a valid data-URL. */
+function parseDataUrl(url: string): { mimeType: string; data: string } | null {
+  const match = url.match(/^data:([^;]+);base64,(.+)$/);
+  return match ? { mimeType: match[1], data: match[2] } : null;
+}
+
+/** Convert chat message history into Google GenAI content format. */
+function buildChatHistory(messages: PatientChatMessage[]): ChatContent[] {
+  const history: ChatContent[] = [];
+
+  for (let i = 0; i < messages.length - 1; i++) {
+    const m = messages[i];
+    if (m.role === "system") continue;
+
+    const role = m.role === "assistant" ? "model" : "user";
+    const parts: ChatPart[] = [{ text: m.content }];
+
+    if (m.imagemUrl && m.role === "user") {
+      const inline = parseDataUrl(m.imagemUrl);
+      if (inline) parts.push({ inlineData: inline });
+    }
+
+    history.push({ role, parts });
+  }
+
+  return history;
+}
+
+/** Build message parts for the current (last) user message. */
+function buildUserParts(message: PatientChatMessage): ChatPart[] {
+  const parts: ChatPart[] = [{ text: message.content }];
+  if (message.imagemUrl) {
+    const inline = parseDataUrl(message.imagemUrl);
+    if (inline) parts.push({ inlineData: inline });
+  }
+  return parts;
+}
+
+interface ToolLoopResult {
+  text: string;
+  toolsUsed: string[];
+}
+
+/** Run the multi-step tool calling loop. SDK preserves thought signatures. */
+async function runToolLoop(
+  chat: ReturnType<InstanceType<typeof import("@google/genai").GoogleGenAI>["chats"]["create"]>,
+  userParts: ChatPart[],
+  context: PatientChatContext
+): Promise<ToolLoopResult> {
+  const toolsUsed: string[] = [];
+  let response = await chat.sendMessage({ message: userParts });
+
+  for (let step = 0; step < MAX_TOOL_STEPS; step++) {
+    const calls = response.functionCalls;
+    if (!calls || calls.length === 0) {
+      return { text: response.text ?? "", toolsUsed };
+    }
+
+    const responses: Array<{
+      functionResponse: { name: string; response: Record<string, unknown> };
+    }> = [];
+    for (const fc of calls) {
+      const name = fc.name ?? "unknown";
+      toolsUsed.push(name);
+      const result = await executeToolCall(
+        name,
+        (fc.args as Record<string, unknown>) ?? {},
+        context
+      );
+      responses.push({ functionResponse: { name, response: result as Record<string, unknown> } });
+    }
+
+    response = await chat.sendMessage({ message: responses });
+
+    if (step === MAX_TOOL_STEPS - 1) {
+      return {
+        text:
+          response.text ??
+          "Desculpe, não consegui completar a análise. Tente reformular sua pergunta.",
+        toolsUsed,
+      };
+    }
+  }
+
+  return { text: response.text ?? "", toolsUsed };
+}
+
+/** Optionally generate a simulation image and return its URL. */
+async function tryGenerateSimulationImage(
+  messages: PatientChatMessage[],
+  context: PatientChatContext,
+  assistantText: string,
+  force = false
+): Promise<string | null> {
+  const latestUserMessage = getLatestUserMessage(messages);
+  if (!latestUserMessage) return null;
+  if (!force && !shouldGenerateSimulationImage(latestUserMessage)) return null;
+
+  try {
+    const result = await generateImage({
+      prompt: buildSimulationImagePrompt({
+        patientName: context.patientName,
+        userMessage: latestUserMessage.content,
+        assistantMessage: assistantText,
+      }),
+      originalImages: latestUserMessage.imagemUrl
+        ? [{ url: latestUserMessage.imagemUrl }]
+        : undefined,
+    });
+    return result.url ?? null;
+  } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: Intentional error logging
+    console.error("[Patient AI] Image generation failed:", error);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN CHAT FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Process a patient chat message and generate a response using AI with tools.
+ *
+ * Uses @google/genai SDK directly with chat.sendMessage() which handles
+ * Gemini 3's mandatory thought_signature automatically.
  */
 export async function patientChat(
   messages: PatientChatMessage[],
@@ -336,96 +496,57 @@ export async function patientChat(
   if (!isAIConfigured()) {
     return {
       success: false,
-      message: "Serviço de IA não configurado. Configure GOOGLE_GENERATIVE_AI_API_KEY.",
+      message: "Serviço de IA não configurado. Configure GEMINI_API_KEY.",
       error: "AI_NOT_CONFIGURED",
     };
   }
 
+  const gemini = getGeminiClient();
+  if (!gemini) {
+    return { success: false, message: "Cliente Gemini não disponível.", error: "CLIENT_ERROR" };
+  }
+
   try {
-    const tools = createPatientTools(context);
+    const systemPrompt = `${PATIENT_SYSTEM_PROMPT}\n\n## Contexto Atual\nVocê está analisando o prontuário do(a) paciente: **${context.patientName}**\nPaciente ID: ${context.pacienteId}\n\nUse as ferramentas disponíveis para buscar informações do prontuário antes de responder.`;
 
-    // Build context-aware system prompt
-    const systemPrompt = `${PATIENT_SYSTEM_PROMPT}
-
-## Contexto Atual
-Você está analisando o prontuário do(a) paciente: **${context.patientName}**
-Paciente ID: ${context.pacienteId}
-
-Use as ferramentas disponíveis para buscar informações do prontuário antes de responder.
-`;
-
-    // Convert messages to AI SDK format, handling images
-    // Use explicit typing to avoid CoreMessage incompatibility
-    const formattedMessages = messages.map((m) => {
-      if (m.imagemUrl && m.role === "user") {
-        return {
-          role: "user" as const,
-          content: [
-            { type: "text" as const, text: m.content },
-            { type: "image" as const, image: m.imagemUrl },
-          ],
-        };
-      }
-      // For all other messages, return simple text format
-      return {
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      };
+    const chat = gemini.chats.create({
+      model: MODEL,
+      config: {
+        systemInstruction: systemPrompt,
+        tools: [{ functionDeclarations: toolDeclarations }],
+        thinkingConfig: { thinkingBudget: 1024 },
+      },
+      history: buildChatHistory(messages),
     });
 
-    // Early cast to avoid deep type instantiation issues
-    const result = await generateText({
-      model: defaultModel,
-      system: systemPrompt,
-      messages: formattedMessages as Parameters<typeof generateText>[0]["messages"],
-      tools,
-      maxSteps: 5, // Allow up to 5 tool calls
-    });
+    const { text: finalText, toolsUsed } = await runToolLoop(
+      chat,
+      buildUserParts(messages[messages.length - 1]),
+      context
+    );
 
-    const toolsUsed: string[] = result.steps
-      .flatMap((step) => step.toolCalls?.map((tc) => tc.toolName as string) ?? [])
-      .filter((toolName): toolName is string => toolName.length > 0);
+    const uniqueToolsUsed = Array.from(new Set(toolsUsed));
 
-    const uniqueToolsUsed: string[] = Array.from(new Set(toolsUsed));
     let generatedImageUrl: string | null = null;
-
     if (options.generateImage !== false) {
-      const latestUserMessage = getLatestUserMessage(messages);
-
-      if (latestUserMessage && shouldGenerateSimulationImage(latestUserMessage)) {
-        try {
-          const imageResult = await generateImage({
-            prompt: buildSimulationImagePrompt({
-              patientName: context.patientName,
-              userMessage: latestUserMessage.content,
-              assistantMessage: result.text,
-            }),
-            originalImages: latestUserMessage.imagemUrl
-              ? [{ url: latestUserMessage.imagemUrl }]
-              : undefined,
-          });
-
-          generatedImageUrl = imageResult.url ?? null;
-
-          if (generatedImageUrl) {
-            uniqueToolsUsed.push("generateImage");
-          }
-        } catch {
-          generatedImageUrl = null;
-        }
-      }
+      generatedImageUrl = await tryGenerateSimulationImage(
+        messages,
+        context,
+        finalText,
+        options.forceImageGeneration
+      );
+      if (generatedImageUrl) uniqueToolsUsed.push("generateImage");
     }
 
     return {
       success: true,
-      message: result.text,
+      message: finalText,
       toolsUsed: uniqueToolsUsed.length > 0 ? uniqueToolsUsed : undefined,
       generatedImageUrl,
     };
   } catch (error) {
     // biome-ignore lint/suspicious/noConsole: Intentional error logging for debugging
     console.error("[Patient AI] Error:", error);
-
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
 
     if (errorMessage.includes("API key")) {
@@ -435,7 +556,6 @@ Use as ferramentas disponíveis para buscar informações do prontuário antes d
         error: "AUTH_ERROR",
       };
     }
-
     return {
       success: false,
       message: "Erro ao processar mensagem. Tente novamente.",

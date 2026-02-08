@@ -69,36 +69,33 @@ export const Sidebar = ({
   );
 };
 
-export const SidebarBody = (props: React.ComponentProps<typeof motion.div>) => {
+export const SidebarBody = (props: React.ComponentProps<"div">) => {
   return (
     <>
       <DesktopSidebar {...props} />
-      <MobileSidebar {...(props as React.ComponentProps<"div">)} />
+      <MobileSidebar {...props} />
     </>
   );
 };
 
-export const DesktopSidebar = ({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof motion.div>) => {
+export const DesktopSidebar = ({ className, children, ...props }: React.ComponentProps<"div">) => {
   const { open, setOpen, animate } = useSidebar();
+  const isOpen = animate ? open : true;
   return (
-    <motion.div
+    <div
       className={cn(
-        "h-full px-4 py-4 hidden  md:flex md:flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border w-[300px] shrink-0",
+        "h-full px-4 py-4 hidden md:flex md:flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border overflow-hidden",
+        "fixed top-0 left-0 z-40",
+        "transition-[width] duration-300 ease-in-out",
+        isOpen ? "w-[300px]" : "w-[60px]",
         className
       )}
-      animate={{
-        width: animate ? (open ? "300px" : "60px") : "300px",
-      }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 
@@ -147,18 +144,20 @@ export const SidebarLink = ({ link, className, ...props }: { link: Links; classN
   const { open, animate } = useSidebar();
   const isExternal = link.href.startsWith("http") || link.href.startsWith("mailto");
 
+  const shouldShow = animate ? open : true;
+
   const content = (
     <>
       {link.icon}
-      <motion.span
-        animate={{
-          display: animate ? (open ? "inline-block" : "none") : "inline-block",
-          opacity: animate ? (open ? 1 : 0) : 1,
-        }}
-        className="text-sidebar-foreground text-base group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block !p-0 !m-0"
+      <span
+        className={cn(
+          "text-sidebar-foreground text-base group-hover/sidebar:translate-x-1 whitespace-pre !p-0 !m-0",
+          "transition-opacity duration-200 ease-in-out",
+          shouldShow ? "opacity-100 inline-block" : "opacity-0 invisible"
+        )}
       >
         {link.label}
-      </motion.span>
+      </span>
     </>
   );
 

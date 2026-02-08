@@ -12,17 +12,19 @@ import {
   Search,
   Trash2,
   Upload,
+  X,
   XCircle,
 } from "lucide-react";
 import {
   type ChangeEvent,
+  type DragEvent,
   type PointerEvent as ReactPointerEvent,
+  useCallback,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +66,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { ClinicalTermsPanel } from "./ClinicalTermsPanel";
 
 type TipoDocumento = "consentimento" | "exame" | "prescricao" | "outro";
 
@@ -80,6 +83,18 @@ interface PatientDocument {
 
 interface DocumentManagerProps {
   patientId: number;
+  patientData?: {
+    id: number;
+    nomeCompleto: string;
+    email?: string | null;
+    telefone?: string | null;
+    cpf?: string | null;
+    rg?: string | null;
+    dataNascimento?: string | null;
+    endereco?: string | null;
+    cidade?: string | null;
+    estado?: string | null;
+  };
 }
 
 const tipoLabels: Record<TipoDocumento, string> = {
@@ -103,7 +118,47 @@ const tipoBadgeColors: Record<TipoDocumento, string> = {
   outro: "bg-gray-500/10 text-gray-700",
 };
 
-export function DocumentManager({ patientId }: DocumentManagerProps) {
+const MAX_DOC_SIZE = 10 * 1024 * 1024; // 10MB
+const ACCEPTED_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+const ACCEPTED_EXTENSIONS = ".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp";
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1];
+      if (!base64) return reject(new Error("Failed to encode file"));
+      resolve(base64);
+    };
+    reader.onerror = () => reject(new Error("Falha ao ler arquivo"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function downloadDataUrl(dataUrl: string, filename: string) {
+  const parts = dataUrl.split(",");
+  const mime = parts[0]?.match(/:(.*?);/)?.[1] || "application/octet-stream";
+  const raw = atob(parts[1] || "");
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  const blob = new Blob([arr], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function DocumentManager({ patientId, patientData }: DocumentManagerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTipo, setFilterTipo] = useState<"all" | TipoDocumento>("all");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -118,12 +173,15 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Upload form state
   const [uploadTitulo, setUploadTitulo] = useState("");
   const [uploadTipo, setUploadTipo] = useState<TipoDocumento>("outro");
-  const [uploadUrl, setUploadUrl] = useState("");
   const [uploadDescricao, setUploadDescricao] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isEncoding, setIsEncoding] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -139,14 +197,14 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
     ]);
   };
 
-  const createMutation = trpc.pacientes.documentos.create.useMutation({
+  const uploadMutation = trpc.pacientes.documentos.upload.useMutation({
     onSuccess: () => {
-      toast.success("Documento adicionado");
+      toast.success("Documento enviado com sucesso");
       setIsUploadOpen(false);
       resetUploadForm();
       void invalidateDocumentQueries();
     },
-    onError: (e) => toast.error(e.message || "Erro ao adicionar documento"),
+    onError: (e) => toast.error(e.message || "Erro ao enviar documento"),
   });
 
   const signMutation = trpc.pacientes.documentos.update.useMutation({
@@ -187,8 +245,58 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
   const resetUploadForm = () => {
     setUploadTitulo("");
     setUploadTipo("outro");
-    setUploadUrl("");
     setUploadDescricao("");
+    setSelectedFile(null);
+    setIsDragging(false);
+    setIsEncoding(false);
+  };
+
+  const processFile = useCallback(
+    (file: File) => {
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        toast.error("Tipo de arquivo não suportado. Use PDF, DOC, DOCX, JPEG, PNG ou WebP.");
+        return;
+      }
+      if (file.size > MAX_DOC_SIZE) {
+        toast.error("Arquivo muito grande. Máximo 10MB.");
+        return;
+      }
+      setSelectedFile(file);
+      // Auto-fill title from filename if empty
+      if (!uploadTitulo) {
+        const nameWithoutExt = file.name.replace(/\.[^.]+$/, "");
+        setUploadTitulo(nameWithoutExt);
+      }
+    },
+    [uploadTitulo]
+  );
+
+  const onDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const onDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  };
+
+  const handleFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+    e.target.value = "";
+  };
+
+  const getFileIcon = (file: File | null) => {
+    if (!file) return FileText;
+    if (file.type === "application/pdf") return FileText;
+    if (file.type.startsWith("image/")) return FileImage;
+    return File;
   };
 
   const isDocumentSigned = (doc: PatientDocument) => Boolean(doc.assinadoPor && doc.dataAssinatura);
@@ -352,26 +460,53 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
     });
   };
 
-  const handleUpload = () => {
-    if (!uploadTitulo || !uploadUrl) {
-      toast.error("Título e URL são obrigatórios");
+  const handleUpload = async () => {
+    if (!uploadTitulo) {
+      toast.error("Título é obrigatório");
+      return;
+    }
+    if (!selectedFile) {
+      toast.error("Selecione um arquivo");
       return;
     }
 
-    createMutation.mutate({
-      pacienteId: patientId,
-      nome: uploadTitulo,
-      tipo: uploadTipo,
-      url: uploadUrl,
-      observacoes: uploadDescricao || undefined,
-    });
+    setIsEncoding(true);
+    try {
+      const fileData = await fileToBase64(selectedFile);
+      uploadMutation.mutate({
+        pacienteId: patientId,
+        fileData,
+        fileName: selectedFile.name,
+        contentType: selectedFile.type || "application/octet-stream",
+        tipo: uploadTipo,
+        nome: uploadTitulo,
+        observacoes: uploadDescricao || undefined,
+      });
+    } catch {
+      toast.error("Erro ao processar arquivo");
+    } finally {
+      setIsEncoding(false);
+    }
   };
 
   const isPDF = (url: string) =>
     url.toLowerCase().endsWith(".pdf") || url.includes("application/pdf");
 
+  const isDataUrl = (url: string) => url.startsWith("data:");
+
+  const handleDownload = (doc: PatientDocument) => {
+    if (isDataUrl(doc.url)) {
+      downloadDataUrl(doc.url, doc.nome);
+    } else {
+      window.open(doc.url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const isUploadPending = uploadMutation.isPending || isEncoding;
+
   return (
     <>
+      {patientData && <ClinicalTermsPanel patientId={patientId} patientData={patientData} />}
       <Card className="border-primary/10">
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
           <div>
@@ -520,10 +655,14 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" asChild className="cursor-pointer">
-                              <a href={doc.url} target="_blank" rel="noopener noreferrer" download>
-                                <Download className="h-4 w-4" />
-                              </a>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="cursor-pointer"
+                              onClick={() => handleDownload(doc)}
+                              aria-label={`Baixar ${doc.nome}`}
+                            >
+                              <Download className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -621,14 +760,88 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent>
+      <Dialog
+        open={isUploadOpen}
+        onOpenChange={(open) => {
+          if (!open) resetUploadForm();
+          setIsUploadOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Adicionar Documento</DialogTitle>
-            <DialogDescription>Anexe um novo documento ao prontuário do paciente</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5 text-primary" />
+              Adicionar Documento
+            </DialogTitle>
+            <DialogDescription>
+              Arraste um arquivo ou clique para selecionar do computador
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_EXTENSIONS}
+              onChange={handleFileInput}
+              className="hidden"
+            />
+
+            {/* Drag-and-drop zone */}
+            {!selectedFile ? (
+              <button
+                type="button"
+                className={`relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-8 w-full cursor-pointer transition-all duration-200 bg-transparent ${
+                  isDragging
+                    ? "border-primary bg-primary/5 scale-[1.02]"
+                    : "border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30"
+                }`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+                aria-label="Zona de upload de documento"
+              >
+                <div className="p-3 rounded-full bg-primary/10">
+                  <Upload className="h-8 w-8 text-primary" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium">
+                    {isDragging ? "Solte o arquivo aqui" : "Arraste um arquivo ou clique"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PDF, DOC, DOCX, JPEG, PNG ou WebP • Máximo 10MB
+                  </p>
+                </div>
+              </button>
+            ) : (
+              (() => {
+                const FileIcon = getFileIcon(selectedFile);
+                return (
+                  <div className="flex items-center gap-3 p-3 rounded-xl border bg-muted/20">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <FileIcon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(0)} KB
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 cursor-pointer"
+                      onClick={() => setSelectedFile(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })()
+            )}
+
             <div className="space-y-2">
               <Label>Título *</Label>
               <Input
@@ -657,15 +870,6 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>URL do Documento *</Label>
-              <Input
-                value={uploadUrl}
-                onChange={(e) => setUploadUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
-
-            <div className="space-y-2">
               <Label>Descrição</Label>
               <Textarea
                 value={uploadDescricao}
@@ -676,11 +880,27 @@ export function DocumentManager({ patientId }: DocumentManagerProps) {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  resetUploadForm();
+                  setIsUploadOpen(false);
+                }}
+              >
                 Cancelar
               </Button>
-              <Button onClick={handleUpload} disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Salvando..." : "Adicionar"}
+              <Button
+                onClick={handleUpload}
+                disabled={!selectedFile || !uploadTitulo || isUploadPending}
+              >
+                {isUploadPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {isEncoding ? "Processando..." : "Salvando..."}
+                  </>
+                ) : (
+                  "Adicionar"
+                )}
               </Button>
             </div>
           </div>

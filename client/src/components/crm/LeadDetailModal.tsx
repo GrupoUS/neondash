@@ -302,7 +302,7 @@ export function LeadDetailModal({
             ) : data ? (
               <motion.div
                 key="content"
-                className="flex flex-col h-full bg-[#020617]"
+                className="flex flex-col h-full bg-background"
                 initial="hidden"
                 animate="visible"
                 exit="exit"
@@ -310,18 +310,18 @@ export function LeadDetailModal({
               >
                 {/* Premium Header */}
                 <div className="relative z-10">
-                  <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+                  <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-60" />
 
-                  <div className="p-6 pb-4 bg-card/40 backdrop-blur-md border-b border-white/5">
+                  <div className="p-6 pb-4 bg-card/80 backdrop-blur-md border-b border-border/40">
                     <div className="flex items-start gap-5">
                       {/* Avatar */}
                       <div className="relative">
-                        <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)]">
+                        <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary shadow-lg">
                           {getInitials(data.lead.nome)}
                         </div>
                         <div
                           className={cn(
-                            "absolute -bottom-2 -right-2 h-7 w-7 rounded-full flex items-center justify-center text-sm shadow-lg border-[3px] border-[#020617]",
+                            "absolute -bottom-2 -right-2 h-7 w-7 rounded-full flex items-center justify-center text-sm shadow-lg border-[3px] border-background",
                             tempConfig.bg
                           )}
                         >
@@ -336,7 +336,7 @@ export function LeadDetailModal({
                             <Input
                               value={editData?.nome as string}
                               onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
-                              className="text-xl font-bold h-9 py-0 px-2 bg-white/5 border-white/10 focus:border-primary max-w-[240px]"
+                              className="text-xl font-bold h-9 py-0 px-2 bg-muted/50 border-border focus:border-primary max-w-[240px]"
                             />
                           ) : (
                             <h2 className="text-2xl font-bold text-foreground truncate tracking-tight">
@@ -383,7 +383,7 @@ export function LeadDetailModal({
                                   setEditData({ ...editData, empresa: e.target.value })
                                 }
                                 placeholder="Empresa"
-                                className="h-8 bg-white/5 border-white/10"
+                                className="h-8 bg-muted/50 border-border"
                               />
                               <Input
                                 value={editData?.email as string}
@@ -391,7 +391,7 @@ export function LeadDetailModal({
                                   setEditData({ ...editData, email: e.target.value })
                                 }
                                 placeholder="Email"
-                                className="h-8 bg-white/5 border-white/10"
+                                className="h-8 bg-muted/50 border-border"
                               />
                             </div>
                           ) : (
@@ -425,7 +425,7 @@ export function LeadDetailModal({
                       </div>
 
                       {/* Header Actions - always allow editing now, admin can edit any lead */}
-                      <div className="flex gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
+                      <div className="flex gap-1 bg-muted/50 p-1 rounded-lg border border-border/40">
                         {isEditing ? (
                           <>
                             <Button
@@ -474,11 +474,11 @@ export function LeadDetailModal({
                   </div>
 
                   {/* Quick Action Bar */}
-                  <div className="px-6 py-3 bg-card/20 border-b border-white/5 flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
+                  <div className="px-6 py-3 bg-muted/30 border-b border-border/30 flex gap-2 overflow-x-auto pb-3 custom-scrollbar">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 gap-1.5 bg-white/5 border-white/10 hover:bg-primary/10 hover:border-primary/30 hover:text-primary text-xs"
+                      className="h-8 gap-1.5 bg-muted/50 border-border/60 hover:bg-primary/10 hover:border-primary/30 hover:text-primary text-xs"
                       onClick={() => handleQuickAction("ligacao")}
                     >
                       <Phone className="h-3.5 w-3.5" />
@@ -487,7 +487,7 @@ export function LeadDetailModal({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 gap-1.5 bg-white/5 border-white/10 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500 text-xs"
+                      className="h-8 gap-1.5 bg-muted/50 border-border/60 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500 text-xs"
                       onClick={() => {
                         const phone = data?.lead?.telefone;
                         if (phone) {
@@ -504,7 +504,7 @@ export function LeadDetailModal({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 gap-1.5 bg-white/5 border-white/10 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive text-xs"
+                      className="h-8 gap-1.5 bg-muted/50 border-border/60 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive text-xs"
                       onClick={() => setObjectionDialogOpen(true)}
                     >
                       <ShieldAlert className="h-3.5 w-3.5" />
@@ -538,7 +538,7 @@ export function LeadDetailModal({
                   onValueChange={setActiveTab}
                   className="flex-1 flex flex-col overflow-hidden"
                 >
-                  <div className="px-6 border-b border-white/5 bg-white/[0.02]">
+                  <div className="px-6 border-b border-border/30 bg-muted/10">
                     <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-6">
                       {[
                         { value: "detalhes", label: "Detalhes" },
@@ -581,7 +581,7 @@ export function LeadDetailModal({
                       value="chat"
                       className="p-0 m-0 h-[calc(100vh-280px)] focus-visible:outline-none"
                     >
-                      <div className="h-full w-full bg-[#0B1120]">
+                      <div className="h-full w-full bg-background">
                         <LeadChatWindow
                           leadId={leadId!}
                           phone={data?.lead?.telefone || undefined}

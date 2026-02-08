@@ -1,19 +1,16 @@
-// Preconfigured storage helpers
-// Uses the configured storage proxy (Authorization: Bearer <token>)
-
-import { ENV } from "./_core/env";
+// Storage helpers
+// NOTE: Storage proxy service is deprecated. These functions will throw
+// a clear error if called. File uploads should use alternative storage
+// (e.g., Clerk file upload, Supabase Storage, or direct S3).
 
 type StorageConfig = { baseUrl: string; apiKey: string };
 
 function getStorageConfig(): StorageConfig {
-  const baseUrl = ENV.llmApiUrl;
-  const apiKey = ENV.llmApiKey;
-
-  if (!baseUrl || !apiKey) {
-    throw new Error("Storage proxy credentials missing: set LLM_API_URL and LLM_API_KEY");
-  }
-
-  return { baseUrl: baseUrl.replace(/\/+$/, ""), apiKey };
+  // Storage proxy is no longer available — LLM_API_URL/LLM_API_KEY were removed
+  throw new Error(
+    "Storage service not configured. The legacy storage proxy (LLM_API_URL) has been removed. " +
+      "Configure an alternative storage provider (S3, Supabase Storage, etc.)."
+  );
 }
 
 function buildUploadUrl(baseUrl: string, relKey: string): URL {
@@ -48,7 +45,7 @@ function toFormData(
   const blob =
     typeof data === "string"
       ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
+      : new Blob([new Uint8Array(data)], { type: contentType });
   const form = new FormData();
   form.append("file", blob, fileName || "file");
   return form;

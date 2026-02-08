@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { Flame, Lock, Trophy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Confetti from "react-confetti";
@@ -225,11 +225,7 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                 <Skeleton className="h-4 w-full" />
               </div>
             ) : (
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              >
+              <div className="animate-in fade-in zoom-in-95 duration-300">
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-bold text-primary">
                     {streakData?.currentStreak ?? 0}
@@ -254,7 +250,7 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                     </div>
                   );
                 })()}
-              </motion.div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -284,16 +280,9 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                 {earnedBadges.map((earned: EarnedBadge, index: number) => (
                   <Tooltip key={earned.badge.id}>
                     <TooltipTrigger asChild>
-                      <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 200,
-                          delay: index * 0.1,
-                        }}
+                      <div
                         className={cn(
-                          "flex size-10 items-center justify-center rounded-full text-lg cursor-pointer transition-transform hover:scale-110",
+                          "flex size-10 items-center justify-center rounded-full text-lg cursor-pointer transition-transform hover:scale-110 animate-in fade-in zoom-in-95 duration-300",
                           earned.badge.cor === "gold" &&
                             "bg-yellow-500/20 ring-1 ring-yellow-500/50",
                           earned.badge.cor === "silver" && "bg-gray-400/20 ring-1 ring-gray-400/50",
@@ -304,9 +293,10 @@ export function GamificationSidebar({ mentoradoId, className }: GamificationSide
                           earned.badge.cor === "blue" && "bg-blue-500/20 ring-1 ring-blue-500/50",
                           earned.badge.cor === "purple" && "bg-teal-500/20 ring-1 ring-teal-500/50"
                         )}
+                        style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <BadgeIcon code={earned.badge.codigo} size={20} />
-                      </motion.div>
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="text-center">

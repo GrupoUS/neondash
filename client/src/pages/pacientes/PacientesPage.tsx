@@ -25,6 +25,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 // import { PatientFormDialog } from "@/components/pacientes/PatientFormDialog"; // Replaced
 import { AddPatientWizard } from "@/components/pacientes/AddPatientWizard"; // New
 import { AIChatWidget } from "@/components/pacientes/AIChatWidget";
+import { ConsultationReports } from "@/components/pacientes/ConsultationReports";
 import { DocumentManager } from "@/components/pacientes/DocumentManager";
 import { ImportPatientsDialog } from "@/components/pacientes/ImportPatientsDialog"; // New
 import { PatientInfoCard } from "@/components/pacientes/PatientInfoCard";
@@ -472,25 +473,28 @@ function PatientDetail({ id }: { id: number }) {
         </NeonTabsContent>
 
         <NeonTabsContent value="medico">
-          <PatientMedicalCard
-            patientId={paciente.id}
-            medicalInfo={
-              paciente.infoMedica
-                ? {
-                    id: paciente.infoMedica.id,
-                    tipoSanguineo: paciente.infoMedica.tipoSanguineo,
-                    alergias: paciente.infoMedica.alergias,
-                    medicamentosEmUso: paciente.infoMedica.medicamentosAtuais,
-                    historicoMedico: paciente.infoMedica.historicoCircurgico,
-                    peso: null,
-                    altura: null,
-                    antecedentesEsteticos: paciente.infoMedica.condicoesPreexistentes,
-                    expectativas: paciente.infoMedica.contraindacacoes,
-                  }
-                : null
-            }
-            onUpdate={() => utils.pacientes.getById.invalidate({ id: paciente.id })}
-          />
+          <div className="space-y-6">
+            <PatientMedicalCard
+              patientId={paciente.id}
+              medicalInfo={
+                paciente.infoMedica
+                  ? {
+                      id: paciente.infoMedica.id,
+                      tipoSanguineo: paciente.infoMedica.tipoSanguineo,
+                      alergias: paciente.infoMedica.alergias,
+                      medicamentosEmUso: paciente.infoMedica.medicamentosAtuais,
+                      historicoMedico: paciente.infoMedica.historicoCircurgico,
+                      peso: null,
+                      altura: null,
+                      antecedentesEsteticos: paciente.infoMedica.condicoesPreexistentes,
+                      expectativas: paciente.infoMedica.expectativasTratamento,
+                    }
+                  : null
+              }
+              onUpdate={() => utils.pacientes.getById.invalidate({ id: paciente.id })}
+            />
+            <ConsultationReports patientId={paciente.id} />
+          </div>
         </NeonTabsContent>
 
         <NeonTabsContent value="fotos">
@@ -501,7 +505,21 @@ function PatientDetail({ id }: { id: number }) {
         </NeonTabsContent>
 
         <NeonTabsContent value="documentos">
-          <DocumentManager patientId={paciente.id} />
+          <DocumentManager
+            patientId={paciente.id}
+            patientData={{
+              id: paciente.id,
+              nomeCompleto: paciente.nomeCompleto,
+              email: paciente.email,
+              telefone: paciente.telefone,
+              cpf: paciente.cpf,
+              rg: paciente.rg,
+              dataNascimento: paciente.dataNascimento,
+              endereco: paciente.endereco,
+              cidade: paciente.cidade,
+              estado: paciente.estado,
+            }}
+          />
         </NeonTabsContent>
 
         <NeonTabsContent value="chat">

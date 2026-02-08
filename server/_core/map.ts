@@ -41,41 +41,12 @@ interface RequestOptions {
  * @returns The API response
  */
 export async function makeRequest<T = unknown>(
-  endpoint: string,
-  params: Record<string, unknown> = {},
-  options: RequestOptions = {}
+  _endpoint: string,
+  _params: Record<string, unknown> = {},
+  _options: RequestOptions = {}
 ): Promise<T> {
-  const { baseUrl, apiKey } = getMapsConfig();
-
-  // Construct full URL: baseUrl + /v1/maps/proxy + endpoint
-  const url = new URL(`${baseUrl}/v1/maps/proxy${endpoint}`);
-
-  // Add API key as query parameter (standard Google Maps API authentication)
-  url.searchParams.append("key", apiKey);
-
-  // Add other query parameters
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      url.searchParams.append(key, String(value));
-    }
-  });
-
-  const response = await fetch(url.toString(), {
-    method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(
-      `Google Maps API request failed (${response.status} ${response.statusText}): ${errorText}`
-    );
-  }
-
-  return (await response.json()) as T;
+  // getMapsConfig() always throws — legacy proxy removed
+  return getMapsConfig() as never;
 }
 
 // ============================================================================

@@ -368,9 +368,12 @@ export function AIChatWidget({ patientId, patientName, preloadedPhoto }: AIChatW
           </div>
         </CardHeader>
 
-        <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col p-0 overflow-hidden min-h-0">
           {/* Chat Messages */}
-          <ScrollArea ref={scrollRef as React.LegacyRef<HTMLDivElement>} className="flex-1 p-4">
+          <ScrollArea
+            ref={scrollRef as React.LegacyRef<HTMLDivElement>}
+            className="flex-1 h-full overflow-y-auto p-4"
+          >
             {isLoadingHistory ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (

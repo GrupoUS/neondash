@@ -414,16 +414,19 @@ export const pacientesRouter = router({
 
     // Insert documents if provided
     if (input.documentos && input.documentos.length > 0) {
-      await db.insert(pacientesDocumentos).values(
-        input.documentos.map((doc) => ({
-          pacienteId: newPaciente.id,
-          tipo: doc.tipo,
-          nome: doc.nome,
-          url: doc.url,
-          mimeType: doc.mimeType,
-          tamanhoBytes: doc.tamanhoBytes,
-        }))
-      );
+      await db
+        .insert(pacientesDocumentos)
+        .values(
+          input.documentos.map((doc) => ({
+            pacienteId: newPaciente.id,
+            tipo: doc.tipo,
+            nome: doc.nome,
+            url: doc.url,
+            mimeType: doc.mimeType,
+            tamanhoBytes: doc.tamanhoBytes,
+          }))
+        )
+        .returning();
     }
 
     return newPaciente;
@@ -652,8 +655,11 @@ export const pacientesRouter = router({
           status: "ativo" as const,
         }));
 
-        await db.insert(pacientes).values(valuesToInsert);
-        totalCreated += chunk.length;
+        const inserted = await db
+          .insert(pacientes)
+          .values(valuesToInsert)
+          .returning({ id: pacientes.id });
+        totalCreated += inserted.length;
       }
 
       return { count: totalCreated };

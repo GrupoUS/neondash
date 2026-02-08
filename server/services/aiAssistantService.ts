@@ -767,10 +767,10 @@ DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
     // each API call is independent and doesn't need replayed signatures.
     const MAX_TOOL_STEPS = 5;
     const formattedMessages = messages.map((m) => ({
-      role: m.role as "user" | "assistant",
+      role: m.role as "user" | "assistant" | "system",
       content: m.content,
     }));
-    let currentMessages: any[] = [...formattedMessages]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let currentMessages: Array<{ role: string; content: unknown }> = [...formattedMessages];
     const allToolsUsed: string[] = [];
     let finalText = "";
 
@@ -788,7 +788,7 @@ DIRETRIZES ESPECÍFICAS PARA FINANÇAS:
 
       // If no tool calls, we have the final text response
       if (!result.toolCalls || result.toolCalls.length === 0) {
-        finalText = result.text;
+        finalText = result.text || "Desculpe, não consegui gerar uma resposta. Tente reformular.";
         break;
       }
 

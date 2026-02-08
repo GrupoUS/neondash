@@ -467,7 +467,9 @@ async function tryGenerateSimulationImage(
         : undefined,
     });
     return result.url ?? null;
-  } catch {
+  } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: Intentional error logging
+    console.error("[Patient AI] Image generation failed:", error);
     return null;
   }
 }

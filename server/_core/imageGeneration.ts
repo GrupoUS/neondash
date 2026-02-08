@@ -28,6 +28,20 @@ function getClient(): GoogleGenAI | null {
   return new GoogleGenAI({ apiKey });
 }
 
+/** Fetch a remote URL and convert to base64 + mimeType */
+async function fetchImageAsBase64(url: string): Promise<{ data: string; mimeType: string } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    const mimeType = res.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
+    const data = Buffer.from(buffer).toString("base64");
+    return { data, mimeType };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Generate or edit an image using Nano Banana Pro.
  *
@@ -64,6 +78,17 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
             },
           });
         }
+      } else if (img.url) {
+        // Fetch remote HTTP(S) URL and convert to base64
+        const fetched = await fetchImageAsBase64(img.url);
+        if (fetched) {
+          parts.push({
+            inlineData: {
+              mimeType: fetched.mimeType,
+              data: fetched.data,
+            },
+          });
+        }
       }
     }
   }
@@ -72,19 +97,18 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
   parts.push({
     text: options.originalImages?.length
       ? `Based on the provided patient photo, create a realistic before/after aesthetic simulation.\n${options.prompt}\nStyle: Clinical, natural-looking result. Soft, neutral lighting. Professional medical aesthetic.`
-      : `${options.prompt}\nStyle: Clinical aesthetic simulation. Soft neutral lighting. Professional medical.`,
+      : `${options.prompt}\nGenerate a realistic clinical aesthetic simulation image.\nStyle: Clinical aesthetic simulation. Soft neutral lighting. Professional medical.`,
   });
 
   const response = await gemini.models.generateContent({
     model: IMAGE_MODEL,
     contents: [{ role: "user", parts }],
     config: {
-      responseModalities: ["IMAGE"],
-      imageConfig: { aspectRatio: "1:1" },
+      responseModalities: ["TEXT", "IMAGE"],
     },
   });
 
-  // Extract image from response
+  // Extract image from response (may contain both text and image parts)
   const responseParts = response.candidates?.[0]?.content?.parts ?? [];
   for (const part of responseParts) {
     if (part.inlineData?.data) {

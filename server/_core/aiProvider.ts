@@ -9,6 +9,12 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { GoogleGenAI } from "@google/genai";
 import { ENV } from "./env";
 
+// Validate API key at module load to fail fast with a clear message
+if (!ENV.geminiApiKey) {
+  // biome-ignore lint/suspicious/noConsole: Startup validation warning
+  console.warn("[aiProvider] GEMINI_API_KEY is not set. AI features will be unavailable.");
+}
+
 /**
  * Google Gemini AI provider instance (Vercel AI SDK).
  * Uses GEMINI_API_KEY from environment.

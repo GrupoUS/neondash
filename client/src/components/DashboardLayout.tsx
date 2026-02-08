@@ -216,12 +216,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </SidebarBody>
       </Sidebar>
-      <main
-        className={cn(
-          "flex-1 overflow-y-auto w-full p-2 md:p-10 border-l border-border bg-background rounded-tl-2xl transition-[margin-left] duration-300 ease-in-out",
-          open ? "md:ml-[300px]" : "md:ml-[60px]"
-        )}
-      >
+      <main className="flex-1 overflow-y-auto w-full p-2 md:p-10 border-l border-border bg-background rounded-tl-2xl">
         {children}
       </main>
       <GlobalAIChat />

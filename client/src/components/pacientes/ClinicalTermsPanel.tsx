@@ -621,15 +621,15 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
           <Separator />
 
           {/* Scrollable content area */}
-          <ScrollArea className="flex-1 min-h-0 max-h-[50vh]">
+          <ScrollArea className="flex-1 min-h-0 max-h-[50vh] overflow-hidden">
             <div
               ref={contentRef}
               contentEditable={isEditing}
               suppressContentEditableWarning
-              className={`prose prose-sm max-w-none p-6 rounded-lg border transition-all overflow-hidden break-words [word-break:break-word] ${
+              className={`prose prose-sm max-w-none p-4 sm:p-6 break-words [word-break:break-word] [overflow-wrap:anywhere] ${
                 isEditing
-                  ? "bg-white dark:bg-zinc-900 border-primary/40 ring-2 ring-primary/20 outline-none focus:ring-primary/40"
-                  : "bg-white dark:bg-zinc-950 border-border/50"
+                  ? "bg-white dark:bg-zinc-900 rounded-lg border border-primary/40 ring-2 ring-primary/20 outline-none focus:ring-primary/40"
+                  : ""
               }`}
               // biome-ignore lint/security/noDangerouslySetInnerHtml: Controlled HTML from template literals, no user input
               dangerouslySetInnerHTML={{

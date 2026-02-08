@@ -34,7 +34,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
 
@@ -589,10 +588,9 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
       </Card>
 
       {/* Term Preview / Edit Dialog */}
-      {/* Term Preview / Edit Dialog */}
       <Dialog open={!!selectedTerm} onOpenChange={() => closeTerm()}>
         <DialogContent className="sm:max-w-4xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-4">
+          <DialogHeader className="shrink-0 p-6 pb-4">
             <DialogTitle className="flex items-center gap-2">
               {selectedTerm &&
                 (() => {
@@ -619,17 +617,17 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
             </DialogDescription>
           </DialogHeader>
 
-          <Separator />
+          <Separator className="shrink-0" />
 
-          {/* Scrollable content area */}
-          <ScrollArea className="flex-1 w-full p-0">
+          {/* Scrollable content area — native overflow for reliable scroll */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div
               ref={contentRef}
               contentEditable={isEditing}
               suppressContentEditableWarning
-              className={`prose prose-sm max-w-none p-6 break-words [word-break:break-word] [overflow-wrap:anywhere] min-h-full ${
+              className={`prose prose-sm max-w-none p-6 break-words [word-break:break-word] [overflow-wrap:anywhere] ${
                 isEditing
-                  ? "bg-white dark:bg-zinc-900 border border-primary/40 ring-2 ring-primary/20 outline-none focus:ring-primary/40"
+                  ? "bg-white dark:bg-zinc-900 outline-none ring-2 ring-inset ring-primary/20"
                   : ""
               }`}
               // biome-ignore lint/security/noDangerouslySetInnerHtml: Controlled HTML from template literals, no user input
@@ -637,11 +635,11 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
                 __html: selectedTerm ? getFilledContent(selectedTerm) : "",
               }}
             />
-          </ScrollArea>
+          </div>
 
-          <Separator />
+          <Separator className="shrink-0" />
 
-          <DialogFooter className="flex-col gap-3 p-6 pt-4 bg-muted/10">
+          <DialogFooter className="shrink-0 flex-col gap-3 p-6 pt-4">
             {/* Row 1: Edit toggle + template actions */}
             <div className="flex items-center justify-between w-full gap-2">
               <Button

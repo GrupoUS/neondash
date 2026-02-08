@@ -1,7 +1,7 @@
 /**
  * ClinicalTermsPanel - Pre-filled clinical term templates
  * Generates legal documents auto-filled with patient data.
- * Supports: save as document, send via email, print/PDF.
+ * Supports: editable content, save as document, send via email/WhatsApp, print/PDF.
  */
 
 import {
@@ -10,14 +10,17 @@ import {
   type FileText,
   Loader2,
   Mail,
+  MessageCircle,
+  Pencil,
   Printer,
+  RotateCcw,
   Save,
   Shield,
   ShieldCheck,
   Sparkles,
   Syringe,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +109,12 @@ function fillPlaceholders(template: string, patient: PatientData): string {
       /\{\{CIDADE_ESTADO\}\}/g,
       [patient.cidade, patient.estado].filter(Boolean).join("/") || "_______________"
     );
+}
+
+/** Strip HTML tags to get plain text for WhatsApp */
+function htmlToPlainText(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent?.trim() ?? "";
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -315,8 +324,17 @@ const TERM_TEMPLATES: TermTemplate[] = [
 export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPanelProps) {
   const [selectedTerm, setSelectedTerm] = useState<TermTemplate | null>(null);
   const [savedTerms, setSavedTerms] = useState<Set<string>>(new Set());
-  const printRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
   const utils = trpc.useUtils();
+
+  // Load persisted custom term templates for this mentorado
+  const customTermsQuery = trpc.pacientes.termos.getAll.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
+  const customTermsMap = new Map(
+    (customTermsQuery.data ?? []).map((t) => [t.termoId, t.conteudoHtml])
+  );
 
   const createMutation = trpc.pacientes.documentos.create.useMutation({
     onSuccess: (_data, variables) => {
@@ -339,40 +357,112 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
     onError: (e) => toast.error(e.message || "Erro ao enviar e-mail"),
   });
 
-  const handleSave = (term: TermTemplate) => {
-    const filledContent = fillPlaceholders(term.conteudo, patientData);
-    const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${term.titulo}</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:800px;margin:0 auto;line-height:1.7;color:#1a1a1a}h2{color:#111}ul,ol{margin:12px 0}li{margin:4px 0}strong{color:#000}</style></head><body>${filledContent}</body></html>`;
+  const saveTemplateMutation = trpc.pacientes.termos.save.useMutation({
+    onSuccess: () => {
+      toast.success("Modelo salvo! Será reutilizado em todos os pacientes.");
+      void utils.pacientes.termos.getAll.invalidate();
+    },
+    onError: (e) => toast.error(e.message || "Erro ao salvar modelo"),
+  });
+
+  const resetTemplateMutation = trpc.pacientes.termos.reset.useMutation({
+    onSuccess: () => {
+      toast.success("Modelo restaurado ao padrão original.");
+      void utils.pacientes.termos.getAll.invalidate();
+      // Re-render with default template
+      if (selectedTerm && contentRef.current) {
+        contentRef.current.innerHTML = fillPlaceholders(selectedTerm.conteudo, patientData);
+      }
+    },
+    onError: (e) => toast.error(e.message || "Erro ao restaurar modelo"),
+  });
+
+  /** Get the template content: custom if saved, otherwise default filled with patient data */
+  const getFilledContent = useCallback(
+    (term: TermTemplate): string => {
+      const customHtml = customTermsMap.get(term.id);
+      if (customHtml) {
+        // Custom templates already have placeholders filled with previous patient data,
+        // so we store the raw template. Re-fill placeholders on the custom content.
+        return fillPlaceholders(customHtml, patientData);
+      }
+      return fillPlaceholders(term.conteudo, patientData);
+    },
+    [customTermsMap, patientData]
+  );
+
+  /** Get current HTML from the editable content area (may be edited by user) */
+  const getCurrentHtml = useCallback((): string => {
+    if (contentRef.current) return contentRef.current.innerHTML;
+    if (selectedTerm) return getFilledContent(selectedTerm);
+    return "";
+  }, [selectedTerm, getFilledContent]);
+
+  const handleSaveDoc = () => {
+    if (!selectedTerm) return;
+    const html = getCurrentHtml();
+    const htmlDoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${selectedTerm.titulo}</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:800px;margin:0 auto;line-height:1.7;color:#1a1a1a}h2{color:#111}ul,ol{margin:12px 0}li{margin:4px 0}strong{color:#000}</style></head><body>${html}</body></html>`;
     const dataUrl = `data:text/html;base64,${btoa(unescape(encodeURIComponent(htmlDoc)))}`;
 
     createMutation.mutate({
       pacienteId: patientId,
       tipo: "consentimento",
-      nome: `${term.titulo} — ${patientData.nomeCompleto}`,
+      nome: `${selectedTerm.titulo} — ${patientData.nomeCompleto}`,
       url: dataUrl,
       mimeType: "text/html",
       observacoes: `Termo gerado automaticamente em ${todayBR()}. Pendente de assinatura.`,
     });
   };
 
-  const handleEmail = (term: TermTemplate) => {
+  const handleEmail = () => {
+    if (!selectedTerm) return;
     if (!patientData.email) {
       toast.error("Paciente não possui e-mail cadastrado");
       return;
     }
 
-    const filledContent = fillPlaceholders(term.conteudo, patientData);
-
     sendEmailMutation.mutate({
       pacienteId: patientId,
       pacienteEmail: patientData.email,
       pacienteNome: patientData.nomeCompleto,
-      termoTitulo: term.titulo,
-      termoHtml: filledContent,
+      termoTitulo: selectedTerm.titulo,
+      termoHtml: getCurrentHtml(),
     });
   };
 
-  const handlePrint = (term: TermTemplate) => {
-    const filledContent = fillPlaceholders(term.conteudo, patientData);
+  /** Save the current content as the mentorado's custom template (reusable across patients) */
+  const handleSaveTemplate = () => {
+    if (!selectedTerm) return;
+    saveTemplateMutation.mutate({
+      termoId: selectedTerm.id,
+      conteudoHtml: getCurrentHtml(),
+    });
+  };
+
+  /** Reset to default template (delete custom version) */
+  const handleResetTemplate = () => {
+    if (!selectedTerm) return;
+    resetTemplateMutation.mutate({ termoId: selectedTerm.id });
+  };
+
+  const handleWhatsApp = () => {
+    if (!selectedTerm) return;
+    if (!patientData.telefone) {
+      toast.error("Paciente não possui telefone cadastrado");
+      return;
+    }
+
+    const plainText = htmlToPlainText(getCurrentHtml());
+    // Clean phone: remove non-digits, ensure +55 prefix
+    const cleanPhone = patientData.telefone.replace(/\D/g, "");
+    const phone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+    const encodedText = encodeURIComponent(`*${selectedTerm.titulo}*\n\n${plainText}`);
+    window.open(`https://wa.me/${phone}?text=${encodedText}`, "_blank", "noopener");
+  };
+
+  const handlePrint = () => {
+    if (!selectedTerm) return;
+    const html = getCurrentHtml();
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       toast.error("Popup bloqueado. Permita popups para imprimir.");
@@ -384,7 +474,7 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
       <html>
       <head>
         <meta charset="utf-8">
-        <title>${term.titulo}</title>
+        <title>${selectedTerm.titulo}</title>
         <style>
           @media print {
             @page { margin: 2cm; }
@@ -406,13 +496,23 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
         </style>
       </head>
       <body>
-        ${filledContent}
+        ${html}
       </body>
       </html>
     `);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
+  };
+
+  const openTerm = (term: TermTemplate) => {
+    setSelectedTerm(term);
+    setIsEditing(false);
+  };
+
+  const closeTerm = () => {
+    setSelectedTerm(null);
+    setIsEditing(false);
   };
 
   return (
@@ -424,7 +524,8 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
             Termos da Clínica
           </CardTitle>
           <CardDescription>
-            Termos pré-preenchidos com os dados do paciente. Salve, envie por e-mail ou imprima.
+            Termos pré-preenchidos com os dados do paciente. Edite, salve, envie por e-mail/WhatsApp
+            ou imprima.
           </CardDescription>
         </CardHeader>
 
@@ -438,7 +539,7 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
                 <button
                   key={term.id}
                   type="button"
-                  onClick={() => setSelectedTerm(term)}
+                  onClick={() => openTerm(term)}
                   className="group relative flex flex-col items-start gap-3 rounded-xl border border-border/60 bg-background/50 p-4 text-left transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 >
                   <div className="flex items-center gap-3 w-full">
@@ -461,6 +562,15 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
                     >
                       {term.badgeLabel}
                     </Badge>
+                    {customTermsMap.has(term.id) && (
+                      <Badge
+                        className="text-[10px] px-1.5 py-0 bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-400"
+                        variant="outline"
+                      >
+                        <Pencil className="h-3 w-3 mr-0.5" />
+                        Customizado
+                      </Badge>
+                    )}
                     {isSaved && (
                       <Badge
                         className="text-[10px] px-1.5 py-0 bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
@@ -478,8 +588,8 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
         </CardContent>
       </Card>
 
-      {/* Term Preview Dialog */}
-      <Dialog open={!!selectedTerm} onOpenChange={() => setSelectedTerm(null)}>
+      {/* Term Preview / Edit Dialog */}
+      <Dialog open={!!selectedTerm} onOpenChange={() => closeTerm()}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -489,62 +599,150 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
                   return <Icon className={`h-5 w-5 ${selectedTerm.iconColor}`} />;
                 })()}
               {selectedTerm?.titulo}
+              {isEditing && (
+                <Badge variant="secondary" className="ml-2 text-xs gap-1">
+                  <Pencil className="h-3 w-3" />
+                  Editando
+                </Badge>
+              )}
             </DialogTitle>
             <DialogDescription>
-              Pré-visualização do termo com os dados de <strong>{patientData.nomeCompleto}</strong>
+              {isEditing ? (
+                "Editando o conteúdo do termo. As alterações serão usadas ao salvar, enviar ou imprimir."
+              ) : (
+                <>
+                  Pré-visualização do termo com os dados de{" "}
+                  <strong>{patientData.nomeCompleto}</strong>. Clique em "Editar" para modificar.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <Separator />
 
-          <ScrollArea className="flex-1 max-h-[55vh]">
+          {/* Scrollable content area */}
+          <ScrollArea className="flex-1 min-h-0 max-h-[50vh]">
             <div
-              ref={printRef}
-              className="prose prose-sm max-w-none p-6 bg-white dark:bg-zinc-950 rounded-lg border"
+              ref={contentRef}
+              contentEditable={isEditing}
+              suppressContentEditableWarning
+              className={`prose prose-sm max-w-none p-6 rounded-lg border transition-all ${
+                isEditing
+                  ? "bg-white dark:bg-zinc-900 border-primary/40 ring-2 ring-primary/20 outline-none focus:ring-primary/40"
+                  : "bg-white dark:bg-zinc-950 border-border/50"
+              }`}
               // biome-ignore lint/security/noDangerouslySetInnerHtml: Controlled HTML from template literals, no user input
               dangerouslySetInnerHTML={{
-                __html: selectedTerm ? fillPlaceholders(selectedTerm.conteudo, patientData) : "",
+                __html: selectedTerm ? getFilledContent(selectedTerm) : "",
               }}
             />
           </ScrollArea>
 
           <Separator />
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              className="gap-2 cursor-pointer"
-              onClick={() => selectedTerm && handlePrint(selectedTerm)}
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir / PDF
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2 cursor-pointer"
-              onClick={() => selectedTerm && handleEmail(selectedTerm)}
-              disabled={!patientData.email || sendEmailMutation.isPending}
-              title={!patientData.email ? "Paciente sem e-mail cadastrado" : undefined}
-            >
-              {sendEmailMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Mail className="h-4 w-4" />
-              )}
-              Enviar por E-mail
-            </Button>
-            <Button
-              className="gap-2 cursor-pointer"
-              onClick={() => selectedTerm && handleSave(selectedTerm)}
-              disabled={createMutation.isPending}
-            >
-              {createMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Salvar como Documento
-            </Button>
+          <DialogFooter className="flex-col gap-3">
+            {/* Row 1: Edit toggle + template actions */}
+            <div className="flex items-center justify-between w-full gap-2">
+              <Button
+                variant={isEditing ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5 cursor-pointer"
+                onClick={() => setIsEditing((prev) => !prev)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {isEditing ? "Modo Leitura" : "Editar Conteúdo"}
+              </Button>
+
+              <div className="flex items-center gap-2">
+                {selectedTerm && customTermsMap.has(selectedTerm.id) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 cursor-pointer text-muted-foreground hover:text-destructive"
+                    onClick={handleResetTemplate}
+                    disabled={resetTemplateMutation.isPending}
+                  >
+                    {resetTemplateMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    )}
+                    Restaurar Original
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="gap-1.5 cursor-pointer"
+                  onClick={handleSaveTemplate}
+                  disabled={saveTemplateMutation.isPending}
+                  title="Salvar como modelo padrão para todos os pacientes"
+                >
+                  {saveTemplateMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <FileSignature className="h-3.5 w-3.5" />
+                  )}
+                  Salvar Modelo
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Row 2: Document/send actions */}
+            <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 cursor-pointer"
+                onClick={handlePrint}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 cursor-pointer text-green-700 border-green-300 hover:bg-green-50 hover:border-green-400 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950"
+                onClick={handleWhatsApp}
+                disabled={!patientData.telefone}
+                title={
+                  !patientData.telefone ? "Paciente sem telefone cadastrado" : "Enviar via WhatsApp"
+                }
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 cursor-pointer"
+                onClick={handleEmail}
+                disabled={!patientData.email || sendEmailMutation.isPending}
+                title={!patientData.email ? "Paciente sem e-mail cadastrado" : undefined}
+              >
+                {sendEmailMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Mail className="h-3.5 w-3.5" />
+                )}
+                E-mail
+              </Button>
+              <Button
+                size="sm"
+                className="gap-1.5 cursor-pointer"
+                onClick={handleSaveDoc}
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                Salvar no Prontuário
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -373,26 +373,65 @@ Use as ferramentas disponíveis para buscar informações do prontuário antes d
       };
     });
 
-    // Early cast to avoid deep type instantiation issues
-    // Disable thinking (thinkingBudget: 0) to avoid thought_signature errors.
-    // Gemini 3 models require thought signatures in multi-step tool calls,
-    // but @ai-sdk/google@1.x doesn't preserve them in round-trips.
-    const result = await generateText({
-      model: defaultModel,
-      system: systemPrompt,
-      messages: formattedMessages as Parameters<typeof generateText>[0]["messages"],
-      tools,
-      maxSteps: 5, // Allow up to 5 tool calls
-      providerOptions: {
-        google: { thinkingConfig: { thinkingBudget: 0 } },
-      },
-    });
+    // Manual tool-calling loop to avoid thought_signature errors.
+    // @ai-sdk/google v1 doesn't preserve thought signatures in multi-step
+    // tool calls. By making single-step calls and looping manually,
+    // each API call is independent and doesn't need replayed signatures.
+    const MAX_TOOL_STEPS = 5;
+    let currentMessages: any[] = [...formattedMessages]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const allToolsUsed: string[] = [];
+    let finalText = "";
 
-    const toolsUsed: string[] = result.steps
-      .flatMap((step) => step.toolCalls?.map((tc) => tc.toolName as string) ?? [])
-      .filter((toolName): toolName is string => toolName.length > 0);
+    for (let step = 0; step < MAX_TOOL_STEPS; step++) {
+      const result = await generateText({
+        model: defaultModel,
+        system: systemPrompt,
+        messages: currentMessages as Parameters<typeof generateText>[0]["messages"],
+        tools,
+      });
 
-    const uniqueToolsUsed: string[] = Array.from(new Set(toolsUsed));
+      // Collect tool names used in this step
+      const stepTools = result.toolCalls?.map((tc) => tc.toolName as string) ?? [];
+      allToolsUsed.push(...stepTools);
+
+      // If no tool calls, we have the final text response
+      if (!result.toolCalls || result.toolCalls.length === 0) {
+        finalText = result.text;
+        break;
+      }
+
+      // Build tool result messages and continue the loop
+      currentMessages = [
+        ...currentMessages,
+        {
+          role: "assistant" as const,
+          content: result.toolCalls.map((tc) => ({
+            type: "tool-call" as const,
+            toolCallId: tc.toolCallId,
+            toolName: tc.toolName,
+            args: tc.args,
+          })),
+        },
+        {
+          role: "tool" as const,
+          content: result.toolResults.map((tr) => ({
+            type: "tool-result" as const,
+            toolCallId: tr.toolCallId,
+            toolName: tr.toolName,
+            result: tr.result,
+          })),
+        },
+      ];
+
+      // If this is the last allowed step, use whatever text we have
+      if (step === MAX_TOOL_STEPS - 1) {
+        finalText =
+          result.text ||
+          "Desculpe, não consegui completar a análise. Tente reformular sua pergunta.";
+      }
+    }
+
+    const uniqueToolsUsed: string[] = Array.from(new Set(allToolsUsed));
     let generatedImageUrl: string | null = null;
 
     if (options.generateImage !== false) {
@@ -404,7 +443,7 @@ Use as ferramentas disponíveis para buscar informações do prontuário antes d
             prompt: buildSimulationImagePrompt({
               patientName: context.patientName,
               userMessage: latestUserMessage.content,
-              assistantMessage: result.text,
+              assistantMessage: finalText,
             }),
             originalImages: latestUserMessage.imagemUrl
               ? [{ url: latestUserMessage.imagemUrl }]
@@ -424,7 +463,7 @@ Use as ferramentas disponíveis para buscar informações do prontuário antes d
 
     return {
       success: true,
-      message: result.text,
+      message: finalText,
       toolsUsed: uniqueToolsUsed.length > 0 ? uniqueToolsUsed : undefined,
       generatedImageUrl,
     };

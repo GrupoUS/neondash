@@ -1664,6 +1664,32 @@ export type PacienteRelatorioConsulta = typeof pacientesRelatoriosConsulta.$infe
 export type InsertPacienteRelatorioConsulta = typeof pacientesRelatoriosConsulta.$inferInsert;
 
 /**
+ * Mentorados Termos Customizados - Persisted custom term templates per mentorado.
+ * When a mentorada edits a clinical term (e.g. with their lawyer), the customized
+ * HTML is saved here so it can be reused across patients and sessions.
+ */
+export const mentoradosTermosCustomizados = pgTable(
+  "mentorados_termos_customizados",
+  {
+    id: serial("id").primaryKey(),
+    mentoradoId: integer("mentorado_id")
+      .notNull()
+      .references(() => mentorados.id, { onDelete: "cascade" }),
+    termoId: varchar("termo_id", { length: 100 }).notNull(), // matches template slug e.g. "uso_imagem"
+    conteudoHtml: text("conteudo_html").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("mentorados_termos_unico_idx").on(table.mentoradoId, table.termoId),
+    index("mentorados_termos_mentorado_idx").on(table.mentoradoId),
+  ]
+);
+
+export type MentoradoTermoCustomizado = typeof mentoradosTermosCustomizados.$inferSelect;
+export type InsertMentoradoTermoCustomizado = typeof mentoradosTermosCustomizados.$inferInsert;
+
+/**
  * Pacientes Procedimentos - Procedure history for each patient
  */
 export const pacientesProcedimentos = pgTable(

@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
+  mentoradosTermosCustomizados,
   pacientes,
   pacientesChatIa,
   pacientesDocumentos,
@@ -1207,6 +1208,85 @@ export const pacientesRouter = router({
         });
 
         return { success: true, email: input.pacienteEmail };
+      }),
+  }),
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TERMOS CUSTOMIZADOS (per-mentorado persistent templates)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  termos: router({
+    /** Load all custom term templates for the logged-in mentorado */
+    getAll: mentoradoProcedure.query(async ({ ctx }) => {
+      const db = getDb();
+      return db
+        .select()
+        .from(mentoradosTermosCustomizados)
+        .where(eq(mentoradosTermosCustomizados.mentoradoId, ctx.mentorado.id));
+    }),
+
+    /** Upsert a custom term template */
+    save: mentoradoProcedure
+      .input(
+        z.object({
+          termoId: z.string().min(1).max(100),
+          conteudoHtml: z.string().min(1, "Conteúdo do termo é obrigatório"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+
+        // Check if exists
+        const existing = await db
+          .select({ id: mentoradosTermosCustomizados.id })
+          .from(mentoradosTermosCustomizados)
+          .where(
+            and(
+              eq(mentoradosTermosCustomizados.mentoradoId, ctx.mentorado.id),
+              eq(mentoradosTermosCustomizados.termoId, input.termoId)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          // Update
+          const [updated] = await db
+            .update(mentoradosTermosCustomizados)
+            .set({
+              conteudoHtml: input.conteudoHtml,
+              updatedAt: new Date(),
+            })
+            .where(eq(mentoradosTermosCustomizados.id, existing[0].id))
+            .returning();
+          return updated;
+        }
+
+        // Insert
+        const [created] = await db
+          .insert(mentoradosTermosCustomizados)
+          .values({
+            mentoradoId: ctx.mentorado.id,
+            termoId: input.termoId,
+            conteudoHtml: input.conteudoHtml,
+          })
+          .returning();
+        return created;
+      }),
+
+    /** Delete a custom term to revert to default template */
+    reset: mentoradoProcedure
+      .input(z.object({ termoId: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = getDb();
+        await db
+          .delete(mentoradosTermosCustomizados)
+          .where(
+            and(
+              eq(mentoradosTermosCustomizados.mentoradoId, ctx.mentorado.id),
+              eq(mentoradosTermosCustomizados.termoId, input.termoId)
+            )
+          );
+        return { success: true };
       }),
   }),
 

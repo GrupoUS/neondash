@@ -498,7 +498,7 @@ export function DocumentManager({ patientId, patientData }: DocumentManagerProps
     if (isDataUrl(doc.url)) {
       downloadDataUrl(doc.url, doc.nome);
     } else {
-      window.open(doc.url, "_blank");
+      window.open(doc.url, "_blank", "noopener,noreferrer");
     }
   };
 

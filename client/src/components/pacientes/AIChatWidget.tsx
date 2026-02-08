@@ -274,30 +274,28 @@ export function AIChatWidget({ patientId, patientName, preloadedPhoto }: AIChatW
     setSimulationPhotoOpen(true);
   };
 
-  const handleStartSimulation = (withPhoto: boolean) => {
+  const handleStartSimulation = (photoUrl?: string) => {
     setSimulationMode(true);
     setSimulationPhotoOpen(false);
     form.setValue("content", SIMULATION_PROMPT);
 
-    if (!withPhoto) {
-      // Submit directly
-      setTimeout(() => {
-        form.handleSubmit(handleSend)();
-      }, 0);
-    } else {
-      // Photo already selected via handlePhotoSelect, just submit
-      setTimeout(() => {
-        form.handleSubmit(handleSend)();
-      }, 0);
+    // Set the image preview directly to avoid stale closure issue
+    if (photoUrl) {
+      setImagePreview(photoUrl);
     }
-  };
 
-  const handleSimulationWithoutPhoto = () => {
-    setSimulationMode(true);
-    setSimulationPhotoOpen(false);
-    form.setValue("content", SIMULATION_PROMPT);
+    // Use setTimeout to allow React state to flush before submitting
     setTimeout(() => {
-      form.handleSubmit(handleSend)();
+      form.handleSubmit((values) => {
+        generateResponseMutation.mutate({
+          pacienteId: patientId,
+          sessionId,
+          userMessage: values.content,
+          imagemUrl: photoUrl || imagePreview || undefined,
+          forceImageGeneration: true,
+        });
+        setSimulationMode(false);
+      })();
     }, 0);
   };
 
@@ -726,8 +724,7 @@ export function AIChatWidget({ patientId, patientName, preloadedPhoto }: AIChatW
                       type="button"
                       className="relative aspect-square rounded overflow-hidden border-2 border-transparent hover:border-violet-500 transition-all cursor-pointer"
                       onClick={() => {
-                        handlePhotoSelect(photo);
-                        handleStartSimulation(true);
+                        handleStartSimulation(photo.url);
                       }}
                     >
                       <img
@@ -754,7 +751,7 @@ export function AIChatWidget({ patientId, patientName, preloadedPhoto }: AIChatW
               <Button
                 variant="outline"
                 className="w-full gap-2 cursor-pointer"
-                onClick={handleSimulationWithoutPhoto}
+                onClick={() => handleStartSimulation()}
               >
                 <Wand2 className="h-4 w-4" />
                 {photos.length > 0 ? "Gerar simulação sem foto" : "Gerar simulação"}
@@ -768,7 +765,6 @@ export function AIChatWidget({ patientId, patientName, preloadedPhoto }: AIChatW
           </div>
         </DialogContent>
       </Dialog>
-      ;
     </>
   );
 }

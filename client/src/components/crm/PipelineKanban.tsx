@@ -1,6 +1,8 @@
 import {
   DndContext,
+  type DragEndEvent,
   DragOverlay,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   rectIntersection,
@@ -8,6 +10,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -138,33 +141,37 @@ export function PipelineKanban({
         tolerance: 5,
       },
     }),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
-  const handleDragStart = (event: unknown) => {
-    setActiveId((event as { active: { id: string } }).active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
   };
 
-  const handleDragEnd = (event: unknown) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     if (isReadOnly) return;
 
-    const { active, over } = event as {
-      active: { id: string };
-      over: { id: string } | null;
-    };
+    const { active, over } = event;
 
     if (!over) {
       setActiveId(null);
       return;
     }
 
-    const leadId = parseInt(active.id.toString().replace("lead-", ""), 10);
+    const leadId = Number.parseInt(String(active.id).replace("lead-", ""), 10);
+    if (Number.isNaN(leadId)) {
+      setActiveId(null);
+      return;
+    }
+
     const newStatus = columns.find((col) => col.id === over.id)?.id;
 
     if (newStatus) {
       updateStatusMutation.mutate({
         id: leadId,
-        status: newStatus as any,
+        status: newStatus as Parameters<typeof updateStatusMutation.mutate>[0]["status"],
       });
     }
 
@@ -272,7 +279,7 @@ export function PipelineKanban({
           }}
         >
           {activeLead && !isReadOnly ? (
-            <div className="scale-[1.03] cursor-grabbing shadow-[0_12px_40px_-8px_rgba(0,0,0,0.4),0_0_20px_-4px_rgba(var(--primary),0.3)] rounded-xl pointer-events-none">
+            <div className="scale-105 cursor-grabbing shadow-[0_12px_40px_-8px_rgba(0,0,0,0.4),0_0_20px_-4px_hsl(var(--primary)/0.3)] rounded-xl">
               <LeadCard lead={activeLead} onClick={() => {}} />
             </div>
           ) : null}

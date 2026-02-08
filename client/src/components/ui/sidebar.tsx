@@ -153,7 +153,7 @@ export const SidebarLink = ({ link, className, ...props }: { link: Links; classN
         className={cn(
           "text-sidebar-foreground text-base group-hover/sidebar:translate-x-1 whitespace-pre !p-0 !m-0",
           "transition-opacity duration-200 ease-in-out",
-          shouldShow ? "opacity-100 inline-block" : "opacity-0 hidden"
+          shouldShow ? "opacity-100 inline-block" : "opacity-0 invisible"
         )}
       >
         {link.label}

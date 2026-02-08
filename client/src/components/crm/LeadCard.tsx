@@ -188,7 +188,7 @@ function LeadCardComponent({
               {formattedValue}
             </span>
 
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0 group-focus-within:translate-x-0">
               {onSchedule && (
                 <Button
                   size="icon"

@@ -23,6 +23,15 @@ import { sendEmail } from "./emailService";
 import { patientChat } from "./services/patientAiService";
 import { storagePut } from "./storage";
 
+/** Server-safe HTML sanitizer: strips <script>, event handlers, and dangerous protocols */
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/\s*on\w+\s*=\s*(["'])[^"']*\1/gi, "")
+    .replace(/\s*on\w+\s*=\s*[^\s>]+/gi, "")
+    .replace(/href\s*=\s*["']?\s*javascript:/gi, 'href="#"');
+}
+
 const logger = createLogger({ service: "pacientesRouter" });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -197,7 +206,7 @@ const createChatMessageSchema = z.object({
   imagemUrl: z.string().url().optional().nullable(),
   imagemGeradaUrl: z.string().url().optional().nullable(),
   tokens: z.number().optional().nullable(),
-  metadata: z.any().optional().nullable(),
+  metadata: z.record(z.unknown()).optional().nullable(),
 });
 
 const saveGeneratedChatImageSchema = z
@@ -1171,7 +1180,7 @@ export const pacientesRouter = router({
           <tr>
             <td style="padding:20px 40px;">
               <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:30px;font-size:14px;color:#1f2937;line-height:1.7;">
-                ${input.termoHtml}
+                ${sanitizeHtml(input.termoHtml)}
               </div>
             </td>
           </tr>
@@ -1209,7 +1218,7 @@ export const pacientesRouter = router({
 
         logger.info("term_email_sent", {
           pacienteId: input.pacienteId,
-          email: input.pacienteEmail,
+          email: input.pacienteEmail.replace(/(.{2}).+(@.+)/, "$1***$2"),
           termo: input.termoTitulo,
         });
 

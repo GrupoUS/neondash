@@ -487,7 +487,7 @@ function PatientDetail({ id }: { id: number }) {
                       peso: null,
                       altura: null,
                       antecedentesEsteticos: paciente.infoMedica.condicoesPreexistentes,
-                      expectativas: paciente.infoMedica.contraindacacoes,
+                      expectativas: paciente.infoMedica.expectativasTratamento,
                     }
                   : null
               }

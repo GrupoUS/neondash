@@ -5,6 +5,7 @@
  */
 
 import { useUser } from "@clerk/clerk-react";
+import DOMPurify from "dompurify";
 import {
   Check,
   FileSignature,
@@ -21,7 +22,7 @@ import {
   Sparkles,
   Syringe,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -342,8 +343,9 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
   const customTermsQuery = trpc.pacientes.termos.getAll.useQuery(undefined, {
     staleTime: 5 * 60 * 1000,
   });
-  const customTermsMap = new Map(
-    (customTermsQuery.data ?? []).map((t) => [t.termoId, t.conteudoHtml])
+  const customTermsMap = useMemo(
+    () => new Map((customTermsQuery.data ?? []).map((t) => [t.termoId, t.conteudoHtml])),
+    [customTermsQuery.data]
   );
 
   const createMutation = trpc.pacientes.documentos.create.useMutation({
@@ -645,9 +647,9 @@ export function ClinicalTermsPanel({ patientId, patientData }: ClinicalTermsPane
                   ? "bg-white dark:bg-zinc-900 outline-none ring-2 ring-inset ring-primary/20"
                   : ""
               }`}
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: Controlled HTML from template literals, no user input
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: Sanitized with DOMPurify
               dangerouslySetInnerHTML={{
-                __html: selectedTerm ? getFilledContent(selectedTerm) : "",
+                __html: selectedTerm ? DOMPurify.sanitize(getFilledContent(selectedTerm)) : "",
               }}
             />
           </div>

@@ -19,7 +19,7 @@ import {
   Sparkles,
   Wand2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +81,13 @@ function InstagramPreview({
 }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = imageUrls.length;
+
+  // Clamp currentSlide when the number of slides changes
+  useEffect(() => {
+    if (currentSlide >= totalSlides && totalSlides > 0) {
+      setCurrentSlide(totalSlides - 1);
+    }
+  }, [totalSlides, currentSlide]);
 
   const goToSlide = (index: number) => {
     if (index >= 0 && index < totalSlides) setCurrentSlide(index);

@@ -332,9 +332,13 @@ function getLatestUserMessage(messages: PatientChatMessage[]): PatientChatMessag
 }
 
 function shouldGenerateSimulationImage(message: PatientChatMessage): boolean {
-  if (message.imagemUrl) return true;
   const normalizedContent = message.content.toLowerCase();
-  return IMAGE_GENERATION_KEYWORDS.some((keyword) => normalizedContent.includes(keyword));
+  const hasSimulationKeyword = IMAGE_GENERATION_KEYWORDS.some((keyword) =>
+    normalizedContent.includes(keyword)
+  );
+  // Only generate when simulation keywords are present (photo alone is not enough —
+  // user might just want analysis, not an expensive image generation call)
+  return hasSimulationKeyword;
 }
 
 function buildSimulationImagePrompt(params: {
